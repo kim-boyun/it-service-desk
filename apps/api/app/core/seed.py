@@ -14,14 +14,14 @@ def seed_users(session: Session) -> None:
         # admin
         dict(
             email="admin@kdischool.ac.kr",
-            password="Admin1234!@",
+            password="admin1234!@",
             role="admin",
             is_verified=True,
         ),
         # agent
         dict(
             email="agent@kdischool.ac.kr",
-            password="Agent1234!@",
+            password="agent1234!@",
             role="agent",
             is_verified=True,
         ),
