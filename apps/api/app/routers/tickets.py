@@ -219,38 +219,37 @@ def get_ticket_detail(
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
 ):
-    # 1. 티켓 조회
     ticket = session.get(Ticket, ticket_id)
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
 
-    # 2. 접근 권한
-    if not is_staff(user) and ticket.requester_id != user.id:
+    is_staff = user.role in ("agent", "admin")
+    if not is_staff and ticket.requester_id != user.id:
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    # 3. 댓글 조회
-    comment_stmt = select(TicketComment).where(
-        TicketComment.ticket_id == ticket_id
-    ).order_by(TicketComment.id.asc())
+    # comments: 이미 구현된 로직 그대로 사용 (내부댓글 필터 이미 하고 있지?)
+    comments_stmt = select(TicketComment).where(TicketComment.ticket_id == ticket_id)
+    if not is_staff:
+        comments_stmt = comments_stmt.where(TicketComment.is_internal == False)
+    comments = list(session.scalars(comments_stmt.order_by(TicketComment.id.asc())).all())
 
-    # requester는 internal 댓글 제외
-    if not is_staff(user):
-        comment_stmt = comment_stmt.where(TicketComment.is_internal == False)
+    # events: 이미 구현된 로직 그대로
+    events_stmt = select(TicketEvent).where(TicketEvent.ticket_id == ticket_id).order_by(TicketEvent.id.asc())
+    events = list(session.scalars(events_stmt).all())
 
-    comments = list(session.scalars(comment_stmt).all())
-
-    # 4. 이벤트 조회 (requester도 조회 가능)
-    event_stmt = select(TicketEvent).where(
-        TicketEvent.ticket_id == ticket_id
-    ).order_by(TicketEvent.id.asc())
-
-    events = list(session.scalars(event_stmt).all())
+    # ✅ attachments 추가
+    att_stmt = select(Attachment).where(Attachment.ticket_id == ticket_id).order_by(Attachment.id.asc())
+    if not is_staff:
+        att_stmt = att_stmt.where(Attachment.is_internal == False)
+    attachments = list(session.scalars(att_stmt).all())
 
     return {
         "ticket": ticket,
         "comments": comments,
         "events": events,
+        "attachments": attachments,
     }
+
 
 @router.post("/{ticket_id}/attachments")
 def add_ticket_attachment(

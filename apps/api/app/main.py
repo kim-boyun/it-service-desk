@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from .routers import auth, health, tickets, comments, uploads
+from .routers import auth, health, tickets, comments, uploads, attachments
 from .models.user import Base
 from .db import engine, SessionLocal
 
@@ -26,3 +26,4 @@ app.include_router(auth.router)
 app.include_router(tickets.router)
 app.include_router(comments.router)
 app.include_router(uploads.router)
+app.include_router(attachments.router)

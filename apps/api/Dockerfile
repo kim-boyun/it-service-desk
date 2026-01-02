@@ -15,7 +15,8 @@ RUN pip install --no-cache-dir \
     alembic==1.13.*\
     boto3==1.*\
     botocore==1.*\
-    python-multipart==0.0.*
+    python-multipart==0.0.*\
+    pydantic-settings
 
 
 # app/ + alembic/ + alembic.ini까지 모두 포함되도록

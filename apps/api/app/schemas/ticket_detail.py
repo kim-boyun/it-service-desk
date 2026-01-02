@@ -4,8 +4,10 @@ from typing import List
 from .ticket import TicketOut
 from .comment import CommentOut
 from .event import EventOut
+from app.schemas.attachment import AttachmentOut
 
 class TicketDetailOut(BaseModel):
     ticket: TicketOut
-    comments: List[CommentOut]
-    events: List[EventOut]
+    comments: list[CommentOut]
+    events: list[EventOut]
+    attachments: list[AttachmentOut]
