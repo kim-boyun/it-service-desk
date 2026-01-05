@@ -4,6 +4,8 @@ import { useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { useMe } from "@/lib/auth-context";
+
 
 type Comment = {
   id: number;
@@ -54,6 +56,9 @@ export default function TicketDetailPage() {
   const router = useRouter();
   const qc = useQueryClient();
 
+  const me = useMe();
+  const isStaff = me.role === "agent" || me.role === "admin";
+
   const detailQ = useQuery({
     queryKey: ["ticket-detail", ticketId],
     queryFn: () => api<TicketDetail>(`/tickets/${ticketId}/detail`),
@@ -77,6 +82,59 @@ export default function TicketDetailPage() {
       await qc.invalidateQueries({ queryKey: ["ticket-detail", ticketId] });
     },
   });
+
+  // 첨부파일 다운로드
+  const downloadAttachmentM = useMutation({
+    mutationFn: (key: string) =>
+      api<{ url: string }>("/uploads/presign-get", {
+        method: "POST",
+        body: { key },
+      }),
+    onSuccess: ({ url }) => {
+      // presigned GET URL로 즉시 다운로드
+      window.location.href = url;
+    },
+  });
+
+  // 첨부파일 업로드
+  const uploadAttachmentM = useMutation({
+    mutationFn: async (file: File) => {
+      // 1) presigned PUT 발급 (정답 엔드포인트)
+      const presign = await api<{ url: string; key: string; expires_in: number }>("/uploads/presign", {
+        method: "POST",
+        body: {
+          filename: file.name,
+          content_type: file.type || "application/octet-stream",
+        },
+      });
+
+      // 2) 실제 파일 업로드
+      const putRes = await fetch(presign.url, {
+        method: "PUT",
+        body: file,
+      });
+      if (!putRes.ok) {
+        throw new Error(`PUT upload failed: ${putRes.status}`);
+      }
+
+      // 3) 메타데이터 등록 (너 백엔드가 어떤 경로인지에 따라 다름)
+      // 보통: POST /attachments
+      await api("/attachments", {
+        method: "POST",
+        body: {
+          ticket_id: ticketId,
+          key: presign.key,
+          filename: file.name,
+          size: file.size,
+        },
+      });
+    },
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["ticket-detail", ticketId] });
+    },
+  });
+
+
 
   if (detailQ.isLoading) return <div className="p-6">불러오는 중...</div>;
   if (detailQ.error)
@@ -142,53 +200,83 @@ export default function TicketDetailPage() {
 
         {/* 우측 패널 */}
         <div className="space-y-4">
-          <section className="border rounded-lg p-4 space-y-3">
-            <div className="font-semibold">처리</div>
-            <div className="text-sm text-gray-600">
-              아래 액션은 권한(에이전트/관리자)에 따라 실패할 수 있어.
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm">상태 변경</label>
-              <div className="flex gap-2">
-                <select
-                  className="border rounded p-2 flex-1"
-                  defaultValue={ticket.status}
-                  onChange={(e) => updateStatusM.mutate({ status: e.target.value })}
-                >
-                  {/* 네 백엔드 상태 enum에 맞춰 나중에 조정 */}
-                  <option value="open">open</option>
-                  <option value="in_progress">in_progress</option>
-                  <option value="resolved">resolved</option>
-                  <option value="closed">closed</option>
-                </select>
+          {isStaff && (
+            <section className="border rounded-lg p-4 space-y-3">
+              <div className="font-semibold">처리</div>
+              <div className="text-sm text-gray-600">
+                아래 액션은 권한(에이전트/관리자)에 따라 실패할 수 있어.
               </div>
-              {updateStatusM.isError && (
-                <div className="text-xs text-red-600">
-                  상태 변경 실패: {(updateStatusM.error as any).message}
+
+              <div className="space-y-2">
+                <label className="text-sm">상태 변경</label>
+                <div className="flex gap-2">
+                  <select
+                    className="border rounded p-2 flex-1"
+                    defaultValue={ticket.status}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      if (next !== ticket.status) {
+                        updateStatusM.mutate({ status: next });
+                      }
+                    }}
+
+                  >
+                    {/* 네 백엔드 상태 enum에 맞춰 나중에 조정 */}
+                    <option value="open">open</option>
+                    <option value="in_progress">in_progress</option>
+                    <option value="resolved">resolved</option>
+                    <option value="closed">closed</option>
+                  </select>
                 </div>
-              )}
-            </div>
-          </section>
+                {updateStatusM.isError && (
+                  <div className="text-xs text-red-600">
+                    상태 변경 실패: {(updateStatusM.error as any).message}
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
 
           <section className="border rounded-lg p-4 space-y-3">
             <div className="font-semibold">첨부파일</div>
-            <AttachmentList items={attachments} emptyText="첨부파일이 없습니다." />
-            {/* 업로드는 presigned PUT 흐름이 있어서 다음 단계에서 붙임 */}
-            <div className="text-xs text-gray-500">
-              업로드 UI는 다음 단계에서 presigned PUT/등록 API로 연결할게.
-            </div>
+
+            <AttachmentList
+              items={attachments}
+              emptyText="첨부파일이 없습니다."
+              onDownload={(key) => downloadAttachmentM.mutate(key)}
+              loading={downloadAttachmentM.isPending}
+            />
+
+            {/* 업로드 */}
+            <label className="inline-block">
+              <input
+                type="file"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  uploadAttachmentM.mutate(file);
+                  e.currentTarget.value = ""; // 같은 파일 재선택 가능
+                }}
+              />
+              <span className="inline-block border rounded px-3 py-2 text-sm cursor-pointer">
+                {uploadAttachmentM.isPending ? "업로드 중..." : "파일 업로드"}
+              </span>
+            </label>
           </section>
 
-          <section className="border rounded-lg p-4 space-y-3">
-            <div className="font-semibold">내부 메모</div>
-            <CommentList items={internalComments} emptyText="아직 내부 메모가 없습니다." />
-            <CommentComposer
-              placeholder="전산팀 내부 공유 메모(사용자 비공개)..."
-              onSubmit={(content) => createCommentM.mutate({ content, is_internal: true })}
-              loading={createCommentM.isPending}
-            />
-          </section>
+
+          {isStaff && (
+            <section className="border rounded-lg p-4 space-y-3">
+              <div className="font-semibold">내부 메모</div>
+              <CommentList items={internalComments} emptyText="아직 내부 메모가 없습니다." />
+              <CommentComposer
+                placeholder="전산팀 내부 공유 메모(사용자 비공개)..."
+                onSubmit={(content) => createCommentM.mutate({ content, is_internal: true })}
+                loading={createCommentM.isPending}
+              />
+            </section>
+          )}
         </div>
       </div>
     </div>
@@ -265,21 +353,40 @@ function EventList({ items, emptyText }: { items: Event[]; emptyText: string }) 
   );
 }
 
-function AttachmentList({ items, emptyText }: { items: Attachment[]; emptyText: string }) {
-  if (!items.length) return <div className="text-sm text-gray-500">{emptyText}</div>;
-  return (
-    <div className="space-y-2">
-      {items.map((a) => (
-        <div key={a.id} className="border rounded p-3 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className="text-sm font-medium truncate">{a.filename}</div>
-            <div className="text-xs text-gray-500">업로더 #{a.uploaded_by} · {a.created_at}</div>
+function AttachmentList({
+    items,
+    emptyText,
+    onDownload,
+    loading,
+  }: {
+    items: Attachment[];
+    emptyText: string;
+    onDownload: (key: string) => void;
+    loading: boolean;
+  }) {
+    if (!items.length) return <div className="text-sm text-gray-500">{emptyText}</div>;
+    return (
+      <div className="space-y-2">
+        {items.map((a) => (
+          <div key={a.id} className="border rounded p-3 flex justify-between items-center">
+            <div>
+              <div className="text-sm font-medium">{a.filename}</div>
+              <div className="text-xs text-gray-500">
+                업로더 #{a.uploaded_by} · {a.created_at}
+              </div>
+            </div>
+
+            <button
+              className="border rounded px-3 py-2 text-sm"
+              onClick={() => onDownload(a.key)}
+              disabled={loading}
+            >
+              {loading ? "다운로드 중..." : "다운로드"}
+            </button>
+
           </div>
-          <button className="border rounded px-3 py-2 text-sm" disabled title="다음 단계에서 presigned GET 연결">
-            다운로드
-          </button>
-        </div>
-      ))}
-    </div>
-  );
-}
+        ))}
+
+      </div>
+    );
+  }
