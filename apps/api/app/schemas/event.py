@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from datetime import datetime
 
 class EventOut(BaseModel):
     id: int
@@ -8,6 +9,7 @@ class EventOut(BaseModel):
     from_value: str | None
     to_value: str | None
     note: str | None
+    created_at: datetime | None = None
 
     class Config:
         from_attributes = True

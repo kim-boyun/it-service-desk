@@ -7,30 +7,37 @@ import AuthGuard from "@/components/AuthGuard";
 import Sidebar from "@/components/Sidebar";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useMe } from "@/lib/auth-context";
 
 function TopNav() {
   const pathname = usePathname();
+  const me = useMe();
   const items = [
     { href: "/home", label: "HOME" },
-    { href: "/tickets", label: "고객요청" },
+    { href: "/tickets", label: "티켓" },
     { href: "/notices", label: "공지사항" },
     { href: "/faq", label: "FAQ" },
-    { href: "/stats", label: "통계" },
+    ...(me.role === "admin" ? [{ href: "/admin", label: "관리자" }] : []),
   ];
 
   return (
-    <header className="h-14 border-b bg-white/70 backdrop-blur sticky top-0 z-20">
-      <div className="h-full px-6 flex items-center justify-between">
-        <div className="font-semibold tracking-tight">CSR</div>
-        <nav className="flex items-center gap-8 text-sm">
+    <header className="h-24 border-b bg-white/90 backdrop-blur sticky top-0 z-30 shadow-md">
+      <div className="h-full px-12 flex items-center justify-between">
+        <div className="leading-tight">
+          <div className="text-2xl font-extrabold text-gray-900">IT Service Desk</div>
+          <div className="text-sm text-gray-500">더 빠른 지원을 위한 헬프데스크</div>
+        </div>
+        <nav className="flex items-center gap-16 text-xl">
           {items.map((it) => {
             const active = pathname === it.href || pathname?.startsWith(it.href + "/");
             return (
               <Link
                 key={it.href}
                 href={it.href}
-                className={`hover:underline ${
-                  active ? "font-semibold" : "text-gray-600"
+                className={`transition-colors ${
+                  active
+                    ? "font-bold text-gray-900 border-b-4 border-sky-500 pb-2"
+                    : "text-gray-600 hover:text-gray-800"
                 }`}
               >
                 {it.label}
@@ -38,19 +45,25 @@ function TopNav() {
             );
           })}
         </nav>
-        <div className="text-xs text-gray-600">KDI국제정책대학원</div>
+        <div className="text-base text-gray-700 flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block" aria-hidden />
+          {me.email || "KDI국제정책대학원"}
+        </div>
       </div>
     </header>
   );
 }
 
 function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const showTicketSidebar = pathname.startsWith("/tickets");
+
   return (
-    <div className="min-h-screen grid grid-cols-1 md:grid-cols-[260px_1fr]">
-      <Sidebar />
-      <div className="min-w-0">
-        <TopNav />
-        <main className="min-w-0">{children}</main>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-sky-50">
+      <TopNav />
+      <div className="max-w-7xl mx-auto px-6 py-4 flex gap-6">
+        {showTicketSidebar && <Sidebar />}
+        <main className="flex-1 min-w-0">{children}</main>
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ import { api } from "@/lib/api";
 type Ticket = {
   id: number;
   title: string;
-  status: string; // open | in_progress | resolved | closed 등등 (백엔드 값에 맞춰 매핑)
+  status: string;
   priority?: string;
   category?: string;
   assignee_id?: number | null;
@@ -27,12 +27,7 @@ function Card({
   className?: string;
 }) {
   return (
-    <div
-      className={
-        "rounded-2xl border border-white/30 bg-white/80 backdrop-blur shadow-sm " +
-        className
-      }
-    >
+    <div className={"rounded-2xl border border-white/30 bg-white/80 backdrop-blur shadow-sm " + className}>
       <div className="px-5 pt-4 pb-3 flex items-center justify-between">
         <div className="text-sm font-semibold">{title}</div>
         {right}
@@ -42,45 +37,25 @@ function Card({
   );
 }
 
-function StatPill({
-  label,
-  value,
-  accent,
-  loading,
-}: {
-  label: string;
-  value: number;
-  accent?: boolean;
-  loading?: boolean;
-}) {
+function StatPill({ label, value, accent, loading }: { label: string; value: number; accent?: boolean; loading?: boolean }) {
   return (
     <div className="rounded-2xl border border-white/30 bg-white/85 backdrop-blur shadow-sm px-5 py-4 flex items-center justify-between gap-6">
       <div className={`text-sm font-semibold ${accent ? "text-teal-700" : "text-gray-800"}`}>{label}</div>
-      <div className={`text-xl font-bold ${accent ? "text-teal-700" : ""}`}>
-        {loading ? "…" : value}
-      </div>
+      <div className={`text-xl font-bold ${accent ? "text-teal-700" : ""}`}>{loading ? "…" : value}</div>
     </div>
   );
 }
 
-/**
- * ✅ 너희 백엔드 status 값이 뭐냐에 따라 이 매핑만 맞추면 됨.
- * 지금은 안전하게:
- * - open / new / pending => 대기
- * - in_progress / progress / working => 진행
- * - resolved / closed / done => 완료
- */
 function classifyStatus(status: string) {
   const s = (status || "").toLowerCase();
 
   const waiting = new Set(["open", "new", "pending", "todo", "requested"]);
-  const doing = new Set(["in_progress", "progress", "working", "assigned", "doing"]);
+  const doing = new Set(["in_progress", "progress", "working", "assigned", "doing", "processing"]);
   const done = new Set(["resolved", "closed", "done", "completed"]);
 
   if (waiting.has(s)) return "waiting";
   if (doing.has(s)) return "doing";
   if (done.has(s)) return "done";
-  // 알 수 없으면 대기로 처리
   return "waiting";
 }
 
@@ -92,14 +67,11 @@ function statusBadge(status: string) {
 }
 
 export default function HomePage() {
-  // ✅ 티켓을 넉넉히 가져와서(예: 200개) 프론트에서 집계
-  // 데이터가 많아지면 서버에 /stats 같은 집계 API를 추가하는 게 정석.
   const limit = 100;
 
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ["homeTickets", limit],
     queryFn: async () => {
-      // 백엔드에 /tickets GET 있음 (status/priority/category filter 지원)
       return await api<Ticket[]>(`/tickets?limit=${limit}&offset=0`, { method: "GET" });
     },
     staleTime: 10_000,
@@ -119,7 +91,6 @@ export default function HomePage() {
       else done++;
     }
 
-    // 최신순 정렬 (created_at이 없거나 형식 다르면 id로 대체)
     const recentTickets = [...tickets]
       .sort((a, b) => {
         const at = a.created_at ? Date.parse(a.created_at) : 0;
@@ -137,9 +108,19 @@ export default function HomePage() {
     };
   }, [data]);
 
+  const notices = [
+    "최근 블라 브라우저 업데이트로 일부 로그인 이슈가 발생 중입니다.",
+    "기숙사/시설 관련 요청은 요일 기준으로 순차 처리됩니다.",
+    "첨부파일 업로드 제한: 20MB",
+  ];
+
+  const faqs = [
+    "VPN 연결이 자주 끊길 때",
+    "Outlook 메일 용량 초과 해결 방법",
+  ];
+
   return (
     <div className="relative min-h-[calc(100vh-56px)]">
-      {/* 배경 */}
       <div className="absolute inset-0 -z-10">
         <div
           className="absolute inset-0 bg-cover bg-center"
@@ -154,47 +135,36 @@ export default function HomePage() {
 
       <div className="p-6">
         <div className="max-w-6xl mx-auto">
-          {/* 상단 통계 */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <StatPill label="대기" value={waitingCount} accent loading={isLoading || isFetching} />
             <StatPill label="진행" value={doingCount} loading={isLoading || isFetching} />
             <StatPill label="완료" value={doneCount} loading={isLoading || isFetching} />
           </div>
 
-          {/* 에러 표시 */}
           {isError && (
             <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
               티켓을 불러오지 못했습니다.{" "}
               <button className="underline" onClick={() => refetch()}>
                 다시 시도
               </button>
-              <div className="mt-1 text-xs text-red-700">
-                {(error as any)?.message ?? "Unknown error"}
-              </div>
+              <div className="mt-1 text-xs text-red-700">{(error as any)?.message ?? "Unknown error"}</div>
             </div>
           )}
 
-          {/* 메인 그리드 */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* 공지사항 (더미) */}
-            <Card title="공지사항" right={<span className="text-xs text-gray-500">‹ › ⟳ ＋</span>}>
+            <Card title="공지사항" right={<span className="text-xs text-gray-500">최근</span>}>
               <ul className="text-sm text-gray-700 space-y-2 leading-6">
-                <li>• 크롬 최신 업데이트로 인해 스크롤 이슈가 발생할 수 있습니다.</li>
-                <li>• 엣지, 크롬 업데이트 후 eGate-Plus 접속 오류 해결 안내</li>
-                <li>• 원격지원은 운영시간(09:00~18:00) 내 지원됩니다.</li>
+                {notices.map((n, i) => (
+                  <li key={i}>{n}</li>
+                ))}
               </ul>
             </Card>
 
-            {/* 요청현황 (연동) */}
             <Card
-              title="요청현황"
+              title="요청 현황"
               right={
-                <button
-                  className="text-xs text-gray-600 hover:underline"
-                  onClick={() => refetch()}
-                  title="새로고침"
-                >
-                  {isFetching ? "불러오는 중…" : "새로고침"}
+                <button className="text-xs text-gray-600 hover:underline" onClick={() => refetch()} title="새로고침">
+                  {isFetching ? "불러오는 중..." : "새로고침"}
                 </button>
               }
               className="lg:col-span-2"
@@ -213,7 +183,7 @@ export default function HomePage() {
                     {(recent ?? []).length === 0 ? (
                       <tr>
                         <td className="p-3 text-gray-500" colSpan={4}>
-                          최근 요청이 없습니다.
+                          최신 요청이 없습니다.
                         </td>
                       </tr>
                     ) : (
@@ -227,7 +197,9 @@ export default function HomePage() {
                               </Link>
                             </td>
                             <td className="p-2">
-                              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${b.className}`}>
+                              <span
+                                className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${b.className}`}
+                              >
                                 {b.label}
                               </span>
                             </td>
@@ -248,50 +220,18 @@ export default function HomePage() {
               </div>
             </Card>
 
-            {/* 아래 카드들은 일단 더미 유지 (원하면 다음에 연동) */}
-            <Card title="고객정보">
-              <div className="text-sm text-gray-700 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="font-medium">KDISCHOOL 유지보수_2026</div>
-                  <span className="text-xs rounded-full bg-blue-100 text-blue-800 px-2 py-0.5">
-                    운영지원
-                  </span>
-                </div>
-                <div className="text-xs text-gray-500">계약기간 2026-01-01 ~ 2026-12-31</div>
-                <div className="mt-3 rounded-xl border bg-white p-3">
-                  <div className="text-xs text-gray-500 mb-2">진행률</div>
-                  <div className="h-2 rounded bg-gray-200 overflow-hidden">
-                    <div className="h-full w-[38%] bg-teal-500" />
-                  </div>
-                  <div className="mt-2 text-xs text-gray-600">진행중 18건</div>
-                </div>
-              </div>
-            </Card>
-
-            <div className="lg:col-span-2 rounded-2xl border border-white/30 bg-white/80 backdrop-blur shadow-sm p-5 flex items-center justify-between">
-              <div>
-                <div className="text-sm font-semibold">원격지원 바로가기</div>
-                <div className="text-sm text-gray-600 mt-1">
-                  기업용 원격지원 서비스를 통해 신속한 해결을 지원합니다.
-                </div>
-              </div>
-              <button className="rounded-xl bg-blue-600 text-white px-4 py-2 text-sm font-medium hover:bg-blue-700">
-                바로가기
-              </button>
-            </div>
-
-            <Card title="업무담당자">
+            <Card title="고객 담당자">
               <div className="text-sm text-gray-700 space-y-3">
                 <div className="flex items-start justify-between">
                   <div>
-                    <div className="font-medium">조영철 · 이사</div>
+                    <div className="font-medium">조영수 · 기사</div>
                     <div className="text-xs text-gray-500">010-8795-9580</div>
                   </div>
                   <div className="text-xs text-blue-700">hccho@cordial.co.kr</div>
                 </div>
                 <div className="flex items-start justify-between">
                   <div>
-                    <div className="font-medium">서영남 · 부장</div>
+                    <div className="font-medium">서영혁 · 부장</div>
                     <div className="text-xs text-gray-500">010-3358-1846</div>
                   </div>
                   <div className="text-xs text-blue-700">syn@cordial.co.kr</div>
@@ -301,16 +241,27 @@ export default function HomePage() {
 
             <Card title="FAQ">
               <ul className="text-sm text-gray-700 space-y-2 leading-6">
-                <li>• MoimTalkOn 메시지를 이용한 커뮤니케이션 채널 확장</li>
-                <li>• eGatePLUS(메일PC지정) 설치 후 실행이 안되는 경우</li>
+                {faqs.map((f, i) => (
+                  <li key={i}>{f}</li>
+                ))}
               </ul>
             </Card>
 
-            <div className="lg:col-span-2 rounded-2xl border border-white/30 bg-white/80 backdrop-blur shadow-sm p-5">
-              <div className="text-2xl font-semibold text-sky-800">기업용 스마트 워크플레이스</div>
-              <div className="text-sm text-gray-600 mt-2">
-                HOME에서 공지/요청/FAQ/통계를 한눈에 확인합니다.
+            <div className="lg:col-span-2 rounded-2xl border border-white/30 bg-white/80 backdrop-blur shadow-sm p-5 flex items-center justify-between">
+              <div>
+                <div className="text-sm font-semibold">장애/보안 바로가기</div>
+                <div className="text-sm text-gray-600 mt-1">
+                  긴급 장애나 보안 이슈는 별도 채널로 신고해 주세요.
+                </div>
               </div>
+              <button className="rounded-xl bg-blue-600 text-white px-4 py-2 text-sm font-medium hover:bg-blue-700">
+                바로가기
+              </button>
+            </div>
+
+            <div className="lg:col-span-2 rounded-2xl border border-white/30 bg-white/80 backdrop-blur shadow-sm p-5">
+              <div className="text-2xl font-semibold text-sky-800">기업자산 모니터링</div>
+              <div className="text-sm text-gray-600 mt-2">HOME에서 공지/요청/FAQ/통계를 빠르게 확인할 수 있습니다.</div>
             </div>
           </div>
         </div>

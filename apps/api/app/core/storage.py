@@ -17,11 +17,11 @@ class StorageConfig:
 
 def get_storage_config() -> StorageConfig:
     return StorageConfig(
-        endpoint_url=settings.NCP_S3_ENDPOINT,
-        region=settings.NCP_S3_REGION,
-        access_key=settings.NCP_ACCESS_KEY,
-        secret_key=settings.NCP_SECRET_KEY,
-        bucket=settings.NCP_BUCKET,
+        endpoint_url=settings.OBJECT_STORAGE_ENDPOINT,
+        region=settings.OBJECT_STORAGE_REGION,
+        access_key=settings.OBJECT_STORAGE_ACCESS_KEY,
+        secret_key=settings.OBJECT_STORAGE_SECRET_KEY,
+        bucket=settings.OBJECT_STORAGE_BUCKET,
     )
 
 def get_s3_client():
