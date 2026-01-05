@@ -99,34 +99,14 @@ export default function TicketDetailPage() {
   // 첨부파일 업로드
   const uploadAttachmentM = useMutation({
     mutationFn: async (file: File) => {
-      // 1) presigned PUT 발급 (정답 엔드포인트)
-      const presign = await api<{ url: string; key: string; expires_in: number }>("/uploads/presign", {
-        method: "POST",
-        body: {
-          filename: file.name,
-          content_type: file.type || "application/octet-stream",
-        },
-      });
+      const fd = new FormData();
+      fd.append("file", file);
 
-      // 2) 실제 파일 업로드
-      const putRes = await fetch(presign.url, {
-        method: "PUT",
-        body: file,
-      });
-      if (!putRes.ok) {
-        throw new Error(`PUT upload failed: ${putRes.status}`);
-      }
-
-      // 3) 메타데이터 등록 (너 백엔드가 어떤 경로인지에 따라 다름)
-      // 보통: POST /attachments
-      await api("/attachments", {
+      // 새 엔드포인트로 업로드
+      await api(`/tickets/${ticketId}/attachments/upload`, {
         method: "POST",
-        body: {
-          ticket_id: ticketId,
-          key: presign.key,
-          filename: file.name,
-          size: file.size,
-        },
+        body: fd,
+        // api() 내부가 JSON 전용이면, 여기만 fetch로 따로 빼도 됨 (아래 참고)
       });
     },
     onSuccess: async () => {

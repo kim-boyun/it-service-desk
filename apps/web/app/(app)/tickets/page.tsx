@@ -8,8 +8,16 @@ type Ticket = {
   id: number;
   title: string;
   status: string;
-  updated_at?: string | null;
+  requester_id: number;
+  assignee_id?: number | null;
+  created_at: string;
+  updated_at: string;
 };
+
+type TicketListOut =
+  | { items: Ticket[]; total: number; limit: number; offset: number }   // 흔한 형태
+  | { data: Ticket[]; total: number; limit: number; offset: number };   // 혹시 이런 형태면 대응
+
 
 type TicketListResponse =
   | { items: Ticket[]; total?: number }

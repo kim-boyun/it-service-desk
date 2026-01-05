@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     OBJECT_STORAGE_ENDPOINT: str
     OBJECT_STORAGE_BUCKET: str
     OBJECT_STORAGE_REGION: str = "kr-standard"
+    
 
     class Config:
         env_file = ".env"
