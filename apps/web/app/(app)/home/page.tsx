@@ -153,6 +153,46 @@ function formatDate(v?: string | null) {
   return Number.isNaN(d.getTime()) ? "-" : d.toLocaleString();
 }
 
+// ✅ "정/부" 제거: 카테고리당 1명만
+const contactGroups: ContactGroup[] = [
+  {
+    category: "Dooray(메일/메신저)",
+    person: { name: "김준호", title: "전문원", dept: "전산2팀", email: "junho_kim@kdischool.ac.kr", phone: "044-550-1123" },
+  },
+  {
+    category: "VDI(GabiaDaaS)",
+    person: { name: "김준호", title: "전문원", dept: "전산2팀", email: "junho_kim@kdischool.ac.kr", phone: "044-550-1123" },
+  },
+  {
+    category: "포탈",
+    person: { name: "현민성", title: "책임전문원", dept: "전산2팀/팀장", email: "ms_hyun@kdischool.ac.kr", phone: "044-550-1116" },
+  },
+  {
+    category: "MIS(학사)",
+    person: { name: "김준호", title: "전문원", dept: "전산2팀", email: "junho_kim@kdischool.ac.kr", phone: "044-550-1123" },
+  },
+  {
+    category: "MIS(일반행정)",
+    person: { name: "김현아", title: "전문원", dept: "전산2팀", email: "hakim@kdischool.ac.kr", phone: "044-550-1059" },
+  },
+  {
+    category: "클라우드",
+    person: { name: "김준호", title: "전문원", dept: "전산2팀", email: "junho_kim@kdischool.ac.kr", phone: "044-550-1123" },
+  },
+  {
+    category: "정보보안",
+    person: { name: "임을영", title: "선임전문원", dept: "전산2팀", email: "ey_lim@kdischool.ac.kr", phone: "044-550-1052" },
+  },
+  {
+    category: "네트워크/서버",
+    person: { name: "임을영", title: "선임전문원", dept: "전산2팀", email: "ey_lim@kdischool.ac.kr", phone: "044-550-1052" },
+  },
+  {
+    category: "PC/프린터",
+    person: { name: "송창용", title: "책임전문원", dept: "전산2팀", email: "cysong@kdischool.ac.kr", phone: "044-550-1275" },
+  },
+];
+
 export default function HomePage() {
   const limit = 100;
   const [notices, setNotices] = useState<Notice[]>([]);
@@ -233,46 +273,6 @@ export default function HomePage() {
       alive = false;
     };
   }, []);
-
-  // ✅ "정/부" 제거: 카테고리당 1명만
-  const contactGroups: ContactGroup[] = [
-    {
-      category: "Dooray(메일/메신저)",
-      person: { name: "김준호", title: "전문원", dept: "전산2팀", email: "junho_kim@kdischool.ac.kr", phone: "044-550-1123" },
-    },
-    {
-      category: "VDI(GabiaDaaS)",
-      person: { name: "김준호", title: "전문원", dept: "전산2팀", email: "junho_kim@kdischool.ac.kr", phone: "044-550-1123" },
-    },
-    {
-      category: "포탈",
-      person: { name: "현민성", title: "책임전문원", dept: "전산2팀/팀장", email: "ms_hyun@kdischool.ac.kr", phone: "044-550-1116" },
-    },
-    {
-      category: "MIS(학사)",
-      person: { name: "김준호", title: "전문원", dept: "전산2팀", email: "junho_kim@kdischool.ac.kr", phone: "044-550-1123" },
-    },
-    {
-      category: "MIS(일반행정)",
-      person: { name: "김현아", title: "전문원", dept: "전산2팀", email: "hakim@kdischool.ac.kr", phone: "044-550-1059" },
-    },
-    {
-      category: "클라우드",
-      person: { name: "김준호", title: "전문원", dept: "전산2팀", email: "junho_kim@kdischool.ac.kr", phone: "044-550-1123" },
-    },
-    {
-      category: "정보보안",
-      person: { name: "임을영", title: "선임전문원", dept: "전산2팀", email: "ey_lim@kdischool.ac.kr", phone: "044-550-1052" },
-    },
-    {
-      category: "네트워크/서버",
-      person: { name: "임을영", title: "선임전문원", dept: "전산2팀", email: "ey_lim@kdischool.ac.kr", phone: "044-550-1052" },
-    },
-    {
-      category: "PC/프린터",
-      person: { name: "송창용", title: "책임전문원", dept: "전산2팀", email: "cysong@kdischool.ac.kr", phone: "044-550-1275" },
-    },
-  ];
 
   const topNotices = useMemo(
     () =>
