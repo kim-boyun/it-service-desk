@@ -37,7 +37,7 @@ export default function NewFaqPage() {
   const [saving, setSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
-  const canEdit = useMemo(() => me.role === "admin" || me.role === "agent", [me.role]);
+  const canEdit = useMemo(() => me.role === "admin", [me.role]);
 
   useUnsavedChangesWarning(isDirty);
 

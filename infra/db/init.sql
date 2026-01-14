@@ -3,9 +3,8 @@
 -- 0) users
 CREATE TABLE IF NOT EXISTS users (
     id BIGSERIAL PRIMARY KEY,
-    employee_no VARCHAR(50) UNIQUE,
+    employee_no VARCHAR(50) UNIQUE NOT NULL,
     name VARCHAR(100),
-    email VARCHAR(255) UNIQUE NOT NULL,
     role VARCHAR(20) NOT NULL CHECK (role IN ('requester', 'agent', 'admin')),
     title VARCHAR(100),
     department VARCHAR(100),

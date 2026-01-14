@@ -7,11 +7,10 @@ import { api } from "@/lib/api";
 import PageHeader from "@/components/PageHeader";
 import ErrorDialog from "@/components/ErrorDialog";
 
-type Role = "requester" | "agent" | "admin";
+type Role = "requester" | "admin";
 
 type UserRow = {
   id: number;
-  email: string;
   employee_no?: string | null;
   name?: string | null;
   title?: string | null;
@@ -24,7 +23,6 @@ type UserRow = {
 function RoleBadge({ role }: { role: Role }) {
   const map: Record<Role, string> = {
     requester: "bg-gray-100 text-gray-700 border-gray-200",
-    agent: "bg-blue-100 text-blue-800 border-blue-200",
     admin: "bg-emerald-100 text-emerald-800 border-emerald-200",
   };
   return (
@@ -46,7 +44,7 @@ export default function AdminUsersPage() {
   const canChangeRole = me.role === "admin";
 
   useEffect(() => {
-    if (!(me.role === "admin" || me.role === "agent")) {
+    if (me.role !== "admin") {
       router.replace("/home");
       return;
     }
@@ -80,9 +78,8 @@ export default function AdminUsersPage() {
       const name = (u.name ?? "").toLowerCase();
       const title = (u.title ?? "").toLowerCase();
       const dept = (u.department ?? "").toLowerCase();
-      const email = u.email.toLowerCase();
       const emp = (u.employee_no ?? "").toLowerCase();
-      return name.includes(term) || title.includes(term) || dept.includes(term) || email.includes(term) || emp.includes(term);
+      return name.includes(term) || title.includes(term) || dept.includes(term) || emp.includes(term);
     });
   }, [users, search]);
 
@@ -113,7 +110,7 @@ export default function AdminUsersPage() {
     }
   };
 
-  if (!(me.role === "admin" || me.role === "agent")) {
+  if (me.role !== "admin") {
     return null;
   }
 
@@ -125,7 +122,7 @@ export default function AdminUsersPage() {
         actions={
           <input
             className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white"
-            placeholder="이름/직급/부서/직책/사번 검색"
+            placeholder="이름/직급/부서/직책/ID 검색"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -138,7 +135,7 @@ export default function AdminUsersPage() {
         <table className="w-full text-sm">
           <thead className="bg-slate-50">
             <tr>
-              <th className="text-left p-3 w-28">사번/학번</th>
+              <th className="text-left p-3 w-28">ID</th>
               <th className="text-left p-3 w-28">이름</th>
               <th className="text-left p-3 w-28">직급</th>
               <th className="text-left p-3 w-40">부서/직책</th>
@@ -175,7 +172,6 @@ export default function AdminUsersPage() {
                         onChange={(e) => handleRoleChange(u.id, e.target.value as Role)}
                       >
                         <option value="requester">requester</option>
-                        <option value="agent">agent</option>
                         <option value="admin">admin</option>
                       </select>
                     ) : (

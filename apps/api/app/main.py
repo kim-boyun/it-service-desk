@@ -34,8 +34,24 @@ def on_startup():
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS department VARCHAR(100)"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN NOT NULL DEFAULT TRUE"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()"))
+        conn.execute(
+            text(
+                """
+                DO $$
+                BEGIN
+                  IF EXISTS (
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_name = 'users' AND column_name = 'email'
+                  ) THEN
+                    ALTER TABLE users ALTER COLUMN email DROP NOT NULL;
+                  END IF;
+                END $$;
+                """
+            )
+        )
 
-    # Seed default admin/agent accounts.
+    # Seed default admin account.
     with SessionLocal() as session:
         seed_users(session)
         seed_ticket_categories(session)

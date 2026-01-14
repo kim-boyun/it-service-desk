@@ -12,9 +12,9 @@ export default function LoginPage() {
   const router = useRouter();
   const params = useSearchParams();
   const redirect = params.get("redirect") || "/home";
-  const presetEmail = params.get("email") || "";
+  const presetEmployeeNo = params.get("employee_no") || "";
 
-  const [email, setEmail] = useState(presetEmail);
+  const [employeeNo, setEmployeeNo] = useState(presetEmployeeNo);
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -26,7 +26,7 @@ export default function LoginPage() {
     try {
       const res = await api<LoginResponse>("/auth/login", {
         method: "POST",
-        body: { email, password },
+        body: { employee_no: employeeNo, password },
       });
       setToken(res.access_token);
       router.replace(redirect);
@@ -50,12 +50,12 @@ export default function LoginPage() {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm">Email</label>
+          <label className="text-sm">ID</label>
           <input
             className="w-full rounded-lg border border-blue-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
+            value={employeeNo}
+            onChange={(e) => setEmployeeNo(e.target.value)}
+            autoComplete="username"
           />
         </div>
 

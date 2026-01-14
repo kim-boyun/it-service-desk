@@ -33,7 +33,7 @@ export default function TopBar() {
   const notifRef = useRef<HTMLDivElement | null>(null);
 
   const items = useMemo(() => notifications.slice(0, 20), [notifications]);
-  const isStaff = me.role === "admin" || me.role === "agent";
+  const isStaff = me.role === "admin";
 
   useEffect(() => {
     if (!notifOpen) return;
@@ -48,11 +48,11 @@ export default function TopBar() {
   }, [notifOpen]);
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2">
       <div className="relative" ref={notifRef}>
         <button
           type="button"
-          className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+          className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
           onClick={() => {
             const next = !notifOpen;
             setNotifOpen(next);
@@ -65,24 +65,24 @@ export default function TopBar() {
             <path d="M13.73 21a2 2 0 01-3.46 0" />
           </svg>
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 rounded-full bg-red-600 text-white text-[10px] min-w-[18px] h-[18px] flex items-center justify-center px-1">
+            <span className="absolute -top-1 -right-1 rounded-full bg-danger-600 text-white text-[10px] min-w-[18px] h-[18px] flex items-center justify-center px-1 font-medium shadow-sm">
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>
           )}
         </button>
         {notifOpen && (
-          <div className="absolute right-0 mt-2 w-[360px] rounded-2xl border border-slate-200 bg-white shadow-xl overflow-hidden z-20">
-            <div className="px-4 py-3 border-b text-sm font-semibold text-slate-900">알림</div>
-            <div className="max-h-[360px] overflow-y-auto">
-              {isLoading && <div className="px-4 py-3 text-sm text-slate-500">불러오는 중...</div>}
+          <div className="absolute right-0 mt-2 w-[380px] rounded-xl border border-neutral-200 bg-white shadow-xl overflow-hidden z-20">
+            <div className="px-4 py-3 border-b border-neutral-200 text-sm font-semibold text-neutral-900">알림</div>
+            <div className="max-h-[420px] overflow-y-auto">
+              {isLoading && <div className="px-4 py-6 text-center text-sm text-neutral-500">불러오는 중...</div>}
               {!isLoading && items.length === 0 && (
-                <div className="px-4 py-3 text-sm text-slate-500">새 알림이 없습니다.</div>
+                <div className="px-4 py-8 text-center text-sm text-neutral-500">새 알림이 없습니다.</div>
               )}
               {items.map((n) => (
                 <button
                   key={n.id}
                   type="button"
-                  className="w-full text-left px-4 py-3 border-b last:border-b-0 hover:bg-slate-50"
+                  className="w-full text-left px-4 py-3 border-b border-neutral-100 last:border-b-0 hover:bg-neutral-50 transition-colors"
                   onClick={() => {
                     if (n.ticket_id) {
                       const href = isStaff ? `/admin/tickets/${n.ticket_id}` : `/tickets/${n.ticket_id}`;
@@ -91,9 +91,9 @@ export default function TopBar() {
                     setNotifOpen(false);
                   }}
                 >
-                  <div className="text-xs text-slate-500">{typeLabel(n.type)}</div>
-                  <div className="text-sm text-slate-900">{n.message || n.ticket_title || "알림"}</div>
-                  <div className="text-xs text-slate-500 mt-1">{formatDate(n.created_at)}</div>
+                  <div className="text-xs font-medium text-primary-600 mb-1">{typeLabel(n.type)}</div>
+                  <div className="text-sm text-neutral-900 line-clamp-2">{n.message || n.ticket_title || "알림"}</div>
+                  <div className="text-xs text-neutral-500 mt-1.5">{formatDate(n.created_at)}</div>
                 </button>
               ))}
             </div>
@@ -104,11 +104,16 @@ export default function TopBar() {
       <div className="relative">
         <button
           type="button"
-          className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+          className="inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3.5 py-2 text-sm text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300 transition-colors"
           onClick={() => setMenuOpen((prev) => !prev)}
         >
-          <span className="font-medium">{me.email}</span>
-          <svg viewBox="0 0 20 20" className={`h-4 w-4 transition-transform ${menuOpen ? "rotate-180" : ""}`} fill="currentColor">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xs font-semibold">
+              {(me.name?.[0] || me.employee_no?.[0] || "U").toUpperCase()}
+            </div>
+            <span className="font-medium">{me.employee_no ?? me.name ?? "사용자"}</span>
+          </div>
+          <svg viewBox="0 0 20 20" className={`h-4 w-4 transition-transform duration-200 ${menuOpen ? "rotate-180" : ""}`} fill="currentColor">
             <path
               fillRule="evenodd"
               d="M5.23 7.21a.75.75 0 011.06.02L10 11.114l3.71-3.884a.75.75 0 011.08 1.04l-4.24 4.44a.75.75 0 01-1.08 0l-4.24-4.44a.75.75 0 01.02-1.06z"
@@ -117,10 +122,10 @@ export default function TopBar() {
           </svg>
         </button>
         {menuOpen && (
-          <div className="absolute right-0 mt-2 w-44 rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden z-20">
+          <div className="absolute right-0 mt-2 w-48 rounded-lg border border-neutral-200 bg-white shadow-lg overflow-hidden z-20">
             <button
               type="button"
-              className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+              className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 hover:bg-neutral-50 transition-colors font-medium"
               onClick={() => {
                 clearToken();
                 router.replace("/login");

@@ -33,7 +33,6 @@ type Project = {
 
 type UserSummary = {
   id: number;
-  email: string;
   employee_no?: string | null;
   name?: string | null;
   title?: string | null;
@@ -129,7 +128,7 @@ function formatUser(user?: UserSummary | null, fallbackId?: number | null, empty
   if (!user) return fallbackId ? `#${fallbackId}` : emptyLabel;
   const parts = [user.name, user.title, user.department].filter(Boolean);
   if (parts.length) return parts.join(" / ");
-  return user.email ?? (fallbackId ? `#${fallbackId}` : emptyLabel);
+  return user.employee_no ?? (fallbackId ? `#${fallbackId}` : emptyLabel);
 }
 
 export default function ResolvedTicketsPage() {

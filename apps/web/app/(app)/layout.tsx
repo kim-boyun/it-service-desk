@@ -17,16 +17,18 @@ function AppShell({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-neutral-50">
       <Sidebar />
-      <div className="lg:ml-80">
-        <div className="px-4 pt-4">
-          <div className="mx-auto w-full max-w-[1520px] flex justify-end">
-            <TopBar />
+      <div className="lg:ml-72 flex flex-col min-h-screen">
+        <header className="sticky top-0 z-10 bg-white border-b border-neutral-200">
+          <div className="px-6 py-3.5">
+            <div className="mx-auto w-full max-w-[1400px] flex justify-end">
+              <TopBar />
+            </div>
           </div>
-        </div>
-        <main className="min-h-screen px-4 py-5 app-content">
-          <div className="mx-auto w-full max-w-[1520px]">{children}</div>
+        </header>
+        <main className="flex-1 px-6 py-6 app-content">
+          <div className="mx-auto w-full max-w-[1400px]">{children}</div>
         </main>
       </div>
     </div>

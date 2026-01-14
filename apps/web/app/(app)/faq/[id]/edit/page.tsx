@@ -47,7 +47,7 @@ export default function EditFaqPage() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const canEdit = useMemo(() => me.role === "admin" || me.role === "agent", [me.role]);
+  const canEdit = useMemo(() => me.role === "admin", [me.role]);
 
   useEffect(() => {
     if (!canEdit) {

@@ -23,7 +23,7 @@ export default function NewNoticePage() {
   const [saving, setSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
-  const canEdit = me.role === "admin" || me.role === "agent";
+  const canEdit = me.role === "admin";
 
   useUnsavedChangesWarning(isDirty);
 

@@ -11,87 +11,41 @@ from .security import hash_password
 def seed_users(session: Session) -> None:
     """
     DEV 기본 사용자 시드.
-    - 동일 이메일이 있으면 건너뜁니다.
-    - 기본 관리자 계정을 생성합니다.
+    - 동일 사번이 있으면 업데이트합니다.
+    - 기본 관리자 계정만 생성합니다.
     """
 
-    admin_email = os.getenv("ADMIN_EMAIL", "admin@kdischool.ac.kr")
+    admin_employee_no = os.getenv("ADMIN_EMPLOYEE_NO", "A0001")
     admin_password = os.getenv("ADMIN_PASSWORD", "admin1234!@")
     seeds = [
         {
-            "email": admin_email,
+            "employee_no": admin_employee_no,
             "password": admin_password,
             "role": "admin",
             "is_verified": True,
-            "employee_no": "A0001",
             "name": "시스템 관리자",
             "title": "System Administrator",
             "department": "IT",
         },
-        {
-            "email": "agent1@kdischool.ac.kr",
-            "password": "agent1234!@",
-            "role": "agent",
-            "is_verified": True,
-            "employee_no": "A0002",
-            "name": "IT 담당자",
-            "title": "IT Support Engineer",
-            "department": "IT",
-        },
-        {
-            "email": "agent2@kdischool.ac.kr",
-            "password": "agent1234!@",
-            "role": "agent",
-            "is_verified": True,
-            "employee_no": "A0003",
-            "name": "전산 지원",
-            "title": "Helpdesk Agent",
-            "department": "IT",
-        },
-        {
-            "email": "user1@kdischool.ac.kr",
-            "password": "user1234!@",
-            "role": "requester",
-            "is_verified": True,
-            "employee_no": "U0001",
-            "name": "일반 사용자",
-            "title": "Staff",
-            "department": "General",
-        },
-        {
-            "email": "user2@kdischool.ac.kr",
-            "password": "user1234!@",
-            "role": "requester",
-            "is_verified": True,
-            "employee_no": "U0002",
-            "name": "요청자 테스트",
-            "title": "Researcher",
-            "department": "Research",
-        },
     ]
 
     for s in seeds:
-        exists = session.scalar(select(User).where(User.email == s["email"]))
-        if not exists and s.get("employee_no"):
-            exists = session.scalar(select(User).where(User.employee_no == s["employee_no"]))
+        exists = session.scalar(select(User).where(User.employee_no == s["employee_no"]))
 
         if exists:
-            exists.email = s["email"]
             exists.role = s["role"]
             exists.is_verified = s["is_verified"]
-            if s.get("employee_no"):
-                exists.employee_no = s["employee_no"]
+            exists.employee_no = s["employee_no"]
             exists.name = s.get("name")
             exists.title = s.get("title")
             exists.department = s.get("department")
             continue
 
         u = User(
-            email=s["email"],
+            employee_no=s["employee_no"],
             password_hash=hash_password(s["password"]),
             role=s["role"],
             is_verified=s["is_verified"],
-            employee_no=s.get("employee_no"),
             name=s.get("name"),
             title=s.get("title"),
             department=s.get("department"),

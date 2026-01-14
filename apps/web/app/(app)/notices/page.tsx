@@ -28,7 +28,7 @@ export default function NoticesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const canEdit = useMemo(() => me.role === "admin" || me.role === "agent", [me.role]);
+  const canEdit = useMemo(() => me.role === "admin", [me.role]);
 
   useEffect(() => {
     let alive = true;
@@ -55,46 +55,60 @@ export default function NoticesPage() {
   const excerpt = (text: string) => (text.length > 80 ? `${text.slice(0, 80)}...` : text);
 
   return (
-    <div className="p-5 space-y-5">
+    <div className="space-y-6">
       <PageHeader
         eyebrow="NOTICE"
         title="공지사항"
-        subtitle="주요 공지 및 운영 안내를 확인하세요."
+        subtitle="주요 공지 및 운영 안내를 확인하세요"
         actions={
           canEdit ? (
             <button
-              className="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
+              className="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-neutral-800 transition-colors"
               onClick={() => router.push("/notices/new")}
             >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
               등록
             </button>
           ) : null
         }
       />
 
-      {error && <div className="text-sm text-red-600">{error}</div>}
+      {error && (
+        <div className="rounded-lg bg-danger-50 border border-danger-200 px-4 py-3 text-sm text-danger-700">
+          {error}
+        </div>
+      )}
 
       {loading ? (
-        <div className="border border-slate-200/70 rounded-2xl p-4 text-sm text-slate-500 bg-white shadow-sm">
+        <div className="border border-neutral-200 rounded-xl px-4 py-8 text-center text-sm text-neutral-500 bg-white shadow-sm">
           공지사항을 불러오는 중입니다...
         </div>
       ) : notices.length === 0 ? (
-        <div className="border border-slate-200/70 rounded-2xl p-4 text-sm text-slate-500 bg-white shadow-sm">
-          등록된 공지사항이 없습니다.
+        <div className="border border-neutral-200 rounded-xl px-4 py-12 text-center bg-white shadow-sm">
+          <div className="text-neutral-400 mb-2">
+            <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+            </svg>
+          </div>
+          <p className="text-sm text-neutral-500">등록된 공지사항이 없습니다</p>
         </div>
       ) : (
-        <div className="border border-slate-200/70 rounded-2xl divide-y bg-white shadow-sm">
+        <div className="border border-neutral-200 rounded-xl divide-y divide-neutral-100 bg-white shadow-sm overflow-hidden">
           {notices.map((n) => (
             <button
               key={n.id}
-              className="w-full text-left p-4 space-y-1 hover:bg-slate-50 transition"
+              className="w-full text-left px-5 py-4 space-y-2 hover:bg-neutral-50 transition-colors group"
               onClick={() => router.push(`/notices/${n.id}`)}
             >
-              <div className="flex items-center justify-between gap-4">
-                <div className="text-lg font-semibold truncate text-slate-900">{n.title}</div>
-                <span className="text-xs text-slate-500">{formatDate(n.created_at)}</span>
+              <div className="flex items-start justify-between gap-4">
+                <h3 className="text-base font-semibold text-neutral-900 group-hover:text-primary-600 transition-colors line-clamp-1">
+                  {n.title}
+                </h3>
+                <span className="text-xs text-neutral-500 whitespace-nowrap">{formatDate(n.created_at)}</span>
               </div>
-              <div className="text-sm text-slate-700 leading-6">{excerpt(extractText(n.body))}</div>
+              <p className="text-sm text-neutral-600 line-clamp-2 leading-relaxed">{excerpt(extractText(n.body))}</p>
             </button>
           ))}
         </div>

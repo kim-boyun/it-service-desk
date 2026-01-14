@@ -38,7 +38,7 @@ export default function FaqPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const canEdit = useMemo(() => me.role === "admin" || me.role === "agent", [me.role]);
+  const canEdit = useMemo(() => me.role === "admin", [me.role]);
 
   useEffect(() => {
     let alive = true;
@@ -85,29 +85,37 @@ export default function FaqPage() {
   }, [faqs, categoryFilter]);
 
   return (
-    <div className="p-5 space-y-5">
+    <div className="space-y-6">
       <PageHeader
         eyebrow="FAQ"
         title="자주 묻는 질문"
-        subtitle="빠르게 해결되는 기본 안내를 확인하세요."
+        subtitle="빠르게 해결되는 기본 안내를 확인하세요"
         actions={
           canEdit ? (
             <button
-              className="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
+              className="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-neutral-800 transition-colors"
               onClick={() => router.push("/faq/new")}
             >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
               등록
             </button>
           ) : null
         }
       />
 
-      {error && <div className="text-sm text-red-600">{error}</div>}
+      {error && (
+        <div className="rounded-lg bg-danger-50 border border-danger-200 px-4 py-3 text-sm text-danger-700">
+          {error}
+        </div>
+      )}
 
       <div className="flex items-center gap-2">
-        <label className="text-sm text-slate-700">카테고리</label>
+        <label htmlFor="category-filter" className="text-sm font-medium text-neutral-700">카테고리</label>
         <select
-          className="border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
+          id="category-filter"
+          className="border border-neutral-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
         >
@@ -121,12 +129,17 @@ export default function FaqPage() {
       </div>
 
       {loading ? (
-        <div className="border border-slate-200/70 rounded-2xl p-4 text-sm text-slate-500 bg-white shadow-sm">
+        <div className="border border-neutral-200 rounded-xl px-4 py-8 text-center text-sm text-neutral-500 bg-white shadow-sm">
           FAQ를 불러오는 중입니다...
         </div>
       ) : filteredFaqs.length === 0 ? (
-        <div className="border border-slate-200/70 rounded-2xl p-4 text-sm text-slate-500 bg-white shadow-sm">
-          등록된 FAQ가 없습니다.
+        <div className="border border-neutral-200 rounded-xl px-4 py-12 text-center bg-white shadow-sm">
+          <div className="text-neutral-400 mb-2">
+            <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+            </svg>
+          </div>
+          <p className="text-sm text-neutral-500">등록된 FAQ가 없습니다</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -134,26 +147,43 @@ export default function FaqPage() {
             const open = openId === f.id;
             const categoryLabel = f.category_name || "기타";
             return (
-              <div key={f.id} className="border border-slate-200/70 rounded-2xl bg-white p-4 space-y-2 shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <button className="text-left flex-1" onClick={() => toggle(f.id)}>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+              <div key={f.id} className="border border-neutral-200 rounded-xl bg-white overflow-hidden shadow-sm">
+                <div className="px-5 py-4 flex items-start justify-between gap-4">
+                  <button 
+                    className="text-left flex-1 group" 
+                    onClick={() => toggle(f.id)}
+                    aria-expanded={open}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full bg-primary-50 text-primary-700 border border-primary-200">
                         {categoryLabel}
                       </span>
-                      <div className="text-sm font-semibold text-slate-900">{f.question}</div>
+                      <div className="flex items-start gap-2 flex-1">
+                        <span className="text-sm font-semibold text-neutral-900 group-hover:text-primary-600 transition-colors">
+                          {f.question}
+                        </span>
+                        <svg 
+                          className={`h-5 w-5 text-neutral-400 transition-transform flex-shrink-0 ${open ? "rotate-180" : ""}`} 
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                          strokeWidth="2"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
                     </div>
                   </button>
                   {canEdit && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       <button
-                        className="px-2.5 py-1 text-[11px] rounded-md border border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
+                        className="px-3 py-1.5 text-xs font-medium rounded-lg border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50 transition-colors"
                         onClick={() => handleEdit(f.id)}
                       >
                         수정
                       </button>
                       <button
-                        className="px-2.5 py-1 text-[11px] rounded-md border border-red-600 bg-red-600 text-white hover:bg-red-700"
+                        className="px-3 py-1.5 text-xs font-medium rounded-lg bg-danger-600 text-white hover:bg-danger-700 transition-colors shadow-sm"
                         onClick={() => handleDelete(f.id)}
                       >
                         삭제
@@ -162,8 +192,10 @@ export default function FaqPage() {
                   )}
                 </div>
                 {open && (
-                  <div className="text-sm text-slate-700 leading-6">
-                    <TiptapViewer value={f.answer} />
+                  <div className="px-5 pb-5 pt-2 border-t border-neutral-100 bg-neutral-50/50">
+                    <div className="text-sm text-neutral-700 leading-relaxed prose prose-sm max-w-none">
+                      <TiptapViewer value={f.answer} />
+                    </div>
                   </div>
                 )}
               </div>

@@ -54,7 +54,6 @@ const PRIORITY_SORT: Record<string, number> = {
 
 type UserSummary = {
   id: number;
-  email: string;
   employee_no?: string | null;
   name?: string | null;
   title?: string | null;
@@ -104,7 +103,7 @@ function formatUser(user?: UserSummary | null, fallbackId?: number | null, empty
   if (!user) return fallbackId ? `#${fallbackId}` : emptyLabel;
   const parts = [user.name, user.title, user.department].filter(Boolean);
   if (parts.length) return parts.join(" / ");
-  return user.email ?? (fallbackId ? `#${fallbackId}` : emptyLabel);
+  return user.employee_no ?? (fallbackId ? `#${fallbackId}` : emptyLabel);
 }
 
 function normalize(res: TicketListResponse): { items: Ticket[]; total?: number } {
@@ -165,7 +164,7 @@ export default function AdminTicketsPage() {
   const [myPage, setMyPage] = useState(1);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  if (!(me.role === "admin" || me.role === "agent")) {
+  if (me.role !== "admin") {
     router.replace("/home");
     return null;
   }
@@ -191,7 +190,7 @@ export default function AdminTicketsPage() {
   }, [error]);
 
   const staffOptions = useMemo(
-    () => adminUsers.filter((u) => u.role === "admin" || u.role === "agent"),
+    () => adminUsers.filter((u) => u.role === "admin"),
     [adminUsers]
   );
 
@@ -373,7 +372,7 @@ export default function AdminTicketsPage() {
                   <option value="">미배정</option>
                   {staffOptions.map((u) => (
                     <option key={u.id} value={u.id}>
-                      {formatUser(u, u.id, u.email ?? `#${u.id}`)}
+                      {formatUser(u, u.id, u.employee_no ?? `#${u.id}`)}
                     </option>
                   ))}
                 </select>

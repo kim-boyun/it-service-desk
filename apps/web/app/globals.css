@@ -1,7 +1,8 @@
 @import "tailwindcss";
+@import "./design-tokens.css";
 
 :root {
-  --background: #f4f6fb;
+  --background: #f8fafc;
   --foreground: #0f172a;
 }
 
@@ -14,8 +15,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0f172a;
+    --foreground: #f8fafc;
   }
 }
 
@@ -25,6 +26,26 @@ body {
   font-family: "Manrope", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* Hide floating button widgets and Next.js dev tools */
+body > div[style*="position: fixed"][style*="bottom"],
+body > button[style*="position: fixed"][style*="bottom"],
+iframe[style*="position: fixed"][style*="bottom"],
+[class*="floating"],
+[class*="widget"],
+[id*="launcher"],
+button[style*="z-index: 999"],
+button[style*="z-index: 9999"],
+div[data-nextjs-toast-wrapper],
+div[data-nextjs-dialog-overlay],
+nextjs-portal,
+#__next-build-watcher,
+.__next-dev-overlay {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 .app-content {

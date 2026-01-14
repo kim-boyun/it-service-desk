@@ -38,7 +38,7 @@ export default function NoticeDetailPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const canEdit = useMemo(() => me.role === "admin" || me.role === "agent", [me.role]);
+  const canEdit = useMemo(() => me.role === "admin", [me.role]);
 
   useEffect(() => {
     let alive = true;

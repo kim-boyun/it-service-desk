@@ -4,8 +4,11 @@ import { createContext, useContext } from "react";
 
 export type Me = {
   id: number | string;
-  email: string;
-  role: "requester" | "agent" | "admin";
+  employee_no: string | null;
+  name?: string | null;
+  title?: string | null;
+  department?: string | null;
+  role: "requester" | "admin";
 };
 
 const AuthContext = createContext<Me | null>(null);

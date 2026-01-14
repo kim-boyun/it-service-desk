@@ -32,7 +32,6 @@ def list_users(
     stmt = (
         select(
             User.id,
-            User.email,
             User.employee_no,
             User.name,
             User.title,
@@ -44,7 +43,6 @@ def list_users(
         .outerjoin(Ticket, Ticket.requester_id == User.id)
         .group_by(
             User.id,
-            User.email,
             User.employee_no,
             User.name,
             User.title,
@@ -82,7 +80,6 @@ def update_role(
     stmt = (
         select(
             User.id,
-            User.email,
             User.employee_no,
             User.name,
             User.title,
@@ -95,7 +92,6 @@ def update_role(
         .where(User.id == user_id)
         .group_by(
             User.id,
-            User.email,
             User.employee_no,
             User.name,
             User.title,

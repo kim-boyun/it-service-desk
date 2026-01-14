@@ -8,9 +8,8 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    employee_no: Mapped[str | None] = mapped_column(String(50), unique=True, nullable=True)
+    employee_no: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     name: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(32), default="requester")  # requester/agent/admin
     title: Mapped[str | None] = mapped_column(String(100), nullable=True)

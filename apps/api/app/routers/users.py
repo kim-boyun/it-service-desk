@@ -27,7 +27,6 @@ def search_users(
             or_(
                 User.employee_no.ilike(f"%{q}%"),
                 User.name.ilike(f"%{q}%"),
-                User.email.ilike(f"%{q}%"),
             )
         )
         .order_by(User.id.asc())

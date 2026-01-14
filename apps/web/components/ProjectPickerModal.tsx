@@ -15,7 +15,6 @@ type Project = {
 
 type UserSummary = {
   id: number;
-  email: string;
   employee_no?: string | null;
   name?: string | null;
   title?: string | null;
@@ -37,7 +36,7 @@ function formatPeriod(project: Project) {
 function formatUser(user: UserSummary) {
   const parts = [user.name, user.title, user.department].filter(Boolean);
   if (parts.length) return parts.join(" / ");
-  return user.employee_no ?? user.email;
+  return user.employee_no ?? `#${user.id}`;
 }
 
 export default function ProjectPickerModal({ open, selectedId, onClose, onSelect }: Props) {
@@ -199,10 +198,10 @@ export default function ProjectPickerModal({ open, selectedId, onClose, onSelect
                 <label className="text-xs text-gray-600">프로젝트 참여자</label>
                 <input
                   className="w-full border rounded px-3 py-2 text-sm"
-                  placeholder="학번/사번 또는 이름을 입력하세요."
-                  value={memberQuery}
-                  onChange={(e) => setMemberQuery(e.target.value)}
-                />
+              placeholder="ID 또는 이름을 입력하세요."
+              value={memberQuery}
+              onChange={(e) => setMemberQuery(e.target.value)}
+            />
                 {memberQuery.trim() && (
                   <div className="rounded border bg-white p-2 text-xs">
                     {memberLoading && <div className="text-gray-500">검색 중...</div>}
@@ -218,7 +217,7 @@ export default function ProjectPickerModal({ open, selectedId, onClose, onSelect
                           onClick={() => addMember(m)}
                         >
                           <span>{formatUser(m)}</span>
-                          <span className="text-gray-400">{m.employee_no ?? m.email}</span>
+                          <span className="text-gray-400">{m.employee_no ?? `#${m.id}`}</span>
                         </button>
                       ))}
                   </div>

@@ -67,7 +67,6 @@ type Ticket = {
 
 type UserSummary = {
   id: number;
-  email: string;
   employee_no?: string | null;
   name?: string | null;
   title?: string | null;
@@ -123,7 +122,7 @@ function formatUser(user?: UserSummary | null, fallbackId?: number | null, empty
   if (!user) return fallbackId ? `#${fallbackId}` : emptyLabel;
   const parts = [user.name, user.title, user.department].filter(Boolean);
   if (parts.length) return parts.join(" / ");
-  return user.email ?? (fallbackId ? `#${fallbackId}` : emptyLabel);
+  return user.employee_no ?? (fallbackId ? `#${fallbackId}` : emptyLabel);
 }
 
 function Badge({ label, cls }: { label: string; cls: string }) {
@@ -179,7 +178,7 @@ export default function AdminTicketDetailPage() {
   const me = useMe();
   const { map: categoryMap } = useTicketCategories();
   const ticketId = Number(params.id);
-  const isStaff = me.role === "agent" || me.role === "admin";
+  const isStaff = me.role === "admin";
 
   const [status, setStatus] = useState("open");
   const [note, setNote] = useState("");

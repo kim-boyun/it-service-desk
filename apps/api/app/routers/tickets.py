@@ -377,7 +377,7 @@ def assign_ticket(
             return "미배정"
         parts = [u.name, u.title, u.department]
         label = " / ".join([p for p in parts if p])
-        return label or (u.email or f"#{u.id}")
+        return label or (u.employee_no or f"#{u.id}")
 
     note = f"{format_user(old_user)} -> {format_user(assignee)}"
     ev_type = "assignee_assigned" if old is None and assignee_id is not None else "assignee_changed"

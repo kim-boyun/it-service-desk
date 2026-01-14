@@ -16,13 +16,15 @@ function Item({
   active?: boolean;
   small?: boolean;
 }) {
-  const base = small ? "text-base" : "text-lg";
-  const padding = small ? "px-3 py-2.5" : "px-4 py-3";
+  const base = small ? "text-sm" : "text-sm";
+  const padding = small ? "px-3 py-2" : "px-3.5 py-2.5";
   return (
     <Link
       href={href || "#"}
-      className={`block ${padding} rounded-xl transition-all ${
-        active ? "text-slate-900 bg-slate-100 font-semibold" : "text-slate-900 hover:bg-slate-100"
+      className={`block ${padding} rounded-lg transition-all font-medium ${
+        active 
+          ? "text-primary-700 bg-primary-50 shadow-sm" 
+          : "text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900"
       } ${base}`}
     >
       {label}
@@ -45,13 +47,15 @@ function AccordionButton({
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center justify-between px-4 py-3 rounded-xl transition-all text-lg ${
-        active ? "text-slate-900 bg-slate-100 font-semibold" : "text-slate-900 hover:bg-slate-100"
+      className={`flex w-full items-center justify-between px-3.5 py-2.5 rounded-lg transition-all text-sm font-medium ${
+        active 
+          ? "text-primary-700 bg-primary-50 shadow-sm" 
+          : "text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900"
       }`}
     >
       <span>{label}</span>
       <svg
-        className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
+        className={`h-4 w-4 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
         viewBox="0 0 20 20"
         fill="currentColor"
         aria-hidden="true"
@@ -92,7 +96,7 @@ export default function Sidebar() {
     { href: "/tickets", label: "고객 요청" },
     { href: "/notices", label: "공지사항" },
     { href: "/faq", label: "FAQ" },
-    ...(me.role === "admin" || me.role === "agent" ? [{ href: "/admin", label: "관리자" }] : []),
+    ...(me.role === "admin" ? [{ href: "/admin", label: "관리자" }] : []),
   ];
 
   const ticketSubNav = [
@@ -136,17 +140,18 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="relative mx-4 mt-4 lg:fixed lg:inset-y-4 lg:left-4 lg:mx-0 lg:mt-0 w-auto lg:w-80 rounded-2xl bg-white text-slate-900 shadow-xl border border-slate-200">
-      <div className="p-5 space-y-6 flex flex-col h-full">
-        <div className="space-y-1">
-          <div className="text-2xl font-black tracking-tight text-slate-900">KDI SCHOOL</div>
-          <div className="text-xl font-semibold text-slate-900">IT Service Desk</div>
+    <aside className="relative lg:fixed lg:inset-y-0 lg:left-0 w-full lg:w-72 bg-white text-neutral-900 lg:border-r border-neutral-200 z-20">
+      <div className="p-5 space-y-5 flex flex-col h-full">
+        <div className="space-y-0.5">
+          <div className="text-xl font-bold tracking-tight text-neutral-900">KDI SCHOOL</div>
+          <div className="text-sm font-medium text-neutral-600">IT Service Desk</div>
         </div>
 
-        <div className="rounded-2xl bg-slate-50 p-2 space-y-1 border border-slate-100">
-          {mainNav.map((item, idx) => {
-            const isLast = idx === mainNav.length - 1;
-            const divider = !isLast ? <div className="h-px bg-slate-200 mx-3" /> : null;
+        <nav className="flex-1 overflow-y-auto">
+          <div className="rounded-lg bg-neutral-50/50 p-2 space-y-0.5 border border-neutral-100">
+            {mainNav.map((item, idx) => {
+              const isLast = idx === mainNav.length - 1;
+              const divider = !isLast ? <div className="h-px bg-neutral-200 my-1" /> : null;
             if (item.href === "/tickets") {
               return (
                 <div key={item.label} className="space-y-1">
@@ -157,7 +162,7 @@ export default function Sidebar() {
                     onClick={handleTicketsToggle}
                   />
                   {ticketsOpen && (
-                    <div className="pl-2 space-y-1">
+                    <div className="pl-3 space-y-0.5 mt-1">
                       {ticketSubNav.map((sub) => (
                         <Item key={sub.label} href={sub.href} label={sub.label} active={isSubActive(sub.href)} small />
                       ))}
@@ -178,7 +183,7 @@ export default function Sidebar() {
                     onClick={handleAdminToggle}
                   />
                   {adminOpen && (
-                    <div className="pl-2 space-y-1">
+                    <div className="pl-3 space-y-0.5 mt-1">
                       {adminSubNav.map((sub) => (
                         <Item key={sub.label} href={sub.href} label={sub.label} active={isSubActive(sub.href)} small />
                       ))}
@@ -199,8 +204,9 @@ export default function Sidebar() {
                 {divider}
               </div>
             );
-          })}
-        </div>
+            })}
+          </div>
+        </nav>
       </div>
     </aside>
   );
