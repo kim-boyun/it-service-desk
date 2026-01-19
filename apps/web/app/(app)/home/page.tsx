@@ -162,10 +162,10 @@ function priorityRank(priority?: string) {
 
 function statusBadge(status: string) {
   const cls = classifyStatus(status);
-  if (cls === "waiting") return { label: "대기", className: "bg-info-50 text-info-700 border-info-200" };
-  if (cls === "doing") return { label: "진행", className: "bg-warning-50 text-warning-700 border-warning-200" };
-  if (cls === "review") return { label: "사업검토", className: "bg-neutral-100 text-neutral-700 border-neutral-200" };
-  return { label: "완료", className: "bg-success-50 text-success-700 border-success-200" };
+  if (cls === "waiting") return { label: "대기", className: "bg-blue-50 text-blue-700 border-blue-200" };
+  if (cls === "doing") return { label: "진행", className: "bg-amber-50 text-amber-700 border-amber-200" };
+  if (cls === "review") return { label: "사업 검토", className: "bg-slate-100 text-slate-700 border-slate-200" };
+  return { label: "완료", className: "bg-emerald-50 text-emerald-700 border-emerald-200" };
 }
 
 function formatUser(user?: UserSummary | null, fallbackEmpNo?: string | null, emptyLabel = "-") {
@@ -323,12 +323,22 @@ export default function HomePage() {
                 </div>
                 <div className="mt-1 text-sm text-slate-500">접수/처리 현황을 빠르게 확인하세요.</div>
               </div>
-              <Link
-                href="/tickets/new"
-                className="inline-flex items-center justify-center rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-slate-800"
-              >
-                요청 작성
-              </Link>
+              <div className="flex items-center gap-2">
+                {me.role === "admin" && (
+                  <Link
+                    href="/admin"
+                    className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+                  >
+                    관리자 메뉴
+                  </Link>
+                )}
+                <Link
+                  href="/tickets/new"
+                  className="inline-flex items-center justify-center rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-slate-800"
+                >
+                  요청 작성
+                </Link>
+              </div>
             </div>
           </div>
 
@@ -355,7 +365,7 @@ export default function HomePage() {
               loading={isLoading || isFetching}
             />
             <StatCard
-              label="사업검토"
+              label="사업 검토"
               value={reviewCount}
               accentColor="#fda005"
               bgColor="#fda0051A"

@@ -780,27 +780,32 @@ export default function TicketDetailPage() {
                       type="button"
                       className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white text-slate-700 transition-colors hover:bg-slate-50 active:bg-slate-100"
                       onClick={() => {
-                        if (!commentFileInputRef.current) return;
-                        commentFileInputRef.current.value = "";
-                        commentFileInputRef.current.click();
+                        const input = commentFileInputRef.current;
+                        if (!input) return;
+                        input.value = "";
+                        if ("showPicker" in input) {
+                          (input as HTMLInputElement & { showPicker?: () => void }).showPicker?.();
+                        } else {
+                          input.click();
+                        }
                       }}
                     >
                       파일 선택
                     </button>
-                    <span className="text-sm text-slate-500">여기로 드래그 앤 드롭해도 됩니다.</span>
+                    <span className="text-sm text-slate-500">??? ??? ? ???? ???.</span>
                     {commentFiles.length > 0 && (
                       <button
                         type="button"
                         className="text-sm text-slate-600 hover:underline"
                         onClick={() => setCommentFiles([])}
                       >
-                        모두 제거
+                        ?? ??
                       </button>
                     )}
                   </div>
                   <div className="mt-2 space-y-1.5">
                     {commentFiles.length === 0 && (
-                      <p className="text-sm text-slate-500">첨부파일이 없습니다.</p>
+                      <p className="text-sm text-slate-500">????? ????.</p>
                     )}
                     {commentFiles.map((file, idx) => (
                       <div
@@ -816,7 +821,7 @@ export default function TicketDetailPage() {
                           className="text-sm text-red-600 hover:underline"
                           onClick={() => removeCommentFile(idx)}
                         >
-                          삭제
+                          ??
                         </button>
                       </div>
                     ))}
