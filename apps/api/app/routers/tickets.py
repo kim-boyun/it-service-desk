@@ -21,6 +21,7 @@ from ..schemas.ticket_detail import TicketDetailOut
 from ..core.ticket_rules import can_transition
 from ..models.attachment import Attachment
 from ..schemas.attachment import AttachmentRegisterIn
+from ..models.mail_log import MailLog
 from pathlib import Path
 from ..core.tiptap import dump_tiptap, load_tiptap, is_empty_doc
 from ..core.settings import settings
@@ -366,6 +367,10 @@ def admin_delete_ticket(
     events = session.scalars(select(TicketEvent).where(TicketEvent.ticket_id == ticket_id)).all()
     for e in events:
         session.delete(e)
+
+    mail_logs = session.scalars(select(MailLog).where(MailLog.ticket_id == ticket_id)).all()
+    for log in mail_logs:
+        session.delete(log)
 
     session.delete(t)
     session.commit()
