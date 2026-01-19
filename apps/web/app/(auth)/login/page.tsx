@@ -1,14 +1,14 @@
 "use client";
 
+import { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useState } from "react";
 import { api } from "@/lib/api";
 import { setToken } from "@/lib/auth";
 import ErrorDialog from "@/components/ErrorDialog";
 
 type LoginResponse = { access_token: string };
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const redirect = params.get("redirect") || "/home";
@@ -87,5 +87,13 @@ export default function LoginPage() {
         </button>
       </form>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-sm text-gray-500">??ë?ì¤?..</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }
