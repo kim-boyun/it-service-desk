@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.16",
+    "@floating-ui/dom": "^1.7.4",
     "@tiptap/extension-image": "^3.15.0",
     "@tiptap/extension-link": "^3.15.0",
     "@tiptap/extension-task-item": "^3.15.0",
