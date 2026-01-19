@@ -101,9 +101,9 @@ def create_comment(
                             admins = [assignee]
                     if not admins and ticket.category_id:
                         admins = get_category_admins(session, ticket.category_id)
-                    notify_requester_commented(ticket, comment, admins)
+                    notify_requester_commented(ticket, comment, requester, admins)
                 else:
-                    notify_admin_commented(ticket, comment, requester)
+                    notify_admin_commented(ticket, comment, requester, user)
         except Exception:
             logger = logging.getLogger(__name__)
             logger.exception("댓글 메일 발송 처리 실패 (comment_id=%s)", comment.id)

@@ -317,7 +317,7 @@ export default function HomePage() {
           <div className="rounded-2xl border border-slate-200 bg-white px-6 py-5 shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <div className="text-sm font-semibold text-slate-500">IT Service Desk</div>
+                <div className="text-sm font-semibold text-slate-500">KDIS DESK</div>
                 <div className="mt-2 text-2xl font-bold text-slate-900">
                   안녕하세요, {me.kor_name || me.emp_no || "사용자"}님
                 </div>

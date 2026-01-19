@@ -57,7 +57,6 @@ export default function NoticesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="NOTICE"
         title="공지사항"
         subtitle="주요 공지 및 운영 안내를 확인하세요"
         actions={

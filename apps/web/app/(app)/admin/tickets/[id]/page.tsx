@@ -90,7 +90,7 @@ const STATUS_OPTIONS = [
   { value: "open", label: "접수" },
   { value: "in_progress", label: "진행" },
   { value: "resolved", label: "완료" },
-  { value: "closed", label: "종결" },
+  { value: "closed", label: "사업 검토" },
 ];
 
 const UNSAVED_MESSAGE =
@@ -110,7 +110,7 @@ function statusMeta(status: string) {
     return { label: "완료", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" };
   }
   if (s == "closed") {
-    return { label: "종결", cls: "bg-slate-100 text-slate-700 border-slate-200" };
+    return { label: "사업 검토", cls: "bg-slate-100 text-slate-700 border-slate-200" };
   }
   return { label: status, cls: "bg-gray-100 text-gray-700 border-gray-200" };
 }
@@ -838,11 +838,11 @@ export default function AdminTicketDetailPage() {
                   id="admin-comment-file-input"
                   type="file"
                   multiple
-                  className="hidden"
+                  className="sr-only"
                   ref={commentFileInputRef}
                   onChange={(e) => {
-                    addCommentFiles(e.target.files);
-                    e.target.value = "";
+                    addCommentFiles(e.currentTarget.files);
+                    e.currentTarget.value = "";
                   }}
                 />
                 <div
@@ -861,7 +861,11 @@ export default function AdminTicketDetailPage() {
                     <button
                       type="button"
                       className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white text-slate-700 transition-colors hover:bg-slate-50 active:bg-slate-100"
-                      onClick={() => commentFileInputRef.current?.click()}
+                      onClick={() => {
+                        if (!commentFileInputRef.current) return;
+                        commentFileInputRef.current.value = "";
+                        commentFileInputRef.current.click();
+                      }}
                     >
                       파일 선택
                     </button>

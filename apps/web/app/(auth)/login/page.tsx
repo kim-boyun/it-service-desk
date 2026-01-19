@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import { api } from "@/lib/api";
 import { setToken } from "@/lib/auth";
 import ErrorDialog from "@/components/ErrorDialog";
@@ -52,9 +53,15 @@ function LoginForm() {
         }}
         className="w-full max-w-sm space-y-5 rounded-2xl border border-blue-gray-100 bg-white/90 p-6 shadow-xl"
       >
-        <div className="space-y-1 text-left">
-          <h1 className="text-xl font-semibold">KDI SCHOOL</h1>
-          <p className="text-base font-semibold text-slate-900">IT Service Desk</p>
+        <div className="flex justify-center pb-2">
+          <Image
+            src="/kdis-desk-logo.png"
+            alt="KDIS DESK"
+            width={220}
+            height={80}
+            priority
+            className="h-10 w-auto"
+          />
         </div>
 
         <div className="space-y-2">

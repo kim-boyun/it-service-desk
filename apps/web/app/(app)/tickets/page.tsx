@@ -82,18 +82,18 @@ function formatDate(v?: string | null) {
 function statusMeta(status: string) {
   const s = status.toLowerCase();
   if (["open", "new", "pending"].includes(s)) {
-    return { label: "대기", cls: "bg-info-50 text-info-700 border-info-200" };
+    return { label: "대기", cls: "bg-blue-50 text-blue-700 border-blue-200" };
   }
   if (["in_progress", "processing", "assigned"].includes(s)) {
-    return { label: "진행", cls: "bg-warning-50 text-warning-700 border-warning-200" };
+    return { label: "진행", cls: "bg-amber-50 text-amber-700 border-amber-200" };
   }
   if (s === "resolved") {
-    return { label: "완료", cls: "bg-success-50 text-success-700 border-success-200" };
+    return { label: "완료", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" };
   }
   if (s === "closed") {
-    return { label: "사업검토", cls: "bg-neutral-100 text-neutral-700 border-neutral-200" };
+    return { label: "사업검토", cls: "bg-slate-100 text-slate-700 border-slate-200" };
   }
-  return { label: status, cls: "bg-neutral-100 text-neutral-700 border-neutral-200" };
+  return { label: status, cls: "bg-gray-100 text-gray-700 border-gray-200" };
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -108,10 +108,10 @@ function StatusBadge({ status }: { status: string }) {
 function PriorityBadge({ priority }: { priority?: string }) {
   const p = (priority || "medium").toLowerCase();
   const map: Record<string, { label: string; cls: string }> = {
-    low: { label: "낮음", cls: "bg-neutral-100 text-neutral-700 border-neutral-200" },
-    medium: { label: "보통", cls: "bg-info-50 text-info-700 border-info-200" },
-    high: { label: "높음", cls: "bg-warning-50 text-warning-700 border-warning-200" },
-    urgent: { label: "긴급", cls: "bg-danger-50 text-danger-700 border-danger-200" },
+    low: { label: "낮음", cls: "bg-gray-100 text-gray-700 border-gray-200" },
+    medium: { label: "보통", cls: "bg-blue-50 text-blue-700 border-blue-200" },
+    high: { label: "높음", cls: "bg-amber-50 text-amber-800 border-amber-200" },
+    urgent: { label: "긴급", cls: "bg-red-50 text-red-700 border-red-200" },
   };
   const v = map[p] ?? map.medium;
   return (

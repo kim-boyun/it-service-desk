@@ -87,7 +87,6 @@ export default function FaqPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="FAQ"
         title="자주 묻는 질문"
         subtitle="빠르게 해결되는 기본 안내를 확인하세요"
         actions={

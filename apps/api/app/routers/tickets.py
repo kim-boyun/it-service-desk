@@ -137,7 +137,7 @@ def create_ticket(
         notify_requester_ticket_created(t, user)
         if t.category_id:
             admins = get_category_admins(session, t.category_id)
-            notify_admins_ticket_created(t, admins)
+            notify_admins_ticket_created(t, user, admins)
     except Exception:
         logger = logging.getLogger(__name__)
         logger.exception("티켓 접수 메일 발송 처리 실패 (ticket_id=%s)", t.id)

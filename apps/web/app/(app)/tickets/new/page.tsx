@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useMutation } from "@tanstack/react-query";
 import { api, apiForm } from "@/lib/api";
@@ -73,6 +73,7 @@ export default function NewTicketPage() {
   const { categories, loading: categoryLoading, error: categoryError } = useTicketCategories();
   const [categoryTouched, setCategoryTouched] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [projectModalOpen, setProjectModalOpen] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
   const [isDirty, setIsDirty] = useState(false);
@@ -410,6 +411,7 @@ export default function NewTicketPage() {
             type="file"
             multiple
             className="hidden"
+            ref={fileInputRef}
             onChange={(e) => {
               addFiles(e.target.files);
               e.target.value = "";
@@ -434,12 +436,13 @@ export default function NewTicketPage() {
             }}
           >
             <div className="flex items-center gap-2 flex-wrap">
-              <label
-                htmlFor="attachment-input"
+              <button
+                type="button"
                 className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white text-slate-700 hover:bg-slate-50 cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
               >
-                파일 선택
-              </label>
+                ?? ??
+              </button>
               <span className="text-sm text-slate-500">드래그/붙여넣기로 추가할 수 있습니다.</span>
               {attachments.length > 0 && (
                 <button

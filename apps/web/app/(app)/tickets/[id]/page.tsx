@@ -361,7 +361,7 @@ export default function TicketDetailPage() {
       const next = [...prev];
       for (const file of Array.from(fileList)) {
         if (file.size > MAX_COMMENT_FILE_BYTES) {
-          setCommentError("????? 25MB ???? ?????.");
+          setCommentError("?? ??? 25MB ?? ?? ?? ???.");
           continue;
         }
         next.push(file);
@@ -756,11 +756,11 @@ export default function TicketDetailPage() {
                   id="comment-file-input"
                   type="file"
                   multiple
-                  className="hidden"
+                  className="sr-only"
                   ref={commentFileInputRef}
                   onChange={(e) => {
-                    addCommentFiles(e.target.files);
-                    e.target.value = "";
+                    addCommentFiles(e.currentTarget.files);
+                    e.currentTarget.value = "";
                   }}
                 />
                 <div
@@ -779,7 +779,11 @@ export default function TicketDetailPage() {
                     <button
                       type="button"
                       className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white text-slate-700 transition-colors hover:bg-slate-50 active:bg-slate-100"
-                      onClick={() => commentFileInputRef.current?.click()}
+                      onClick={() => {
+                        if (!commentFileInputRef.current) return;
+                        commentFileInputRef.current.value = "";
+                        commentFileInputRef.current.click();
+                      }}
                     >
                       파일 선택
                     </button>
