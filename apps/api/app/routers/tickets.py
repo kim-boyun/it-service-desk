@@ -309,7 +309,11 @@ def delete_ticket(
                 try:
                     delete_object(key=att.key)
                 except Exception:
-                    raise HTTPException(status_code=500, detail="Failed to delete object storage file")
+                    logging.getLogger(__name__).exception(
+                        "admin delete: failed to delete object storage file key=%s ticket_id=%s",
+                        att.key,
+                        ticket_id,
+                    )
         else:
             upload_root = Path(settings.LOCAL_UPLOAD_ROOT)
             for att in attachments:
