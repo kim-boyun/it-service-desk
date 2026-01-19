@@ -4,9 +4,8 @@ const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
   devIndicators: {
-    appIsrStatus: false,
     buildActivity: false,
-    buildActivityPosition: 'bottom-right',
+    buildActivityPosition: "bottom-right",
   },
 };
 
