@@ -17,7 +17,7 @@ ALLOWED_ROLES = {"requester", "admin"}
 
 def require_staff(user: User) -> None:
     if user.role != "admin":
-        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
+        raise HTTPException(status_code=403, detail="Forbidden")
 
 
 @router.get("", response_model=list[AdminUserOut])
@@ -31,34 +31,32 @@ def list_users(
 
     stmt = (
         select(
-            User.id,
-            User.employee_no,
-            User.name,
+            User.emp_no,
+            User.kor_name,
             User.title,
             User.department,
             User.role,
             func.coalesce(func.sum(pending_case), 0).label("pending"),
             func.count(Ticket.id).label("total"),
         )
-        .outerjoin(Ticket, Ticket.requester_id == User.id)
+        .outerjoin(Ticket, Ticket.requester_emp_no == User.emp_no)
         .group_by(
-            User.id,
-            User.employee_no,
-            User.name,
+            User.emp_no,
+            User.kor_name,
             User.title,
             User.department,
             User.role,
         )
-        .order_by(User.id.asc())
+        .order_by(User.department.asc(), User.emp_no.asc())
     )
 
     rows = session.execute(stmt).mappings().all()
     return [AdminUserOut(**row) for row in rows]
 
 
-@router.patch("/{user_id}/role", response_model=AdminUserOut)
+@router.patch("/{emp_no}/role", response_model=AdminUserOut)
 def update_role(
-    user_id: int,
+    emp_no: str,
     payload: UserRoleUpdateIn,
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
@@ -67,11 +65,11 @@ def update_role(
         raise HTTPException(status_code=403, detail="Forbidden")
 
     if payload.role not in ALLOWED_ROLES:
-        raise HTTPException(status_code=422, detail="유효하지 않은 역할입니다")
+        raise HTTPException(status_code=422, detail="Invalid role")
 
-    target = session.get(User, user_id)
+    target = session.get(User, emp_no)
     if not target:
-        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
+        raise HTTPException(status_code=404, detail="User not found")
 
     target.role = payload.role
     session.commit()
@@ -79,21 +77,19 @@ def update_role(
     pending_case = case((Ticket.status.in_(PENDING_STATUSES), 1), else_=0)
     stmt = (
         select(
-            User.id,
-            User.employee_no,
-            User.name,
+            User.emp_no,
+            User.kor_name,
             User.title,
             User.department,
             User.role,
             func.coalesce(func.sum(pending_case), 0).label("pending"),
             func.count(Ticket.id).label("total"),
         )
-        .outerjoin(Ticket, Ticket.requester_id == User.id)
-        .where(User.id == user_id)
+        .outerjoin(Ticket, Ticket.requester_emp_no == User.emp_no)
+        .where(User.emp_no == emp_no)
         .group_by(
-            User.id,
-            User.employee_no,
-            User.name,
+            User.emp_no,
+            User.kor_name,
             User.title,
             User.department,
             User.role,

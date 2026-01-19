@@ -12,9 +12,9 @@ export default function LoginPage() {
   const router = useRouter();
   const params = useSearchParams();
   const redirect = params.get("redirect") || "/home";
-  const presetEmployeeNo = params.get("employee_no") || "";
+  const presetEmpNo = params.get("emp_no") || params.get("emp_no") || "";
 
-  const [employeeNo, setEmployeeNo] = useState(presetEmployeeNo);
+  const [empNo, setEmpNo] = useState(presetEmpNo);
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -26,12 +26,14 @@ export default function LoginPage() {
     try {
       const res = await api<LoginResponse>("/auth/login", {
         method: "POST",
-        body: { employee_no: employeeNo, password },
+        body: { emp_no: empNo, password },
       });
       setToken(res.access_token);
       router.replace(redirect);
     } catch (e: any) {
-      setErr(e.message ?? "로그인에 실패했습니다.");
+      const message = e?.message ?? "";
+      const invalid = message.includes("Invalid credentials") || message.includes("401");
+      setErr(invalid ? "ID 혹은 비밀번호가 잘못되었습니다." : "오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }
@@ -42,6 +44,12 @@ export default function LoginPage() {
       <ErrorDialog message={err} onClose={() => setErr(null)} />
       <form
         onSubmit={onSubmit}
+        onKeyDown={(event) => {
+          if (err && event.key === "Enter") {
+            event.preventDefault();
+            setErr(null);
+          }
+        }}
         className="w-full max-w-sm space-y-5 rounded-2xl border border-blue-gray-100 bg-white/90 p-6 shadow-xl"
       >
         <div className="space-y-1 text-left">
@@ -53,8 +61,8 @@ export default function LoginPage() {
           <label className="text-sm">ID</label>
           <input
             className="w-full rounded-lg border border-blue-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
-            value={employeeNo}
-            onChange={(e) => setEmployeeNo(e.target.value)}
+            value={empNo}
+            onChange={(e) => setEmpNo(e.target.value)}
             autoComplete="username"
           />
         </div>

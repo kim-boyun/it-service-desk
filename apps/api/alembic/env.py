@@ -1,29 +1,38 @@
 import os
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config, pool
 from alembic import context
+from sqlalchemy import engine_from_config, pool
 
-# Alembic Config
+from app.models.user import Base
+import app.models.ticket  # noqa: F401
+import app.models.ticket_category  # noqa: F401
+import app.models.comment  # noqa: F401
+import app.models.event  # noqa: F401
+import app.models.attachment  # noqa: F401
+import app.models.draft_ticket  # noqa: F401
+import app.models.project  # noqa: F401
+import app.models.project_member  # noqa: F401
+import app.models.knowledge_item  # noqa: F401
+import app.models.sync_state  # noqa: F401
+import app.models.contact_assignment  # noqa: F401
+import app.models.contact_assignment_member  # noqa: F401
+import app.models.mail_log  # noqa: F401
+
 config = context.config
 
-# 로깅 설정
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# ✅ 모델 메타데이터 로드
-from app.models.user import Base  # Base는 user.py에 있음
-import app.models.ticket  # Ticket 모델을 import 해야 autogenerate에 잡힘
-
 target_metadata = Base.metadata
 
+
 def get_database_url() -> str:
-    # docker-compose 환경변수 DATABASE_URL 사용
     url = os.getenv("DATABASE_URL")
     if not url:
         raise RuntimeError("DATABASE_URL is not set")
-    # SQLAlchemy URL이 psycopg 드라이버 형태인지 확인
     return url
+
 
 def run_migrations_offline() -> None:
     url = get_database_url()
@@ -37,6 +46,7 @@ def run_migrations_offline() -> None:
 
     with context.begin_transaction():
         context.run_migrations()
+
 
 def run_migrations_online() -> None:
     configuration = config.get_section(config.config_ini_section) or {}
@@ -58,6 +68,7 @@ def run_migrations_online() -> None:
 
         with context.begin_transaction():
             context.run_migrations()
+
 
 if context.is_offline_mode():
     run_migrations_offline()

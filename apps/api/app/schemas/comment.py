@@ -3,16 +3,17 @@ from datetime import datetime
 from .user import UserSummaryOut
 
 class CommentCreateIn(BaseModel):
-    body: str = Field(min_length=1)
-    is_internal: bool = False
+    title: str = Field(min_length=1, max_length=200)
+    body: dict | str
+    notify_email: bool | None = False
 
 class CommentOut(BaseModel):
     id: int
     ticket_id: int
-    author_id: int
+    author_emp_no: str
     author: UserSummaryOut | None = None
-    body: str
-    is_internal: bool
+    title: str
+    body: dict
     created_at: datetime | None = None
 
     class Config:

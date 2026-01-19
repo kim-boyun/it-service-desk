@@ -1,41 +1,17 @@
 services:
-  db:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: it_service_desk
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 1234
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./db/init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
-
   api:
     build:
       context: ../apps/api
     environment:
-      DATABASE_URL: postgresql+psycopg://postgres:1234@db:5432/it_service_desk
       JWT_SECRET: "change-me"
       JWT_EXPIRES_MIN: "120"
       ALLOWED_EMAIL_DOMAINS: "kdischool.ac.kr"
     ports:
       - "8000:8000"
-    depends_on:
-      - db
     command: >
-      sh -c "
-        echo 'Waiting for db...';
-        until pg_isready -h db -p 5432 -U postgres; do
-          sleep 1;
-        done;
-        echo 'DB is ready. Starting API...';
-        uvicorn app.main:app --host 0.0.0.0 --port 8000
-      "
+      uvicorn app.main:app --host 0.0.0.0 --port 8000
     env_file:
       - .env
     volumes:
       - ./data/uploads:/data/uploads
-
-volumes:
-  pgdata:
+      - ${USERPROFILE:-C:\Users\kdischool}\.aws:/root/.aws:ro

@@ -3,10 +3,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 import os
 
-from .routers import auth, health, tickets, comments, uploads, attachments, me, admin_users, notices, faqs, ticket_categories, projects, users, draft_tickets, notifications
+from .routers import auth, health, tickets, comments, uploads, attachments, me, admin_users, notices, faqs, ticket_categories, projects, users, draft_tickets, notifications, contact_assignments
 from .models.user import Base
 from .db import engine, SessionLocal
 from .core.seed import seed_users, seed_ticket_categories
+from .core.settings import settings
+from .core.user_sync import start_user_sync_thread
+from .services.mail_service import start_mail_worker_thread
 
 import app.models.ticket  # noqa: F401
 import app.models.comment  # noqa: F401
@@ -16,6 +19,10 @@ import app.models.ticket_category  # noqa: F401
 import app.models.project  # noqa: F401
 import app.models.project_member  # noqa: F401
 import app.models.draft_ticket  # noqa: F401
+import app.models.sync_state  # noqa: F401
+import app.models.contact_assignment  # noqa: F401
+import app.models.contact_assignment_member  # noqa: F401
+import app.models.mail_log  # noqa: F401
 
 
 app = FastAPI(title="IT Service Desk API")
@@ -23,38 +30,76 @@ app = FastAPI(title="IT Service Desk API")
 
 @app.on_event("startup")
 def on_startup():
-    # Create tables in dev if missing.
-    Base.metadata.create_all(bind=engine)
+    if settings.AUTO_DB_BOOTSTRAP:
+        # Create tables in dev if missing.
+        Base.metadata.create_all(bind=engine)
 
-    # Ensure required user columns exist for legacy schemas.
-    with engine.begin() as conn:
-        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS employee_no VARCHAR(50)"))
-        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS name VARCHAR(100)"))
-        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS title VARCHAR(100)"))
-        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS department VARCHAR(100)"))
-        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN NOT NULL DEFAULT TRUE"))
-        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()"))
-        conn.execute(
-            text(
-                """
-                DO $$
-                BEGIN
-                  IF EXISTS (
-                    SELECT 1
-                    FROM information_schema.columns
-                    WHERE table_name = 'users' AND column_name = 'email'
-                  ) THEN
-                    ALTER TABLE users ALTER COLUMN email DROP NOT NULL;
-                  END IF;
-                END $$;
-                """
+        # Ensure required user columns exist for legacy schemas.
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS emp_no VARCHAR(50)"))
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS kor_name VARCHAR(100)"))
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255)"))
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(32)"))
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS title VARCHAR(100)"))
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS department VARCHAR(100)"))
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN NOT NULL DEFAULT TRUE"))
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()"))
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()"))
+
+        # Seed default admin account.
+        with SessionLocal() as session:
+            seed_users(session)
+            seed_ticket_categories(session)
+
+    # Start periodic user sync (if enabled).
+    start_user_sync_thread()
+    start_mail_worker_thread()
+
+    if settings.AUTO_DB_BOOTSTRAP:
+        # Migrate tickets/draft_tickets to category_id-only schema if legacy columns exist.
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS category_id BIGINT"))
+            conn.execute(text("ALTER TABLE draft_tickets ADD COLUMN IF NOT EXISTS category_id BIGINT"))
+            conn.execute(
+                text(
+                    """
+                    DO $$
+                    BEGIN
+                      IF EXISTS (
+                        SELECT 1
+                        FROM information_schema.columns
+                        WHERE table_name = 'tickets' AND column_name = 'category'
+                      ) THEN
+                        UPDATE tickets t
+                        SET category_id = tc.id
+                        FROM ticket_categories tc
+                        WHERE t.category_id IS NULL AND t.category = tc.code;
+                      END IF;
+                    END $$;
+                    """
+                )
             )
-        )
-
-    # Seed default admin account.
-    with SessionLocal() as session:
-        seed_users(session)
-        seed_ticket_categories(session)
+            conn.execute(
+                text(
+                    """
+                    DO $$
+                    BEGIN
+                      IF EXISTS (
+                        SELECT 1
+                        FROM information_schema.columns
+                        WHERE table_name = 'draft_tickets' AND column_name = 'category'
+                      ) THEN
+                        UPDATE draft_tickets d
+                        SET category_id = tc.id
+                        FROM ticket_categories tc
+                        WHERE d.category_id IS NULL AND d.category = tc.code;
+                      END IF;
+                    END $$;
+                    """
+                )
+            )
+            conn.execute(text("ALTER TABLE tickets DROP COLUMN IF EXISTS category"))
+            conn.execute(text("ALTER TABLE draft_tickets DROP COLUMN IF EXISTS category"))
 
 
 app.include_router(health.router)
@@ -72,6 +117,7 @@ app.include_router(projects.router)
 app.include_router(users.router)
 app.include_router(draft_tickets.router)
 app.include_router(notifications.router)
+app.include_router(contact_assignments.router)
 
 # CORS: allow local dev origins by default.
 raw_origins = os.getenv(

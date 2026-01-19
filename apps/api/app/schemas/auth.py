@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class LoginIn(BaseModel):
-    employee_no: str = Field(min_length=1, max_length=50)
+    emp_no: str = Field(min_length=1, max_length=50)
     password: str = Field(min_length=1, max_length=72)
 
     @field_validator("password")

@@ -10,8 +10,8 @@ class TicketEvent(Base):
     ticket_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("tickets.id", ondelete="CASCADE")
     )
-    actor_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id")
+    actor_emp_no: Mapped[str] = mapped_column(
+        String(50), ForeignKey("users.emp_no")
     )
 
     # 예: "status_changed", "assigned", "priority_changed" (확장 대비)

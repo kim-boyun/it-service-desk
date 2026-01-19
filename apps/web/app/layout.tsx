@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "IT Service Desk",
+  title: "KDIS DESK",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

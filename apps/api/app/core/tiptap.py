@@ -52,3 +52,31 @@ def is_empty_doc(doc: Any) -> bool:
         return False
 
     return not _has_text(content)
+
+
+def extract_image_sources(raw: Any) -> list[str]:
+    if raw is None:
+        return []
+    doc: Any = raw
+    if isinstance(raw, str):
+        try:
+            doc = json.loads(raw)
+        except Exception:
+            doc = load_tiptap(raw)
+
+    sources: list[str] = []
+
+    def _walk(node: Any) -> None:
+        if isinstance(node, dict):
+            if node.get("type") == "image":
+                src = (node.get("attrs") or {}).get("src")
+                if isinstance(src, str) and src:
+                    sources.append(src)
+            for child in node.get("content") or []:
+                _walk(child)
+        elif isinstance(node, list):
+            for child in node:
+                _walk(child)
+
+    _walk(doc)
+    return sources

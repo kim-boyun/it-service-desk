@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import Integer, Text, Boolean, DateTime, ForeignKey, func
+from sqlalchemy import Integer, Text, DateTime, ForeignKey, func, String
 from .user import Base
 
 class TicketComment(Base):
@@ -10,12 +10,12 @@ class TicketComment(Base):
     ticket_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("tickets.id", ondelete="CASCADE")
     )
-    author_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id")
+    author_emp_no: Mapped[str] = mapped_column(
+        String(50), ForeignKey("users.emp_no")
     )
 
+    title: Mapped[str] = mapped_column(String(200), server_default="")
     body: Mapped[str] = mapped_column(Text)
-    is_internal: Mapped[bool] = mapped_column(Boolean, default=False)
 
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

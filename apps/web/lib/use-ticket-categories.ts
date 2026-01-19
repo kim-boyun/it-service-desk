@@ -38,8 +38,8 @@ export function useTicketCategories() {
   }, []);
 
   const map = useMemo(() => {
-    const next: Record<string, string> = {};
-    for (const c of categories) next[c.code] = c.name;
+    const next: Record<number, string> = {};
+    for (const c of categories) next[c.id] = c.name;
     return next;
   }, [categories]);
 

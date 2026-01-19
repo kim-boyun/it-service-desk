@@ -18,17 +18,20 @@
     --color-neutral-800: #1e293b;
     --color-neutral-900: #0f172a;
 
-    /* Brand Primary (Blue-Teal) */
-    --color-primary-50: #f0fdfa;
-    --color-primary-100: #ccfbf1;
-    --color-primary-200: #99f6e4;
-    --color-primary-300: #5eead4;
-    --color-primary-400: #2dd4bf;
-    --color-primary-500: #14b8a6;
-    --color-primary-600: #0d9488;
-    --color-primary-700: #0f766e;
-    --color-primary-800: #115e59;
-    --color-primary-900: #134e4a;
+    /* Brand Primary (KDI School Green #006334) */
+    --color-primary-50: #e6f2ed;
+    --color-primary-100: #b3dcc8;
+    --color-primary-200: #80c6a3;
+    --color-primary-300: #4db07e;
+    --color-primary-400: #269a5f;
+    --color-primary-500: #006334; /* KDI School Green */
+    --color-primary-600: #00572e;
+    --color-primary-700: #004a27;
+    --color-primary-800: #003d20;
+    --color-primary-900: #002b15;
+    
+    /* KDI Platinum (Secondary) */
+    --color-platinum: #A7A9AC;
 
     /* Status Colors */
     --color-success-50: #f0fdf4;
@@ -135,7 +138,7 @@
     --border-emphasis: var(--color-neutral-300);
 
     /* Focus ring for accessibility */
-    --focus-ring: 0 0 0 3px rgba(20, 184, 166, 0.1);
+    --focus-ring: 0 0 0 3px rgba(0, 99, 52, 0.15);
   }
 
   /* Dark mode tokens (optional, for future implementation) */

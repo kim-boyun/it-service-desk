@@ -7,7 +7,6 @@ class AttachmentRegisterIn(BaseModel):
     filename: str
     content_type: str
     size: int = 0
-    is_internal: bool = False
 
 class AttachmentOut(BaseModel):
     id: int
@@ -17,8 +16,7 @@ class AttachmentOut(BaseModel):
     size: int
     ticket_id: Optional[int] = None
     comment_id: Optional[int] = None
-    is_internal: bool
-    uploaded_by: int
+    uploaded_emp_no: str
     created_at: datetime | None = None
 
     class Config:

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -12,68 +12,147 @@ import ErrorDialog from "@/components/ErrorDialog";
 type Ticket = {
   id: number;
   status: string;
-  category?: string;
+  category_id?: number | null;
   work_type?: string | null;
   created_at?: string;
   updated_at?: string;
 };
 
-function AdminStatCard({ label, value, accent }: { label: string; value: string | number; accent?: boolean }) {
+function KPICard({
+  label,
+  value,
+  subtitle,
+  icon,
+  trend,
+  accent = "#2563eb",
+  loading,
+}: {
+  label: string;
+  value: string | number;
+  subtitle?: string;
+  icon: string;
+  trend?: { value: number; label: string };
+  accent?: string;
+  loading?: boolean;
+}) {
   return (
-    <div
-      className={`rounded-xl border p-5 shadow-sm ${accent ? "bg-success-50 border-success-200" : "bg-white border-neutral-200"}`}
-    >
-      <div className="text-sm font-medium text-neutral-600">{label}</div>
-      <div className={`text-3xl font-bold mt-2 ${accent ? "text-success-700" : "text-neutral-900"}`}>{value}</div>
-    </div>
-  );
-}
-
-function VerticalBarChart({ data, title }: { data: { label: string; value: number }[]; title: string }) {
-  const max = Math.max(1, ...data.map((d) => d.value));
-  return (
-    <div className="rounded-xl border border-neutral-200 bg-white shadow-sm p-5 space-y-4">
-      <h3 className="text-base font-semibold text-neutral-900">{title}</h3>
-      <div className="h-48 flex items-end gap-3">
-        {data.map((d) => {
-          const heightPct = Math.max(8, (d.value / max) * 100);
-          return (
-          <div key={d.label} className="flex-1 flex flex-col items-center gap-2">
-            <div className="w-full h-36 flex items-end justify-center relative">
-              <div
-                className="absolute text-xs font-semibold text-neutral-700"
-                style={{ bottom: `calc(${heightPct}% + 6px)` }}
-              >
-                {d.value}
-              </div>
-              <div
-                className="w-full rounded-t-lg bg-gradient-to-t from-primary-500 to-primary-400 transition-all duration-300 shadow-sm"
-                style={{ height: `${heightPct}%` }}
-              />
-            </div>
-            <div className="text-xs text-neutral-600 text-center leading-tight break-keep font-medium">{d.label}</div>
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex h-full flex-col lg:col-span-1">
+      <div className="flex items-start justify-between flex-1">
+        <div>
+          <div className="text-sm font-semibold text-slate-900 mb-1">{label}</div>
+          <div className="text-4xl font-bold text-slate-900 mb-2">
+            {loading ? <div className="h-10 w-20 bg-slate-200 rounded animate-pulse" /> : value}
           </div>
-        );
-        })}
+          {subtitle && <div className="text-xs text-slate-600">{subtitle}</div>}
+          {trend && (
+            <div className="mt-3 flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-800">
+                {trend.value >= 0 ? "↑" : "↓"} {Math.abs(trend.value).toFixed(1)}%
+              </span>
+              <span className="text-xs text-slate-600">{trend.label}</span>
+            </div>
+          )}
+        </div>
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: `${accent}1A` }}>
+          <span className="text-2xl" style={{ color: accent }}>
+            {icon}
+          </span>
+        </div>
+      </div>
+      <div className="mt-auto h-1.5 w-full rounded-full bg-slate-100">
+        <div className="h-full rounded-full" style={{ width: "60%", backgroundColor: accent }} />
       </div>
     </div>
   );
 }
 
-function AreaLineChart({
+function ChartCard({
   title,
-  labels,
-  values,
-  faded,
+  subtitle,
+  icon,
+  action,
+  children,
+  className = "",
 }: {
   title: string;
+  subtitle?: string;
+  icon?: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`rounded-2xl border border-slate-200 bg-white p-6 shadow-sm ${className}`}>
+      <div className="mb-6 flex items-start justify-between">
+        <div className="flex items-start gap-3">
+          {icon && (
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-xl">
+              {icon}
+            </div>
+          )}
+          <div>
+            <h3 className="text-lg font-bold text-slate-900">{title}</h3>
+            {subtitle && <p className="mt-1 text-sm text-slate-600">{subtitle}</p>}
+          </div>
+        </div>
+        {action}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function BarChart({
+  data,
+  maxHeight = 200,
+  formatLabel,
+}: {
+  data: { label: string; value: number }[];
+  maxHeight?: number;
+  formatLabel?: (label: string) => React.ReactNode;
+}) {
+  const max = Math.max(1, ...data.map((d) => d.value));
+
+  return (
+    <div className="flex items-end justify-between gap-3 mt-20" style={{ height: `${maxHeight}px` }}>
+      {data.map((item) => {
+        const heightPct = Math.max(8, (item.value / max) * 100);
+        return (
+          <div key={item.label} className="group flex flex-1 flex-col items-center gap-2">
+            <div className="relative flex w-full items-end justify-center" style={{ height: `${maxHeight - 32}px` }}>
+              <div
+                className="absolute text-xs font-bold text-slate-700 transition-all group-hover:scale-110"
+                style={{ bottom: `calc(${heightPct}% + 10px)` }}
+              >
+                {item.value}
+              </div>
+              <div
+                className="w-full max-w-[36px] mx-auto rounded-t-xl bg-gradient-to-t from-blue-600 to-blue-400 shadow-md transition-all duration-300 group-hover:from-blue-700 group-hover:to-blue-500"
+                style={{ height: `${heightPct}%` }}
+              />
+            </div>
+            <div className="w-full text-center text-xs font-medium text-slate-700 leading-tight min-h-[44px] flex items-end justify-center pb-1">
+              {formatLabel ? formatLabel(item.label) : item.label}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function AreaChart({
+  labels,
+  values,
+  color = "#006334",
+}: {
   labels: string[];
   values: number[];
-  faded?: boolean;
+  color?: string;
 }) {
-  const width = 1000;
-  const height = 260;
-  const padding = 12;
+  const width = 1400;
+  const height = 240;
+  const padding = 24;
   const max = Math.max(1, ...values);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
@@ -83,100 +162,131 @@ function AreaLineChart({
     return { x, y };
   });
 
-  const linePath = points
-    .map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(2)},${p.y.toFixed(2)}`)
-    .join(" ");
+  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
   const areaPath = `${linePath} L ${width - padding},${height - padding} L ${padding},${height - padding} Z`;
 
-  const handleMove = (event: React.MouseEvent<SVGSVGElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    if (!rect.width) return;
-    const x = event.clientX - rect.left;
-    const ratio = Math.min(1, Math.max(0, x / rect.width));
-    const idx = Math.round(ratio * (values.length - 1));
-    setHoverIdx(idx);
-  };
-
-  const handleLeave = () => setHoverIdx(null);
-  const hoverPoint = hoverIdx !== null ? points[hoverIdx] : null;
-  const hoverLabel = hoverIdx !== null ? labels[hoverIdx] : null;
-  const hoverValue = hoverIdx !== null ? values[hoverIdx] : null;
-
   return (
-    <div className="space-y-4">
-        <svg
-          viewBox={`0 0 ${width} ${height}`}
-          preserveAspectRatio="none"
-        className={`w-full h-72 transition-opacity duration-300 ${faded ? "opacity-40" : "opacity-100"}`}
-          onMouseMove={handleMove}
-          onMouseLeave={handleLeave}
-        >
-          <defs>
-            <linearGradient id="areaGrad" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#14b8a6" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#14b8a6" stopOpacity="0.03" />
-            </linearGradient>
-          </defs>
-          <path d={areaPath} fill="url(#areaGrad)" />
-        <path d={linePath} fill="none" stroke="#14b8a6" strokeWidth="3" />
-          {hoverPoint && (
-          <circle cx={hoverPoint.x} cy={hoverPoint.y} r="5" fill="#14b8a6" stroke="#ffffff" strokeWidth="2.5" />
-          )}
-        </svg>
-        {hoverPoint && hoverLabel && hoverValue !== null && (
-          <div
-          className="absolute z-10 pointer-events-none rounded-lg border border-neutral-200 bg-white px-3 py-2 shadow-xl"
-            style={{
-              left: `${(hoverPoint.x / width) * 100}%`,
-              top: `${(hoverPoint.y / height) * 100}%`,
-            transform: "translate(-50%, -180%)",
-            }}
-          >
-          <div className="font-semibold text-neutral-900 text-sm">{hoverValue}건</div>
-          <div className="text-xs text-neutral-600 mt-0.5">{hoverLabel}</div>
-          </div>
+    <div className="relative">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="h-64 w-full"
+        onMouseMove={(e) => {
+          if (points.length === 0) return;
+          const rect = e.currentTarget.getBoundingClientRect();
+          const x = ((e.clientX - rect.left) / rect.width) * width;
+          let nearest = 0;
+          let min = Number.POSITIVE_INFINITY;
+          for (let i = 0; i < points.length; i += 1) {
+            const dist = Math.abs(points[i].x - x);
+            if (dist < min) {
+              min = dist;
+              nearest = i;
+            }
+          }
+          setHoverIdx(nearest);
+        }}
+        onMouseLeave={() => setHoverIdx(null)}
+      >
+        <defs>
+          <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.05" />
+          </linearGradient>
+        </defs>
+
+        {[0, 0.25, 0.5, 0.75, 1].map((ratio) => (
+          <line
+            key={ratio}
+            x1={padding}
+            x2={width - padding}
+            y1={height - padding - ratio * (height - padding * 2)}
+            y2={height - padding - ratio * (height - padding * 2)}
+            stroke="#e5e7eb"
+            strokeWidth="1"
+            strokeDasharray="4 4"
+          />
+        ))}
+
+        <path d={areaPath} fill="url(#areaGradient)" />
+        <path d={linePath} fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+
+        {points.map((p, i) => (
+          <circle
+            key={i}
+            cx={p.x}
+            cy={p.y}
+            r={hoverIdx === i ? 6 : 3}
+            fill="white"
+            stroke={color}
+            strokeWidth="3"
+            className="transition-all"
+          />
+        ))}
+
+        {hoverIdx !== null && (
+          <>
+            <line
+              x1={points[hoverIdx].x}
+              y1={padding}
+              x2={points[hoverIdx].x}
+              y2={height - padding}
+              stroke={color}
+              strokeWidth="2"
+              strokeDasharray="4 4"
+              opacity="0.5"
+            />
+            <circle cx={points[hoverIdx].x} cy={points[hoverIdx].y} r="8" fill={color} opacity="0.2" />
+          </>
         )}
-      <div className="flex justify-between text-xs text-neutral-500 px-2">
-          <span>{labels[0]}</span>
-          <span>{labels[Math.floor(labels.length / 2)]}</span>
-          <span>{labels[labels.length - 1]}</span>
+      </svg>
+
+      {hoverIdx !== null && points[hoverIdx] ? (
+        <div
+          className="absolute z-10 -translate-x-1/2 -translate-y-full rounded-lg border border-slate-200 bg-white px-4 py-2 shadow-xl"
+          style={{
+            left: `${(points[hoverIdx].x / width) * 100}%`,
+            top: `${(points[hoverIdx].y / height) * 100}%`,
+          }}
+        >
+          <div className="text-sm font-bold text-slate-900">{values[hoverIdx]}건</div>
+          <div className="text-xs text-slate-600">{labels[hoverIdx]}</div>
+        </div>
+      ) : null}
+
+      <div className="mt-3 flex justify-between px-2 text-xs text-slate-500">
+        <span>{labels[0]}</span>
+        <span>{labels[Math.floor(labels.length / 2)]}</span>
+        <span>{labels[labels.length - 1]}</span>
       </div>
     </div>
   );
 }
 
-function startOfDay(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+function toKstDate(d: Date) {
+  return new Date(d.getTime() + KST_OFFSET_MS);
 }
 
-function formatDateKey(d: Date) {
-  return d.toISOString().slice(0, 10);
+function startOfKstDay(d: Date) {
+  const kst = toKstDate(d);
+  return new Date(kst.getFullYear(), kst.getMonth(), kst.getDate());
 }
 
-function formatMonthKey(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function weekStart(d: Date) {
+function formatWeekKey(d: Date) {
   const copy = new Date(d);
   const day = copy.getDay();
   const diff = (day + 6) % 7;
   copy.setDate(copy.getDate() - diff);
-  return startOfDay(copy);
-}
-
-function formatWeekKey(d: Date) {
-  const ws = weekStart(d);
-  return `${ws.getFullYear()}-${String(ws.getMonth() + 1).padStart(2, "0")}-${String(ws.getDate()).padStart(2, "0")}`;
+  return `${copy.getFullYear()}-${String(copy.getMonth() + 1).padStart(2, "0")}-${String(copy.getDate()).padStart(2, "0")}`;
 }
 
 export default function AdminDashboard() {
   const me = useMe();
   const router = useRouter();
   const { categories, map: categoryMap } = useTicketCategories();
-  const [range, setRange] = useState<"daily" | "weekly" | "monthly">("daily");
+  const [range, setRange] = useState<"daily" | "weekly" | "monthly">("weekly");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [fade, setFade] = useState(false);
 
   if (me.role !== "admin") {
     router.replace("/home");
@@ -185,210 +295,304 @@ export default function AdminDashboard() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-dashboard-tickets"],
-    queryFn: () => api<Ticket[]>("/tickets?scope=all&limit=100&offset=0"),
-    staleTime: 5_000,
+    queryFn: () => api<Ticket[]>("/tickets?scope=all&limit=300&offset=0"),
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    refetchInterval: 15_000,
   });
 
   useEffect(() => {
     if (!error) return;
-    setErrorMessage((error as any)?.message ?? "대시보드 데이터를 불러오지 못했습니다.");
+    setErrorMessage((error as any)?.message ?? "관리자 정보를 불러오지 못했습니다.");
   }, [error]);
-
-  useEffect(() => {
-    setFade(true);
-    const t = setTimeout(() => setFade(false), 200);
-    return () => clearTimeout(t);
-  }, [range]);
 
   const stats = useMemo(() => {
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const today = startOfKstDay(now);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
     let todayNew = 0;
+    let yesterdayNew = 0;
     let todayDone = 0;
+    let yesterdayDone = 0;
     let totalPending = 0;
+    let totalTickets = (data ?? []).length;
 
-    const categoryCodes = categories.length ? categories.map((c) => c.code) : Object.keys(categoryMap);
-    const byCategory: Record<string, number> = {};
-    categoryCodes.forEach((code) => {
-      byCategory[code] = 0;
-    });
-    if (!("etc" in byCategory)) byCategory["etc"] = 0;
-
-    const workTypeKeys = ["incident", "request", "change", "other"] as const;
-    const byWorkType: Record<string, number> = {
-      incident: 0,
-      request: 0,
-      change: 0,
-      other: 0,
-    };
+    const byCategory: Record<number, number> = {};
+    let unknownCategory = 0;
+    const byStatus = { open: 0, in_progress: 0, resolved: 0, closed: 0 };
+    const byWorkType = { incident: 0, request: 0, change: 0, other: 0 };
 
     (data ?? []).forEach((t) => {
-      const created = t.created_at ? new Date(t.created_at) : null;
-      const updated = t.updated_at ? new Date(t.updated_at) : created;
-
+      const created = t.created_at ? toKstDate(new Date(t.created_at)) : null;
+      const updated = t.updated_at ? toKstDate(new Date(t.updated_at)) : created;
       const status = (t.status || "").toLowerCase();
+
       if (status === "open" || status === "in_progress") totalPending++;
       if (created && created >= today) todayNew++;
+      if (created && created >= yesterday && created < today) yesterdayNew++;
       if (updated && updated >= today && status === "resolved") todayDone++;
+      if (updated && updated >= yesterday && updated < today && status === "resolved") yesterdayDone++;
 
-      const cat = t.category ?? "etc";
-      if (!(cat in byCategory)) byCategory[cat] = 0;
-      byCategory[cat] += 1;
+      if (t.category_id == null) {
+        unknownCategory += 1;
+      } else {
+        byCategory[t.category_id] = (byCategory[t.category_id] || 0) + 1;
+      }
 
-      const rawWorkType = t.work_type ?? "other";
-      const workType = workTypeKeys.includes(rawWorkType as any) ? (rawWorkType as string) : "other";
-      byWorkType[workType] = (byWorkType[workType] || 0) + 1;
+      if (status === "open") byStatus.open++;
+      else if (status === "in_progress") byStatus.in_progress++;
+      else if (status === "resolved") byStatus.resolved++;
+      else if (status === "closed") byStatus.closed++;
+
+      const wt = (t.work_type ?? "other") as keyof typeof byWorkType;
+      if (wt in byWorkType) byWorkType[wt] += 1;
+      else byWorkType.other += 1;
     });
 
-    const categoryChart = Object.entries(byCategory).map(([label, value]) => ({
-      label: categoryMap[label] ?? (label === "etc" ? "기타" : label),
-      value,
-    }));
+    const newTrend = yesterdayNew > 0 ? ((todayNew - yesterdayNew) / yesterdayNew) * 100 : 0;
+    const doneTrend = yesterdayDone > 0 ? ((todayDone - yesterdayDone) / yesterdayDone) * 100 : 0;
 
-    const workTypeLabels: Record<string, string> = {
-      incident: "장애",
-      request: "요청",
-      change: "변경",
-      other: "기타",
+    return {
+      todayNew,
+      todayDone,
+      totalPending,
+      totalTickets,
+      newTrend,
+      doneTrend,
+      byCategory,
+      unknownCategory,
+      byStatus,
+      byWorkType,
     };
-    const workTypeChart = Object.entries(byWorkType).map(([label, value]) => ({
-      label: workTypeLabels[label] ?? "기타",
+  }, [data]);
+
+  const categoryChartData = useMemo(() => {
+    if (categories.length) {
+      return categories.map((category) => {
+        const base = stats.byCategory[category.id] ?? 0;
+        const value = category.code === "etc" ? base + (stats.unknownCategory ?? 0) : base;
+        return { label: category.name, value };
+      });
+    }
+    return Object.entries(stats.byCategory).map(([key, value]) => ({
+      label: categoryMap[Number(key)] ?? key,
       value,
     }));
+  }, [stats.byCategory, stats.unknownCategory, categoryMap, categories]);
 
-    const statusChart = [
-      { label: "대기", value: (data ?? []).filter((t) => (t.status || "").toLowerCase() === "open").length },
-      { label: "진행", value: (data ?? []).filter((t) => (t.status || "").toLowerCase() === "in_progress").length },
-      { label: "완료", value: (data ?? []).filter((t) => (t.status || "").toLowerCase() === "resolved").length },
-      { label: "사업검토", value: (data ?? []).filter((t) => (t.status || "").toLowerCase() === "closed").length },
-    ];
-
-    return { todayNew, todayDone, totalPending, categoryChart, statusChart, workTypeChart };
-  }, [data, categories, categoryMap]);
-
-  const rangeSeries = useMemo(() => {
-    const tickets = data ?? [];
-    const now = startOfDay(new Date());
-
-    if (range === "monthly") {
-      const labels: string[] = [];
-      const counts: Record<string, number> = {};
-      for (let i = 11; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const key = formatMonthKey(d);
-        labels.push(key);
-        counts[key] = 0;
-      }
-      tickets.forEach((t) => {
-        if (!t.created_at) return;
-        const d = new Date(t.created_at);
-        const key = formatMonthKey(d);
-        if (key in counts) counts[key] += 1;
-      });
-      return { labels, values: labels.map((l) => counts[l]) };
-    }
-
-    if (range === "weekly") {
-      const labels: string[] = [];
-      const counts: Record<string, number> = {};
-      for (let i = 51; i >= 0; i--) {
-        const d = new Date(now);
-        d.setDate(d.getDate() - i * 7);
-        const key = formatWeekKey(d);
-        labels.push(key);
-        counts[key] = 0;
-      }
-      tickets.forEach((t) => {
-        if (!t.created_at) return;
-        const key = formatWeekKey(new Date(t.created_at));
-        if (key in counts) counts[key] += 1;
-      });
-      return { labels, values: labels.map((l) => counts[l]) };
-    }
-
-    const labels: string[] = [];
-    const counts: Record<string, number> = {};
-    for (let i = 364; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      const key = formatDateKey(d);
-      labels.push(key);
-      counts[key] = 0;
-    }
-    tickets.forEach((t) => {
-      if (!t.created_at) return;
-      const key = formatDateKey(new Date(t.created_at));
-      if (key in counts) counts[key] += 1;
-    });
-    return { labels, values: labels.map((l) => counts[l]) };
-  }, [data, range]);
-
-  const cards = [
-    { title: "사용자관리", desc: "계정 상태/권한, 기본 정보 관리", href: "/admin/users", icon: "user" },
-    { title: "요청관리", desc: "모든 요청 조회 및 담당자 배정", href: "/admin/tickets", icon: "ticket" },
+  const statusChartData = [
+    { label: "대기", value: stats.byStatus.open },
+    { label: "진행", value: stats.byStatus.in_progress },
+    { label: "완료", value: stats.byStatus.resolved },
+    { label: "사업검토", value: stats.byStatus.closed },
   ];
 
+  const workTypeChartData = [
+    { label: "장애", value: stats.byWorkType.incident },
+    { label: "요청", value: stats.byWorkType.request },
+    { label: "변경", value: stats.byWorkType.change },
+    { label: "기타", value: stats.byWorkType.other },
+  ];
+
+  const formatCategoryLabel = (label: string) => {
+    if (label === "VDI(Gabia DaaS)") {
+      return (
+        <>
+          VDI
+          <br />
+          (Gabia DaaS)
+        </>
+      );
+    }
+    if (label === "MIS(일반행정)") {
+      return (
+        <>
+          MIS
+          <br />
+          (일반행정)
+        </>
+      );
+    }
+    return label;
+  };
+
+  const timeSeriesData = useMemo(() => {
+    const tickets = data ?? [];
+    const now = startOfKstDay(new Date());
+    const periods = range === "monthly" ? 12 : range === "weekly" ? 12 : 30;
+    const labels: string[] = [];
+    const values: number[] = [];
+
+    if (range === "monthly") {
+      for (let i = periods - 1; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        labels.push(`${d.getFullYear()}년 ${d.getMonth() + 1}월`);
+        values.push(0);
+      }
+      tickets.forEach((t) => {
+        if (!t.created_at) return;
+        const d = toKstDate(new Date(t.created_at));
+        const idx = (d.getFullYear() - now.getFullYear()) * 12 + (d.getMonth() - now.getMonth()) + (periods - 1);
+        if (idx >= 0 && idx < periods) values[idx]++;
+      });
+    } else if (range === "weekly") {
+      for (let i = periods - 1; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i * 7);
+        labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
+        values.push(0);
+      }
+      tickets.forEach((t) => {
+        if (!t.created_at) return;
+        const key = formatWeekKey(toKstDate(new Date(t.created_at)));
+        const idx = labels.findIndex((_, i) => {
+          const d = new Date(now);
+          d.setDate(d.getDate() - (periods - 1 - i) * 7);
+          return formatWeekKey(d) === key;
+        });
+        if (idx >= 0) values[idx]++;
+      });
+    } else {
+      for (let i = periods - 1; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
+        values.push(0);
+      }
+      tickets.forEach((t) => {
+        if (!t.created_at) return;
+        const created = toKstDate(new Date(t.created_at));
+        const diff = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+        if (diff >= 0 && diff < periods) values[periods - 1 - diff]++;
+      });
+    }
+
+    return { labels, values };
+  }, [data, range]);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <div className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-1">ADMIN</div>
-        <h1 className="text-2xl font-bold text-neutral-900">관리자 대시보드</h1>
-        <p className="text-sm text-neutral-600 mt-1.5">관리 업무 현황과 통계를 한눈에 확인하세요</p>
+        <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-1.5 border border-slate-200">
+          <div className="h-2 w-2 rounded-full bg-slate-600 animate-pulse" />
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Admin Dashboard</span>
+        </div>
+        <h1 className="text-4xl font-bold text-slate-900 tracking-tight">관리자 대시보드</h1>
+        <p className="mt-2 text-base text-slate-600">IT 서비스 요청 현황과 통계를 실시간으로 모니터링합니다.</p>
       </div>
 
       <ErrorDialog message={errorMessage} onClose={() => setErrorMessage(null)} />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <AdminStatCard label="금일 접수" value={isLoading ? "-" : stats.todayNew} accent />
-        <AdminStatCard label="금일 처리" value={isLoading ? "-" : stats.todayDone} />
-        <AdminStatCard label="미처리 총 요청" value={isLoading ? "-" : stats.totalPending} />
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <KPICard
+          label="금일 신규 접수"
+          value={isLoading ? "-" : stats.todayNew}
+          subtitle="오늘 들어온 새 요청"
+          icon="📝"
+          trend={{ value: stats.newTrend, label: "전일 대비" }}
+          accent="#2563eb"
+          loading={isLoading}
+        />
+        <KPICard
+          label="금일 처리 완료"
+          value={isLoading ? "-" : stats.todayDone}
+          subtitle="오늘 완료된 요청"
+          icon="✅"
+          trend={{ value: stats.doneTrend, label: "전일 대비" }}
+          accent="#10b981"
+          loading={isLoading}
+        />
+        <KPICard
+          label="미처리 총 요청"
+          value={isLoading ? "-" : stats.totalPending}
+          subtitle="대기 + 진행"
+          icon="⏳"
+          accent="#f59e0b"
+          loading={isLoading}
+        />
+        <KPICard
+          label="전체 요청"
+          value={isLoading ? "-" : stats.totalTickets}
+          subtitle="누적 요청 건수"
+          icon="📦"
+          accent="#3b82f6"
+          loading={isLoading}
+        />
       </div>
 
-      <div className="rounded-xl border border-neutral-200 bg-white shadow-sm p-5">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-semibold text-neutral-900">접수된 요청 수</h2>
-          <div className="flex items-center gap-1.5 p-1.5 rounded-lg border border-neutral-200 bg-neutral-50">
+      <ChartCard
+        title="티켓 추이 분석"
+        subtitle="시간대별 요청 접수 현황"
+        icon="📈"
+        action={
+          <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
             {(["daily", "weekly", "monthly"] as const).map((r) => (
               <button
                 key={r}
-                type="button"
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                  range === r ? "bg-neutral-900 text-white shadow-sm" : "text-neutral-700 hover:bg-white"
-                }`}
                 onClick={() => setRange(r)}
+                className={`rounded-md px-4 py-2 text-sm font-semibold transition-all ${
+                  range === r ? "bg-slate-900 text-white shadow-sm" : "text-slate-700 hover:bg-white hover:text-slate-900"
+                }`}
               >
                 {r === "daily" ? "일별" : r === "weekly" ? "주별" : "월별"}
               </button>
             ))}
           </div>
-        </div>
-        <AreaLineChart title="최근 1년 추이" labels={rangeSeries.labels} values={rangeSeries.values} faded={fade} />
+        }
+      >
+        <AreaChart labels={timeSeriesData.labels} values={timeSeriesData.values} color="#006334" />
+      </ChartCard>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <ChartCard title="작업 유형" subtitle="요청 유형별 분류" icon="🧰" className="min-h-[320px]">
+          <BarChart data={workTypeChartData} maxHeight={150} />
+        </ChartCard>
+
+        <ChartCard title="상태별 분포" subtitle="현재 티켓 진행 상태" icon="🧾" className="min-h-[320px]">
+          <BarChart data={statusChartData} maxHeight={150} />
+        </ChartCard>
       </div>
 
-      <div className="space-y-4">
-        <VerticalBarChart title="카테고리별 요청" data={stats.categoryChart} />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <VerticalBarChart title="상태별 요청" data={stats.statusChart} />
-          <VerticalBarChart title="작업 구분별 요청" data={stats.workTypeChart} />
-        </div>
-      </div>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+        <ChartCard title="카테고리별 분포" subtitle="서비스 유형별 티켓 현황" icon="📊" className="lg:col-span-3 min-h-[320px]">
+          <BarChart data={categoryChartData} formatLabel={formatCategoryLabel} maxHeight={150} />
+        </ChartCard>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {cards.map((c) => (
-          <Link
-            key={c.title}
-            href={c.href}
-            className="group rounded-xl border border-neutral-200 bg-white p-6 shadow-sm hover:shadow-md hover:border-neutral-300 transition-all flex items-center justify-between"
-          >
-            <div>
-              <h3 className="text-lg font-semibold text-neutral-900 group-hover:text-primary-600 transition-colors">{c.title}</h3>
-              <p className="text-sm text-neutral-600 mt-1">{c.desc}</p>
-            </div>
-            <svg className="h-5 w-5 text-neutral-400 group-hover:text-primary-600 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
-        ))}
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex h-full flex-col lg:col-span-1">
+          <div className="mb-1 flex items-center gap-2">
+            <span className="text-xl">⚡</span>
+            <h3 className="text-lg font-bold text-slate-900">빠른 이동</h3>
+          </div>
+          <p className="mb-6 text-sm text-slate-600">자주 사용하는 관리자 기능</p>
+          <div className="space-y-2">
+            {[
+              { title: "사용자 관리", href: "/admin/users", icon: "👥" },
+              { title: "요청 관리", href: "/admin/tickets", icon: "📌" },
+              { title: "모든 요청 관리", href: "/admin/tickets/all", icon: "🗂" },
+            ].map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 transition-all hover:border-slate-300 hover:bg-slate-50"
+              >
+                <span className="text-xl">{item.icon}</span>
+                <span className="flex-1 text-sm font-semibold text-slate-900 group-hover:text-slate-700">
+                  {item.title}
+                </span>
+                <svg
+                  className="h-5 w-5 text-slate-400 transition-all group-hover:translate-x-1 group-hover:text-slate-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

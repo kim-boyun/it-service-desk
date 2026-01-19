@@ -27,14 +27,7 @@ export async function api<T>(
   if (!res.ok) {
     // 응답 바디가 json일 수도 있고 아닐 수도 있어 안전하게 처리
     const text = await res.text().catch(() => "");
-    try {
-      const errorData = JSON.parse(text);
-      // FastAPI는 {"detail": "message"} 형식으로 에러를 반환
-      throw new Error(errorData.detail || text || `오류가 발생했습니다 (${res.status})`);
-    } catch (parseError) {
-      // JSON 파싱 실패 시 원본 텍스트 사용
-      throw new Error(text || `오류가 발생했습니다 (${res.status})`);
-    }
+    throw new Error(`API ${res.status} ${res.statusText}: ${text}`);
   }
 
   return (await res.json()) as T;
@@ -59,24 +52,7 @@ export async function apiForm<T>(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    let errorMessage = `오류가 발생했습니다 (${res.status})`;
-    
-    try {
-      const errorData = JSON.parse(text);
-      // FastAPI는 {"detail": "message"} 형식으로 에러를 반환
-      if (errorData.detail) {
-        errorMessage = errorData.detail;
-      } else if (text) {
-        errorMessage = text;
-      }
-    } catch (parseError) {
-      // JSON 파싱 실패 시 원본 텍스트 사용
-      if (text) {
-        errorMessage = text;
-      }
-    }
-    
-    throw new Error(errorMessage);
+    throw new Error(`API ${res.status} ${res.statusText}: ${text}`);
   }
 
   return (await res.json()) as T;

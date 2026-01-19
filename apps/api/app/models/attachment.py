@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
-from sqlalchemy import String, Integer, DateTime, func, ForeignKey, Boolean
+from sqlalchemy import String, Integer, DateTime, func, ForeignKey
 from app.models.user import Base
 
 class Attachment(Base):
@@ -14,7 +14,6 @@ class Attachment(Base):
     ticket_id: Mapped[int | None] = mapped_column(ForeignKey("tickets.id"), nullable=True)
     comment_id: Mapped[int | None] = mapped_column(ForeignKey("ticket_comments.id"), nullable=True)
 
-    is_internal: Mapped[bool] = mapped_column(Boolean, default=False)
-    uploaded_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    uploaded_emp_no: Mapped[str] = mapped_column(String(50), ForeignKey("users.emp_no"))
 
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())

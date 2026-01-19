@@ -15,12 +15,12 @@ type Ticket = {
   title: string;
   status: string;
   priority?: string;
-  category?: string;
+  category_id?: number | null;
   work_type?: string | null;
   requester?: UserSummary | null;
-  requester_id: number;
+  requester_emp_no: string;
   assignee?: UserSummary | null;
-  assignee_id?: number | null;
+  assignee_emp_no?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -53,9 +53,8 @@ const PRIORITY_SORT: Record<string, number> = {
 };
 
 type UserSummary = {
-  id: number;
-  employee_no?: string | null;
-  name?: string | null;
+  emp_no: string;
+  kor_name?: string | null;
   title?: string | null;
   department?: string | null;
 };
@@ -98,11 +97,11 @@ function PriorityBadge({ priority }: { priority?: string }) {
   );
 }
 
-function formatUser(user?: UserSummary | null, fallbackId?: number | null, emptyLabel = "-") {
-  if (!user) return fallbackId ? `#${fallbackId}` : emptyLabel;
-  const parts = [user.name, user.title, user.department].filter(Boolean);
+function formatUser(user?: UserSummary | null, fallbackEmpNo?: string | null, emptyLabel = "-") {
+  if (!user) return fallbackEmpNo || emptyLabel;
+  const parts = [user.kor_name, user.title, user.department].filter(Boolean);
   if (parts.length) return parts.join(" / ");
-  return user.employee_no ?? (fallbackId ? `#${fallbackId}` : emptyLabel);
+  return user.emp_no || fallbackEmpNo || emptyLabel;
 }
 
 function normalize(res: TicketListResponse): { items: Ticket[]; total?: number } {
@@ -187,7 +186,7 @@ export default function AdminAllTicketsPage() {
         (t) =>
           t.title.toLowerCase().includes(term) ||
           String(t.id).includes(term) ||
-          (t.category ?? "").toLowerCase().includes(term)
+          String(t.category_id ?? "").includes(term)
       );
     }
     list.sort((a, b) => {
@@ -207,9 +206,9 @@ export default function AdminAllTicketsPage() {
     [filtered, page, pageSize]
   );
 
-  const categoryLabel = (c?: string | null) => {
+  const categoryLabel = (c?: number | null) => {
     if (!c) return "-";
-    return categoryMap[c] ?? c;
+    return categoryMap[c] ?? String(c);
   };
 
   return (
@@ -282,7 +281,7 @@ export default function AdminAllTicketsPage() {
                 <td className="p-3 text-left">#{t.id}</td>
                 <td className="p-3 text-left">
                   <div className="font-medium text-slate-900">{t.title}</div>
-                  <div className="text-xs text-slate-500 mt-0.5">{formatUser(t.requester, t.requester_id)}</div>
+                  <div className="text-xs text-slate-500 mt-0.5">{formatUser(t.requester, t.requester_emp_no)}</div>
                 </td>
                 <td className="p-3 text-center">
                   <StatusBadge status={t.status} />
@@ -290,9 +289,9 @@ export default function AdminAllTicketsPage() {
                 <td className="p-3 text-center">
                   <PriorityBadge priority={t.priority} />
                 </td>
-                <td className="p-3 text-center whitespace-nowrap">{formatUser(t.assignee, t.assignee_id, "미배정")}</td>
+                <td className="p-3 text-center whitespace-nowrap">{formatUser(t.assignee, t.assignee_emp_no, "미배정")}</td>
                 <td className="p-3 text-center">{workTypeLabel(t.work_type)}</td>
-                <td className="p-3 text-center">{categoryLabel(t.category)}</td>
+                <td className="p-3 text-center">{categoryLabel(t.category_id)}</td>
                 <td className="p-3 text-center text-slate-600 whitespace-nowrap">{formatDate(t.updated_at)}</td>
               </tr>
             ))}

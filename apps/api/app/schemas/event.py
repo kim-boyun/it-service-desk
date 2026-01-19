@@ -4,7 +4,7 @@ from datetime import datetime
 class EventOut(BaseModel):
     id: int
     ticket_id: int
-    actor_id: int
+    actor_emp_no: str
     type: str
     from_value: str | None
     to_value: str | None

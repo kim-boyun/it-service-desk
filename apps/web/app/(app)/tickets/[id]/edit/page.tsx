@@ -19,11 +19,11 @@ type Ticket = {
   description: TiptapDoc;
   status: string;
   priority: string;
-  category: string;
+  category_id: number | null;
   work_type?: string | null;
   project_id?: number | null;
   project_name?: string | null;
-  requester_id: number;
+  requester_emp_no: string;
   updated_at?: string | null;
 };
 
@@ -31,7 +31,7 @@ type TicketForm = {
   title: string;
   description: TiptapDoc;
   priority: string;
-  category: string;
+  category_id: string;
   work_type: string | null;
   project_id: number | null;
 };
@@ -99,7 +99,7 @@ export default function EditTicketPage() {
     title: "",
     description: EMPTY_DOC,
     priority: "medium",
-    category: "",
+    category_id: "",
     work_type: "",
     project_id: null,
   });
@@ -124,11 +124,11 @@ export default function EditTicketPage() {
       title: data.title ?? "",
       description: data.description ?? EMPTY_DOC,
       priority: data.priority ?? "medium",
-      category: data.category ?? "",
+      category_id: data.category_id ? String(data.category_id) : "",
       work_type: data.work_type ?? "",
       project_id: data.project_id ?? null,
     });
-    setCategoryTouched(Boolean(data.category));
+    setCategoryTouched(Boolean(data.category_id));
     if (data.project_id && data.project_name) {
       setProject({ id: data.project_id, name: data.project_name });
     }
@@ -137,17 +137,17 @@ export default function EditTicketPage() {
 
   useEffect(() => {
     if (!data) return;
-    if (data.requester_id !== me.id) {
+    if (data.requester_emp_no !== me.emp_no) {
       router.replace("/tickets");
     }
-  }, [data, me.id, router]);
+  }, [data, me.emp_no, router]);
 
   useEffect(() => {
     if (categoryTouched) return;
-    if (!categoryLoading && categories.length > 0 && !form.category) {
-      setForm((prev) => ({ ...prev, category: categories[0].code }));
+    if (!categoryLoading && categories.length > 0 && !form.category_id) {
+      setForm((prev) => ({ ...prev, category_id: String(categories[0].id) }));
     }
-  }, [categories, categoryLoading, categoryTouched, form.category]);
+  }, [categories, categoryLoading, categoryTouched, form.category_id]);
 
   const updateTicket = useMutation({
     mutationFn: async () => {
@@ -155,7 +155,7 @@ export default function EditTicketPage() {
         title: form.title.trim() || null,
         description: isEmptyDoc(form.description) ? null : form.description,
         priority: form.priority || null,
-        category: categoryTouched ? form.category : null,
+        category_id: categoryTouched && form.category_id ? Number(form.category_id) : null,
         work_type: form.work_type?.trim() || null,
         project_id: form.project_id ?? null,
       };
@@ -244,12 +244,13 @@ export default function EditTicketPage() {
     setForm((prev) => ({ ...prev, project_id: null }));
   }
 
-  if (data && data.requester_id !== me.id) {
-    return <div className="p-6 text-sm text-gray-500">요청 본인만 수정할 수 있습니다.</div>;
+  if (data && data.requester_emp_no !== me.emp_no) {
+    return <div className="p-6 text-sm text-gray-500">???? ??? ? ????.</div>;
   }
-  if (isLoading) return <div className="p-6 text-sm text-gray-500">불러오는 중...</div>;
+  if (isLoading) return <div className="p-6 text-sm text-gray-500">???? ?...</div>;
 
   return (
+
     <div className="p-6 w-full max-w-none">
       <div className="mb-6 flex items-center justify-between flex-wrap gap-4 rounded-2xl border border-blue-gray-100 bg-white/80 shadow-sm backdrop-blur px-5 py-4">
         <h1 className="text-2xl font-semibold">요청 수정</h1>
@@ -336,14 +337,14 @@ export default function EditTicketPage() {
               {categories.length > 0 ? (
                 <select
                   className="w-full border rounded px-2 py-1.5 text-sm"
-                  value={form.category}
+                  value={form.category_id}
                   onChange={(e) => {
                     setCategoryTouched(true);
-                    handleChange("category", e.target.value);
+                    handleChange("category_id", e.target.value);
                   }}
                 >
                   {categories.map((c) => (
-                    <option key={c.code} value={c.code}>
+                    <option key={c.id} value={String(c.id)}>
                       {c.name}
                     </option>
                   ))}
@@ -351,8 +352,8 @@ export default function EditTicketPage() {
               ) : (
                 <input
                   className="w-full border rounded px-2 py-1.5 text-sm"
-                  value={form.category}
-                  onChange={(e) => handleChange("category", e.target.value)}
+                  value={form.category_id}
+                  onChange={(e) => handleChange("category_id", e.target.value)}
                   placeholder="카테고리 코드(예: it_service)"
                 />
               )}

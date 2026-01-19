@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMe } from "@/lib/auth-context";
@@ -110,6 +111,7 @@ export default function Sidebar() {
   const adminSubNav = [
     { href: "/admin", label: "대시보드" },
     { href: "/admin/users", label: "사용자관리" },
+    { href: "/admin/manager", label: "카테고리 담당자 관리" },
     { href: "/admin/tickets", label: "요청관리" },
     { href: "/admin/tickets/all", label: "모든 요청 관리" },
   ];
@@ -128,6 +130,7 @@ export default function Sidebar() {
       return pathname === "/admin/tickets" || (pathname.startsWith("/admin/tickets/") && !pathname.startsWith("/admin/tickets/all"));
     }
     if (href === "/admin/tickets/all") return pathname.startsWith("/admin/tickets/all");
+    if (href === "/admin/manager") return pathname.startsWith("/admin/manager");
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
@@ -141,10 +144,18 @@ export default function Sidebar() {
 
   return (
     <aside className="relative lg:fixed lg:inset-y-0 lg:left-0 w-full lg:w-72 bg-white text-neutral-900 lg:border-r border-neutral-200 z-20">
-      <div className="p-5 space-y-5 flex flex-col h-full">
-        <div className="space-y-0.5">
-          <div className="text-xl font-bold tracking-tight text-neutral-900">KDI SCHOOL</div>
-          <div className="text-sm font-medium text-neutral-600">IT Service Desk</div>
+      <div className="p-3 space-y-10 flex flex-col h-full">
+        <div className="pt-1">
+          <div className="flex items-center w-full">
+            <Image
+              src="/kdis-desk-logo.png"
+              alt="KDIS DESK"
+              width={390}
+              height={139}
+              priority
+              className="w-[90%] max-w-none h-auto ml-3"
+            />
+          </div>
         </div>
 
         <nav className="flex-1 overflow-y-auto">
@@ -207,6 +218,17 @@ export default function Sidebar() {
             })}
           </div>
         </nav>
+        <div className="pt-1">
+          <div className="flex items-center justify-center w-full">
+            <Image
+              src="/kdi-school-logo.png"
+              alt="KDI SCHOOL"
+              width={200}
+              height={52}
+              className="w-40 h-auto opacity-90"
+            />
+          </div>
+        </div>
       </div>
     </aside>
   );

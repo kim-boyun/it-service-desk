@@ -17,7 +17,16 @@ type TicketCreateIn = {
   title: string;
   description: TiptapDoc;
   priority: string;
-  category: string;
+  category_id: number;
+  work_type: string | null;
+  project_id: number | null;
+};
+
+type TicketFormState = {
+  title: string;
+  description: TiptapDoc;
+  priority: string;
+  category_id: string;
   work_type: string | null;
   project_id: number | null;
 };
@@ -68,11 +77,11 @@ export default function NewTicketPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [isDirty, setIsDirty] = useState(false);
 
-  const [form, setForm] = useState<TicketCreateIn>({
+  const [form, setForm] = useState<TicketFormState>({
     title: "",
     description: EMPTY_DOC,
     priority: "low",
-    category: "",
+    category_id: "",
     work_type: "",
     project_id: null,
   });
@@ -115,7 +124,7 @@ export default function NewTicketPage() {
         title: form.title.trim() || null,
         description: isEmptyDoc(form.description) ? null : form.description,
         priority: form.priority || null,
-        category: categoryTouched ? form.category : null,
+        category_id: categoryTouched && form.category_id ? Number(form.category_id) : null,
         work_type: form.work_type?.trim() || null,
         project_id: form.project_id ?? null,
       };
@@ -134,7 +143,7 @@ export default function NewTicketPage() {
     },
   });
 
-  function handleChange<K extends keyof TicketCreateIn>(key: K, value: TicketCreateIn[K]) {
+  function handleChange<K extends keyof TicketFormState>(key: K, value: TicketFormState[K]) {
     setIsDirty(true);
     setForm((prev) => ({ ...prev, [key]: value }));
   }
@@ -179,7 +188,7 @@ export default function NewTicketPage() {
       setError("내용을 입력하세요.");
       return;
     }
-    if (!form.category) {
+    if (!form.category_id) {
       setError("카테고리를 선택하세요.");
       return;
     }
@@ -190,8 +199,10 @@ export default function NewTicketPage() {
 
     createTicket.mutate({
       form: {
-        ...form,
         title,
+        description: form.description,
+        priority: form.priority,
+        category_id: Number(form.category_id),
         work_type: form.work_type?.trim() || null,
         project_id: form.project_id ?? null,
       },
@@ -325,10 +336,10 @@ export default function NewTicketPage() {
               {categories.length > 0 ? (
                 <select
                   className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm"
-                  value={form.category}
+                  value={form.category_id}
                   onChange={(e) => {
                     setCategoryTouched(true);
-                    handleChange("category", e.target.value);
+                    handleChange("category_id", e.target.value);
                   }}
                   required
                 >
@@ -336,7 +347,7 @@ export default function NewTicketPage() {
                     카테고리를 선택하세요
                   </option>
                   {categories.map((c) => (
-                    <option key={c.code} value={c.code}>
+                    <option key={c.id} value={String(c.id)}>
                       {c.name}
                     </option>
                   ))}
@@ -344,10 +355,10 @@ export default function NewTicketPage() {
               ) : (
                 <input
                   className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm"
-                  value={form.category}
+                  value={form.category_id}
                   onChange={(e) => {
                     setCategoryTouched(true);
-                    handleChange("category", e.target.value);
+                    handleChange("category_id", e.target.value);
                   }}
                   placeholder="카테고리 코드(예: it_service)"
                 />

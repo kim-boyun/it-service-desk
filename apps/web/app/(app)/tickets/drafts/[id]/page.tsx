@@ -17,7 +17,7 @@ type DraftTicket = {
   title?: string | null;
   description?: TiptapDoc | null;
   priority?: string | null;
-  category?: string | null;
+  category_id?: number | null;
   work_type?: string | null;
   project_id?: number | null;
   project_name?: string | null;
@@ -38,7 +38,7 @@ type TicketForm = {
   title: string;
   description: TiptapDoc;
   priority: string;
-  category: string;
+  category_id: string;
   work_type: string | null;
   project_id: number | null;
 };
@@ -84,7 +84,7 @@ export default function DraftTicketEditPage() {
     title: "",
     description: EMPTY_DOC,
     priority: "medium",
-    category: "",
+    category_id: "",
     work_type: "",
     project_id: null,
   });
@@ -105,11 +105,11 @@ export default function DraftTicketEditPage() {
       title: data.title ?? "",
       description: data.description ?? EMPTY_DOC,
       priority: data.priority ?? "medium",
-      category: data.category ?? "",
+      category_id: data.category_id ? String(data.category_id) : "",
       work_type: data.work_type ?? "",
       project_id: data.project_id ?? null,
     });
-    setCategoryTouched(Boolean(data.category));
+    setCategoryTouched(Boolean(data.category_id));
     if (data.project_id && data.project_name) {
       setProject({ id: data.project_id, name: data.project_name });
     }
@@ -118,10 +118,10 @@ export default function DraftTicketEditPage() {
 
   useEffect(() => {
     if (categoryTouched) return;
-    if (!categoryLoading && categories.length > 0 && !form.category) {
-      setForm((prev) => ({ ...prev, category: categories[0].code }));
+    if (!categoryLoading && categories.length > 0 && !form.category_id) {
+      setForm((prev) => ({ ...prev, category_id: String(categories[0].id) }));
     }
-  }, [categories, categoryLoading, categoryTouched, form.category]);
+  }, [categories, categoryLoading, categoryTouched, form.category_id]);
 
   const updateDraft = useMutation({
     mutationFn: async (includeCategory: boolean) => {
@@ -129,7 +129,13 @@ export default function DraftTicketEditPage() {
         title: form.title.trim() || null,
         description: isEmptyDoc(form.description) ? null : form.description,
         priority: form.priority || null,
-        category: includeCategory ? form.category || null : categoryTouched ? form.category : null,
+        category_id: includeCategory
+          ? form.category_id
+            ? Number(form.category_id)
+            : null
+          : categoryTouched && form.category_id
+          ? Number(form.category_id)
+          : null,
         work_type: form.work_type?.trim() || null,
         project_id: form.project_id ?? null,
       };
@@ -218,7 +224,7 @@ export default function DraftTicketEditPage() {
   function onPublish(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!form.category) {
+    if (!form.category_id) {
       setError("카테고리를 선택하세요.");
       return;
     }
@@ -348,14 +354,14 @@ export default function DraftTicketEditPage() {
               {categories.length > 0 ? (
                 <select
                   className="w-full border rounded px-2 py-1.5 text-sm"
-                  value={form.category}
+                  value={form.category_id}
                   onChange={(e) => {
                     setCategoryTouched(true);
-                    handleChange("category", e.target.value);
+                    handleChange("category_id", e.target.value);
                   }}
                 >
                   {categories.map((c) => (
-                    <option key={c.code} value={c.code}>
+                    <option key={c.id} value={String(c.id)}>
                       {c.name}
                     </option>
                   ))}
@@ -363,8 +369,8 @@ export default function DraftTicketEditPage() {
               ) : (
                 <input
                   className="w-full border rounded px-2 py-1.5 text-sm"
-                  value={form.category}
-                  onChange={(e) => handleChange("category", e.target.value)}
+                  value={form.category_id}
+                  onChange={(e) => handleChange("category_id", e.target.value)}
                   placeholder="카테고리 코드(예: it_service)"
                 />
               )}

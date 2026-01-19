@@ -3,9 +3,8 @@
 import { createContext, useContext } from "react";
 
 export type Me = {
-  id: number | string;
-  employee_no: string | null;
-  name?: string | null;
+  emp_no: string;
+  kor_name?: string | null;
   title?: string | null;
   department?: string | null;
   role: "requester" | "admin";

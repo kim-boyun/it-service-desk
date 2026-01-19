@@ -9,14 +9,13 @@ type Project = {
   name: string;
   start_date?: string | null;
   end_date?: string | null;
-  created_by: number;
+  created_by_emp_no: string;
   created_at: string;
 };
 
 type UserSummary = {
-  id: number;
-  employee_no?: string | null;
-  name?: string | null;
+  emp_no: string;
+  kor_name?: string | null;
   title?: string | null;
   department?: string | null;
 };
@@ -29,14 +28,14 @@ type Props = {
 };
 
 function formatPeriod(project: Project) {
-  if (!project.start_date && !project.end_date) return "기간 미설정";
+  if (!project.start_date && !project.end_date) return "기간 미정";
   return `${project.start_date ?? "-"} ~ ${project.end_date ?? "-"}`;
 }
 
 function formatUser(user: UserSummary) {
-  const parts = [user.name, user.title, user.department].filter(Boolean);
+  const parts = [user.kor_name, user.title, user.department].filter(Boolean);
   if (parts.length) return parts.join(" / ");
-  return user.employee_no ?? `#${user.id}`;
+  return user.emp_no;
 }
 
 export default function ProjectPickerModal({ open, selectedId, onClose, onSelect }: Props) {
@@ -67,7 +66,7 @@ export default function ProjectPickerModal({ open, selectedId, onClose, onSelect
           name: name.trim(),
           start_date: startDate || null,
           end_date: endDate || null,
-          member_ids: members.map((m) => m.id),
+          member_emp_nos: members.map((m) => m.emp_no),
         },
       }),
     onSuccess: (created) => {
@@ -99,9 +98,7 @@ export default function ProjectPickerModal({ open, selectedId, onClose, onSelect
     const t = setTimeout(async () => {
       setMemberLoading(true);
       try {
-        const results = await api<UserSummary[]>(
-          `/users/search?query=${encodeURIComponent(q)}&limit=8`
-        );
+        const results = await api<UserSummary[]>(`/users/search?query=${encodeURIComponent(q)}&limit=8`);
         if (active) setMemberResults(results);
       } finally {
         if (active) setMemberLoading(false);
@@ -115,8 +112,8 @@ export default function ProjectPickerModal({ open, selectedId, onClose, onSelect
   }, [memberQuery, open, showCreate]);
 
   const selectableMembers = useMemo(() => {
-    const selectedIds = new Set(members.map((m) => m.id));
-    return memberResults.filter((m) => !selectedIds.has(m.id));
+    const selectedEmpNos = new Set(members.map((m) => m.emp_no));
+    return memberResults.filter((m) => !selectedEmpNos.has(m.emp_no));
   }, [memberResults, members]);
 
   function addMember(member: UserSummary) {
@@ -125,8 +122,8 @@ export default function ProjectPickerModal({ open, selectedId, onClose, onSelect
     setMemberResults([]);
   }
 
-  function removeMember(memberId: number) {
-    setMembers((prev) => prev.filter((m) => m.id !== memberId));
+  function removeMember(empNo: string) {
+    setMembers((prev) => prev.filter((m) => m.emp_no !== empNo));
   }
 
   if (!open) return null;
@@ -156,7 +153,7 @@ export default function ProjectPickerModal({ open, selectedId, onClose, onSelect
               className="rounded border px-3 py-2 text-sm bg-white hover:bg-gray-50"
               onClick={() => setShowCreate((prev) => !prev)}
             >
-              {showCreate ? "생성 취소" : "새 프로젝트"}
+              {showCreate ? "목록 보기" : "새 프로젝트"}
             </button>
           </div>
 
@@ -169,12 +166,12 @@ export default function ProjectPickerModal({ open, selectedId, onClose, onSelect
                     className="w-full border rounded px-3 py-2 text-sm"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="예: 학사 시스템 개선"
+                    placeholder="예: 학사시스템 개선"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
-                    <label className="text-xs text-gray-600">시작일</label>
+                    <label className="text-xs text-gray-600">시작</label>
                     <input
                       type="date"
                       className="w-full border rounded px-3 py-2 text-sm"
@@ -183,7 +180,7 @@ export default function ProjectPickerModal({ open, selectedId, onClose, onSelect
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs text-gray-600">종료일</label>
+                    <label className="text-xs text-gray-600">종료</label>
                     <input
                       type="date"
                       className="w-full border rounded px-3 py-2 text-sm"
@@ -195,13 +192,13 @@ export default function ProjectPickerModal({ open, selectedId, onClose, onSelect
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs text-gray-600">프로젝트 참여자</label>
+                <label className="text-xs text-gray-600">프로젝트 참여자 추가</label>
                 <input
                   className="w-full border rounded px-3 py-2 text-sm"
-              placeholder="ID 또는 이름을 입력하세요."
-              value={memberQuery}
-              onChange={(e) => setMemberQuery(e.target.value)}
-            />
+                  placeholder="사번 또는 이름으로 검색"
+                  value={memberQuery}
+                  onChange={(e) => setMemberQuery(e.target.value)}
+                />
                 {memberQuery.trim() && (
                   <div className="rounded border bg-white p-2 text-xs">
                     {memberLoading && <div className="text-gray-500">검색 중...</div>}
@@ -211,13 +208,13 @@ export default function ProjectPickerModal({ open, selectedId, onClose, onSelect
                     {!memberLoading &&
                       selectableMembers.map((m) => (
                         <button
-                          key={m.id}
+                          key={m.emp_no}
                           type="button"
                           className="flex w-full items-center justify-between rounded px-2 py-1 text-left hover:bg-gray-50"
                           onClick={() => addMember(m)}
                         >
                           <span>{formatUser(m)}</span>
-                          <span className="text-gray-400">{m.employee_no ?? `#${m.id}`}</span>
+                          <span className="text-gray-400">{m.emp_no}</span>
                         </button>
                       ))}
                   </div>
@@ -226,9 +223,9 @@ export default function ProjectPickerModal({ open, selectedId, onClose, onSelect
                 {members.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {members.map((m) => (
-                      <span key={m.id} className="inline-flex items-center gap-1 rounded-full bg-white border px-2 py-1 text-xs">
+                      <span key={m.emp_no} className="inline-flex items-center gap-1 rounded-full bg-white border px-2 py-1 text-xs">
                         {formatUser(m)}
-                        <button type="button" className="text-gray-500 hover:text-gray-700" onClick={() => removeMember(m.id)}>
+                        <button type="button" className="text-gray-500 hover:text-gray-700" onClick={() => removeMember(m.emp_no)}>
                           x
                         </button>
                       </span>
@@ -259,7 +256,7 @@ export default function ProjectPickerModal({ open, selectedId, onClose, onSelect
           <div className="rounded border divide-y max-h-64 overflow-auto">
             {isLoading && <div className="p-3 text-sm text-gray-500">프로젝트를 불러오는 중...</div>}
             {!isLoading && projects.length === 0 && (
-              <div className="p-3 text-sm text-gray-500">참여 중인 프로젝트가 없습니다.</div>
+              <div className="p-3 text-sm text-gray-500">등록된 프로젝트가 없습니다.</div>
             )}
             {!isLoading &&
               projects.map((p) => (

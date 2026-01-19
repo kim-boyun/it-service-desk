@@ -21,6 +21,6 @@ class FaqOut(BaseModel):
     category_id: int | None
     category_name: str | None
     category_code: str | None
-    author_id: int
+    author_emp_no: str
     created_at: datetime
     updated_at: datetime

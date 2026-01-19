@@ -21,7 +21,9 @@ def list_projects(
 ):
     stmt = select(Project)
     if mine:
-        stmt = stmt.join(ProjectMember, ProjectMember.project_id == Project.id).where(ProjectMember.user_id == user.id)
+        stmt = stmt.join(ProjectMember, ProjectMember.project_id == Project.id).where(
+            ProjectMember.user_emp_no == user.emp_no
+        )
     if query:
         stmt = stmt.where(Project.name.ilike(f"%{query.strip()}%"))
     stmt = stmt.order_by(desc(Project.id))
@@ -35,28 +37,28 @@ def create_project(
     user: User = Depends(get_current_user),
 ):
     if payload.start_date and payload.end_date and payload.start_date > payload.end_date:
-        raise HTTPException(status_code=422, detail="유효하지 않은 프로젝트 기간입니다")
+        raise HTTPException(status_code=422, detail="Invalid project period")
 
-    member_ids = set(payload.member_ids or [])
-    member_ids.add(int(user.id))
+    member_emp_nos = set(payload.member_emp_nos or [])
+    member_emp_nos.add(user.emp_no)
 
-    if member_ids:
-        users = session.scalars(select(User).where(User.id.in_(member_ids))).all()
-        if len(users) != len(member_ids):
-            raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
+    if member_emp_nos:
+        users = session.scalars(select(User).where(User.emp_no.in_(member_emp_nos))).all()
+        if len(users) != len(member_emp_nos):
+            raise HTTPException(status_code=404, detail="User not found")
 
     project = Project(
         name=payload.name.strip(),
         start_date=payload.start_date,
         end_date=payload.end_date,
-        created_by=int(user.id),
+        created_by_emp_no=user.emp_no,
     )
     session.add(project)
     session.commit()
     session.refresh(project)
 
-    for uid in member_ids:
-        session.add(ProjectMember(project_id=project.id, user_id=uid))
+    for emp_no in member_emp_nos:
+        session.add(ProjectMember(project_id=project.id, user_emp_no=emp_no))
     session.commit()
 
     return project

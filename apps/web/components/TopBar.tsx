@@ -76,7 +76,7 @@ export default function TopBar() {
             <div className="max-h-[420px] overflow-y-auto">
               {isLoading && <div className="px-4 py-6 text-center text-sm text-neutral-500">불러오는 중...</div>}
               {!isLoading && items.length === 0 && (
-                <div className="px-4 py-8 text-center text-sm text-neutral-500">새 알림이 없습니다.</div>
+                <div className="px-4 py-8 text-center text-sm text-neutral-500">알림이 없습니다.</div>
               )}
               {items.map((n) => (
                 <button
@@ -92,7 +92,9 @@ export default function TopBar() {
                   }}
                 >
                   <div className="text-xs font-medium text-primary-600 mb-1">{typeLabel(n.type)}</div>
-                  <div className="text-sm text-neutral-900 line-clamp-2">{n.message || n.ticket_title || "알림"}</div>
+                  <div className="text-sm text-neutral-900 line-clamp-2">
+                    {n.message || n.ticket_title || "내용 없음"}
+                  </div>
                   <div className="text-xs text-neutral-500 mt-1.5">{formatDate(n.created_at)}</div>
                 </button>
               ))}
@@ -109,11 +111,15 @@ export default function TopBar() {
         >
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xs font-semibold">
-              {(me.name?.[0] || me.employee_no?.[0] || "U").toUpperCase()}
+              {(me.kor_name?.[0] || me.emp_no?.[0] || "U").toUpperCase()}
             </div>
-            <span className="font-medium">{me.employee_no ?? me.name ?? "사용자"}</span>
+            <span className="font-medium">{me.emp_no ?? me.kor_name ?? "사용자"}</span>
           </div>
-          <svg viewBox="0 0 20 20" className={`h-4 w-4 transition-transform duration-200 ${menuOpen ? "rotate-180" : ""}`} fill="currentColor">
+          <svg
+            viewBox="0 0 20 20"
+            className={`h-4 w-4 transition-transform duration-200 ${menuOpen ? "rotate-180" : ""}`}
+            fill="currentColor"
+          >
             <path
               fillRule="evenodd"
               d="M5.23 7.21a.75.75 0 011.06.02L10 11.114l3.71-3.884a.75.75 0 011.08 1.04l-4.24 4.44a.75.75 0 01-1.08 0l-4.24-4.44a.75.75 0 01.02-1.06z"

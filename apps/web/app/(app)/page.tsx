@@ -11,9 +11,9 @@ type Ticket = {
   description: string;
   status: string;
   priority: string;
-  category: string;
-  requester_id: number;
-  assignee_id: number | null;
+  category_id: number | null;
+  requester_emp_no: string;
+  assignee_emp_no: string | null;
   created_at: string;
 };
 

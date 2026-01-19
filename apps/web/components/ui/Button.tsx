@@ -16,17 +16,17 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
-  primary: "bg-neutral-900 text-white hover:bg-neutral-800 active:bg-neutral-700 disabled:bg-neutral-300 disabled:text-neutral-500",
-  secondary: "bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 disabled:bg-neutral-100 disabled:text-neutral-400",
+  primary: "bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800 disabled:bg-neutral-300 disabled:text-neutral-500 shadow-sm hover:shadow-md",
+  secondary: "bg-white border-2 border-neutral-300 text-neutral-700 hover:bg-neutral-50 hover:border-neutral-400 active:bg-neutral-100 disabled:bg-neutral-100 disabled:text-neutral-400 disabled:border-neutral-200",
   ghost: "bg-transparent text-neutral-700 hover:bg-neutral-100 active:bg-neutral-200 disabled:text-neutral-400",
-  danger: "bg-red-600 text-white hover:bg-red-700 active:bg-red-800 disabled:bg-red-300 disabled:text-red-100",
-  success: "bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800 disabled:bg-primary-300 disabled:text-primary-100",
+  danger: "bg-red-600 text-white hover:bg-red-700 active:bg-red-800 disabled:bg-red-300 disabled:text-red-100 shadow-sm hover:shadow-md",
+  success: "bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800 disabled:bg-emerald-300 disabled:text-emerald-100 shadow-sm hover:shadow-md",
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
-  sm: "px-3 py-1.5 text-sm rounded-lg",
-  md: "px-4 py-2 text-sm rounded-lg",
-  lg: "px-5 py-2.5 text-base rounded-xl",
+  sm: "px-3 py-2 text-sm rounded-lg",
+  md: "px-5 py-2.5 text-sm rounded-xl",
+  lg: "px-6 py-3 text-base rounded-xl",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -43,7 +43,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
-    const baseStyles = "inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:cursor-not-allowed";
+    const baseStyles = "inline-flex items-center justify-center font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]";
     const widthStyles = fullWidth ? "w-full" : "";
 
     return (

@@ -25,11 +25,11 @@ def search_users(
         select(User)
         .where(
             or_(
-                User.employee_no.ilike(f"%{q}%"),
-                User.name.ilike(f"%{q}%"),
+                User.emp_no.ilike(f"%{q}%"),
+                User.kor_name.ilike(f"%{q}%"),
             )
         )
-        .order_by(User.id.asc())
+        .order_by(User.emp_no.asc())
         .limit(limit)
     )
     return list(session.scalars(stmt).all())

@@ -11,5 +11,5 @@ class Project(Base):
     name: Mapped[str] = mapped_column(String(200))
     start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
+    created_by_emp_no: Mapped[str] = mapped_column(String(50), ForeignKey("users.emp_no"))
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())

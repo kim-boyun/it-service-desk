@@ -14,15 +14,15 @@ def get_current_user(
     session: Session = Depends(get_session),
 ) -> User:
     if not creds:
-        raise HTTPException(status_code=401, detail="인증되지 않았습니다")
+        raise HTTPException(status_code=401, detail="Not authenticated")
 
     try:
         payload = decode_token(creds.credentials)
-        user_id = int(payload["sub"])
+        emp_no = str(payload["sub"])
     except Exception:
-        raise HTTPException(status_code=401, detail="유효하지 않은 토큰입니다")
+        raise HTTPException(status_code=401, detail="Invalid token")
 
-    user = session.scalar(select(User).where(User.id == user_id))
+    user = session.scalar(select(User).where(User.emp_no == emp_no))
     if not user:
-        raise HTTPException(status_code=401, detail="사용자를 찾을 수 없습니다")
+        raise HTTPException(status_code=401, detail="User not found")
     return user

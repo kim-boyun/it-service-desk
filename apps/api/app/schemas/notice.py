@@ -16,7 +16,7 @@ class NoticeOut(BaseModel):
     id: int
     title: str
     body: dict
-    author_id: int
+    author_emp_no: str
     created_at: datetime
     updated_at: datetime
 

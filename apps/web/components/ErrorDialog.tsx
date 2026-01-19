@@ -1,9 +1,27 @@
+"use client";
+
+import { useEffect } from "react";
+
 type Props = {
   message: string | null;
   onClose: () => void;
 };
 
 export default function ErrorDialog({ message, onClose }: Props) {
+  useEffect(() => {
+    if (!message) return;
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [message, onClose]);
+
   if (!message) return null;
 
   return (

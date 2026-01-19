@@ -15,14 +15,14 @@ type Ticket = {
   title: string;
   status: string;
   priority?: string;
-  category?: string;
+  category_id?: number | null;
   work_type?: string | null;
   project_id?: number | null;
   project_name?: string | null;
   requester?: UserSummary | null;
-  requester_id: number;
+  requester_emp_no: string;
   assignee?: UserSummary | null;
-  assignee_id?: number | null;
+  assignee_emp_no?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -60,9 +60,8 @@ const PRIORITY_SORT: Record<string, number> = {
 const READ_KEY = "it_service_desk_ticket_reads";
 
 type UserSummary = {
-  id: number;
-  employee_no?: string | null;
-  name?: string | null;
+  emp_no: string;
+  kor_name?: string | null;
   title?: string | null;
   department?: string | null;
 };
@@ -122,11 +121,11 @@ function PriorityBadge({ priority }: { priority?: string }) {
   );
 }
 
-function formatUser(user?: UserSummary | null, fallbackId?: number | null, emptyLabel = "-") {
-  if (!user) return fallbackId ? `#${fallbackId}` : emptyLabel;
-  const parts = [user.name, user.title, user.department].filter(Boolean);
+function formatUser(user?: UserSummary | null, fallbackEmpNo?: string | null, emptyLabel = "-") {
+  if (!user) return fallbackEmpNo || emptyLabel;
+  const parts = [user.kor_name, user.title, user.department].filter(Boolean);
   if (parts.length) return parts.join(" / ");
-  return user.employee_no ?? (fallbackId ? `#${fallbackId}` : emptyLabel);
+  return user.emp_no || fallbackEmpNo || emptyLabel;
 }
 
 function getUpdatedAt(ticket: Ticket) {
@@ -274,9 +273,9 @@ export default function TicketsPage() {
     [filteredAll, page, pageSize]
   );
 
-  const categoryLabel = (c?: string | null) => {
+  const categoryLabel = (c?: number | null) => {
     if (!c) return "-";
-    return categoryMap[c] ?? c;
+    return categoryMap[c] ?? String(c);
   };
 
   return (
@@ -320,7 +319,7 @@ export default function TicketsPage() {
           <div className="border border-neutral-200 rounded-xl overflow-hidden bg-white shadow-sm">
             <table className="w-full text-sm">
               <thead className="bg-neutral-50 border-b border-neutral-200">
-                <tr>
+              <tr>
                   <th className="text-left px-4 py-3 font-semibold text-neutral-700">제목</th>
                   <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-28">상태</th>
                   <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-28">우선순위</th>
@@ -328,101 +327,101 @@ export default function TicketsPage() {
                   <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-28">작업 구분</th>
                   <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-32">카테고리</th>
                   <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-44 whitespace-nowrap">업데이트</th>
-                </tr>
-              </thead>
-              <tbody>
-                {unreadTickets.map((t) => (
-                  <tr
-                    key={t.id}
+              </tr>
+            </thead>
+            <tbody>
+              {unreadTickets.map((t) => (
+                <tr
+                  key={t.id}
                     className="border-b border-neutral-100 last:border-b-0 cursor-pointer hover:bg-neutral-50 transition-colors"
-                    onClick={() => {
-                      markRead(t);
-                      router.push(`/tickets/${t.id}`);
-                    }}
-                  >
+                  onClick={() => {
+                    markRead(t);
+                    router.push(`/tickets/${t.id}`);
+                  }}
+                >
                     <td className="px-4 py-3.5">
                       <div className="font-medium text-neutral-900">{t.title}</div>
-                      <div className="text-xs text-neutral-500 mt-1">{formatUser(t.requester, t.requester_id)}</div>
-                    </td>
+                      <div className="text-xs text-neutral-500 mt-1">{formatUser(t.requester, t.requester_emp_no)}</div>
+                  </td>
                     <td className="px-4 py-3.5 text-center">
-                      <StatusBadge status={t.status} />
-                    </td>
+                    <StatusBadge status={t.status} />
+                  </td>
                     <td className="px-4 py-3.5 text-center">
-                      <PriorityBadge priority={t.priority} />
-                    </td>
-                    <td className="px-4 py-3.5 text-center text-neutral-700 whitespace-nowrap">{formatUser(t.assignee, t.assignee_id, "미배정")}</td>
+                    <PriorityBadge priority={t.priority} />
+                  </td>
+                    <td className="px-4 py-3.5 text-center text-neutral-700 whitespace-nowrap">{formatUser(t.assignee, t.assignee_emp_no, "미배정")}</td>
                     <td className="px-4 py-3.5 text-center text-neutral-700">{workTypeLabel(t.work_type)}</td>
-                    <td className="px-4 py-3.5 text-center text-neutral-700">{categoryLabel(t.category)}</td>
+                    <td className="px-4 py-3.5 text-center text-neutral-700">{categoryLabel(t.category_id)}</td>
                     <td className="px-4 py-3.5 text-center text-neutral-600 whitespace-nowrap">{formatDate(t.updated_at)}</td>
-                  </tr>
-                ))}
+                </tr>
+              ))}
                 {!unreadTickets.length && (
                   <tr>
                     <td className="px-4 py-8 text-neutral-500 text-center" colSpan={7}>
-                      읽지 않은 요청이 없습니다.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                    읽지 않은 요청이 없습니다.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
       )}
 
       {!isLoading && (
         <section className="space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center justify-between flex-wrap gap-3">
             <h2 className="text-base font-semibold text-neutral-900">모든 요청</h2>
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
               <div className="hidden md:flex items-center gap-1 rounded-lg border border-neutral-200 bg-white px-1.5 py-1.5 shadow-sm">
-                {STATUS_OPTIONS.map((o) => (
-                  <button
-                    key={o.value}
+              {STATUS_OPTIONS.map((o) => (
+                <button
+                  key={o.value}
                     className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                       status === o.value ? "bg-neutral-900 text-white shadow-sm" : "text-neutral-700 hover:bg-neutral-100"
-                    }`}
-                    onClick={() => setStatus(o.value)}
-                    type="button"
-                  >
-                    {o.label}
-                  </button>
-                ))}
-              </div>
-              <select
-                className="border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent md:hidden bg-white"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-              >
-                {STATUS_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-              <select
-                className="border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
-                value={projectFilter}
-                onChange={(e) => setProjectFilter(e.target.value)}
-              >
-                <option value="all">전체 프로젝트</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={String(p.id)}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-              <input
-                className="border border-neutral-300 rounded-lg px-3 py-2 text-sm w-52 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white placeholder:text-neutral-400"
-                placeholder="제목/ID 검색"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+                  }`}
+                  onClick={() => setStatus(o.value)}
+                  type="button"
+                >
+                  {o.label}
+                </button>
+              ))}
             </div>
+            <select
+                className="border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent md:hidden bg-white"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              {STATUS_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+            <select
+                className="border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
+              value={projectFilter}
+              onChange={(e) => setProjectFilter(e.target.value)}
+            >
+              <option value="all">전체 프로젝트</option>
+              {projects.map((p) => (
+                <option key={p.id} value={String(p.id)}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+            <input
+                className="border border-neutral-300 rounded-lg px-3 py-2 text-sm w-52 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white placeholder:text-neutral-400"
+              placeholder="제목/ID 검색"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
+        </div>
           <div className="border border-neutral-200 rounded-xl overflow-hidden bg-white shadow-sm">
             <table className="w-full text-sm">
               <thead className="bg-neutral-50 border-b border-neutral-200">
-                <tr>
+              <tr>
                   <th className="text-left px-4 py-3 font-semibold text-neutral-700">제목</th>
                   <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-28">상태</th>
                   <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-28">우선순위</th>
@@ -430,46 +429,46 @@ export default function TicketsPage() {
                   <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-28">작업 구분</th>
                   <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-32">카테고리</th>
                   <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-44 whitespace-nowrap">업데이트</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pageItems.map((t) => (
-                  <tr
-                    key={t.id}
+              </tr>
+            </thead>
+            <tbody>
+              {pageItems.map((t) => (
+                <tr
+                  key={t.id}
                     className="border-b border-neutral-100 last:border-b-0 cursor-pointer hover:bg-neutral-50 transition-colors"
-                    onClick={() => {
-                      markRead(t);
-                      router.push(`/tickets/${t.id}`);
-                    }}
-                  >
+                  onClick={() => {
+                    markRead(t);
+                    router.push(`/tickets/${t.id}`);
+                  }}
+                >
                     <td className="px-4 py-3.5">
                       <div className="font-medium text-neutral-900">{t.title}</div>
-                      <div className="text-xs text-neutral-500 mt-1">{formatUser(t.requester, t.requester_id)}</div>
-                    </td>
+                      <div className="text-xs text-neutral-500 mt-1">{formatUser(t.requester, t.requester_emp_no)}</div>
+                  </td>
                     <td className="px-4 py-3.5 text-center">
-                      <StatusBadge status={t.status} />
-                    </td>
+                    <StatusBadge status={t.status} />
+                  </td>
                     <td className="px-4 py-3.5 text-center">
-                      <PriorityBadge priority={t.priority} />
-                    </td>
-                    <td className="px-4 py-3.5 text-center text-neutral-700 whitespace-nowrap">{formatUser(t.assignee, t.assignee_id, "미배정")}</td>
+                    <PriorityBadge priority={t.priority} />
+                  </td>
+                    <td className="px-4 py-3.5 text-center text-neutral-700 whitespace-nowrap">{formatUser(t.assignee, t.assignee_emp_no, "미배정")}</td>
                     <td className="px-4 py-3.5 text-center text-neutral-700">{workTypeLabel(t.work_type)}</td>
-                    <td className="px-4 py-3.5 text-center text-neutral-700">{categoryLabel(t.category)}</td>
+                    <td className="px-4 py-3.5 text-center text-neutral-700">{categoryLabel(t.category_id)}</td>
                     <td className="px-4 py-3.5 text-center text-neutral-600 whitespace-nowrap">{formatDate(t.updated_at)}</td>
-                  </tr>
-                ))}
+                </tr>
+              ))}
                 {!pageItems.length && (
                   <tr>
                     <td className="px-4 py-8 text-neutral-500 text-center" colSpan={7}>
-                      조건에 맞는 요청이 없습니다.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          <Pagination page={page} total={filteredAll.length} pageSize={pageSize} onChange={setPage} />
-        </section>
+                    조건에 맞는 요청이 없습니다.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <Pagination page={page} total={filteredAll.length} pageSize={pageSize} onChange={setPage} />
+      </section>
       )}
 
       <p className="text-xs text-neutral-500">읽음 상태는 현재 기기 기준으로만 저장됩니다.</p>

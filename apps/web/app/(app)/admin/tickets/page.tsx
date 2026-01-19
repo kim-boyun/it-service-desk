@@ -15,12 +15,12 @@ type Ticket = {
   title: string;
   status: string;
   priority?: string;
-  category?: string;
+  category_id?: number | null;
   work_type?: string | null;
   requester?: UserSummary | null;
-  requester_id: number;
+  requester_emp_no: string;
   assignee?: UserSummary | null;
-  assignee_id?: number | null;
+  assignee_emp_no?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -53,9 +53,8 @@ const PRIORITY_SORT: Record<string, number> = {
 };
 
 type UserSummary = {
-  id: number;
-  employee_no?: string | null;
-  name?: string | null;
+  emp_no: string;
+  kor_name?: string | null;
   title?: string | null;
   department?: string | null;
   role?: string | null;
@@ -69,8 +68,8 @@ function statusMeta(status: string) {
   if (["in_progress", "processing", "assigned"].includes(s)) {
     return { label: "진행", cls: "bg-amber-50 text-amber-700 border-amber-200" };
   }
-  if (s === "resolved") return { label: "완료", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" };
-  if (s === "closed") return { label: "사업검토", cls: "bg-slate-100 text-slate-700 border-slate-200" };
+  if (s == "resolved") return { label: "완료", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+  if (s == "closed") return { label: "사업검토", cls: "bg-slate-100 text-slate-700 border-slate-200" };
   return { label: status, cls: "bg-gray-100 text-gray-700 border-gray-200" };
 }
 
@@ -99,11 +98,11 @@ function PriorityBadge({ priority }: { priority?: string }) {
   );
 }
 
-function formatUser(user?: UserSummary | null, fallbackId?: number | null, emptyLabel = "-") {
-  if (!user) return fallbackId ? `#${fallbackId}` : emptyLabel;
-  const parts = [user.name, user.title, user.department].filter(Boolean);
+function formatUser(user?: UserSummary | null, fallbackEmpNo?: string | null, emptyLabel = "-") {
+  if (!user) return fallbackEmpNo || emptyLabel;
+  const parts = [user.kor_name, user.title, user.department].filter(Boolean);
   if (parts.length) return parts.join(" / ");
-  return user.employee_no ?? (fallbackId ? `#${fallbackId}` : emptyLabel);
+  return user.emp_no || fallbackEmpNo || emptyLabel;
 }
 
 function normalize(res: TicketListResponse): { items: Ticket[]; total?: number } {
@@ -145,7 +144,7 @@ function workTypeLabel(value?: string | null) {
 function matchesSearch(t: Ticket, term: string) {
   if (!term) return true;
   const lower = term.toLowerCase();
-  const requester = formatUser(t.requester, t.requester_id, "").toLowerCase();
+  const requester = formatUser(t.requester, t.requester_emp_no, "").toLowerCase();
   return t.title.toLowerCase().includes(lower) || requester.includes(lower);
 }
 
@@ -189,16 +188,19 @@ export default function AdminTicketsPage() {
     setErrorMessage((error as any)?.message ?? "요청 목록을 불러오지 못했습니다.");
   }, [error]);
 
-  const staffOptions = useMemo(
-    () => adminUsers.filter((u) => u.role === "admin"),
-    [adminUsers]
-  );
+  const staffOptions = useMemo(() => adminUsers.filter((u) => u.role === "admin"), [adminUsers]);
 
   const assignM = useMutation({
-    mutationFn: ({ ticketId, assigneeId }: { ticketId: number; assigneeId: number | null }) =>
+    mutationFn: ({
+      ticketId,
+      assigneeEmpNo,
+    }: {
+      ticketId: number;
+      assigneeEmpNo: string | null;
+    }) =>
       api(`/tickets/${ticketId}/assign`, {
         method: "PATCH",
-        body: { assignee_id: assigneeId },
+        body: { assignee_emp_no: assigneeEmpNo },
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-tickets"] });
@@ -209,12 +211,12 @@ export default function AdminTicketsPage() {
   const norm = normalize(data ?? []);
 
   const unassignedTickets = useMemo(() => {
-    let list = norm.items.filter((t) => !t.assignee_id);
+    let list = norm.items.filter((t) => !t.assignee_emp_no);
     if (unassignedStatus !== "all") {
       list = list.filter((t) => t.status === unassignedStatus);
     }
     if (unassignedCategory !== "all") {
-      list = list.filter((t) => t.category === unassignedCategory);
+      list = list.filter((t) => String(t.category_id ?? "") === unassignedCategory);
     }
     if (unassignedSearch.trim()) {
       list = list.filter((t) => matchesSearch(t, unassignedSearch.trim()));
@@ -231,12 +233,12 @@ export default function AdminTicketsPage() {
   }, [norm.items, unassignedStatus, unassignedCategory, unassignedSearch]);
 
   const myTickets = useMemo(() => {
-    let list = norm.items.filter((t) => t.assignee_id === me.id);
+    let list = norm.items.filter((t) => t.assignee_emp_no === me.emp_no);
     if (myStatus !== "all") {
       list = list.filter((t) => t.status === myStatus);
     }
     if (myCategory !== "all") {
-      list = list.filter((t) => t.category === myCategory);
+      list = list.filter((t) => String(t.category_id ?? "") === myCategory);
     }
     if (mySearch.trim()) {
       list = list.filter((t) => matchesSearch(t, mySearch.trim()));
@@ -250,11 +252,11 @@ export default function AdminTicketsPage() {
       if (pa !== pb) return pa - pb;
       return toTime(b.updated_at) - toTime(a.updated_at);
     });
-  }, [norm.items, me.id, myStatus, myCategory, mySearch]);
+  }, [norm.items, me.emp_no, myStatus, myCategory, mySearch]);
 
-  const categoryLabel = (c?: string | null) => {
+  const categoryLabel = (c?: number | null) => {
     if (!c) return "-";
-    return categoryMap[c] ?? c;
+    return categoryMap[c] ?? String(c);
   };
 
   const unassignedPageSize = 5;
@@ -294,24 +296,13 @@ export default function AdminTicketsPage() {
         ))}
       </div>
       <select
-        className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 md:hidden"
-        value={status}
-        onChange={(e) => setStatus(e.target.value)}
-      >
-        {STATUS_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-      <select
         className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white"
         value={category}
         onChange={(e) => setCategory(e.target.value)}
       >
         <option value="all">전체 카테고리</option>
         {categories.map((c) => (
-          <option key={c.code} value={c.code}>
+          <option key={c.id} value={String(c.id)}>
             {c.name}
           </option>
         ))}
@@ -350,7 +341,7 @@ export default function AdminTicketsPage() {
               <td className="p-3 text-left">#{t.id}</td>
               <td className="p-3 text-left">
                 <div className="font-medium text-slate-900">{t.title}</div>
-                <div className="text-xs text-slate-500 mt-0.5">{formatUser(t.requester, t.requester_id)}</div>
+                <div className="text-xs text-slate-500 mt-0.5">{formatUser(t.requester, t.requester_emp_no)}</div>
               </td>
               <td className="p-3 text-center">
                 <StatusBadge status={t.status} />
@@ -361,24 +352,24 @@ export default function AdminTicketsPage() {
               <td className="p-3 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                 <select
                   className="w-full min-w-[240px] border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-center bg-white"
-                  value={t.assignee_id ?? ""}
+                  value={t.assignee_emp_no ?? ""}
                   onClick={(e) => e.stopPropagation()}
                   onChange={(e) => {
                     const value = e.target.value;
-                    const assigneeId = value ? Number(value) : null;
-                    assignM.mutate({ ticketId: t.id, assigneeId });
+                    const assigneeEmpNo = value || null;
+                    assignM.mutate({ ticketId: t.id, assigneeEmpNo });
                   }}
                 >
                   <option value="">미배정</option>
                   {staffOptions.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {formatUser(u, u.id, u.employee_no ?? `#${u.id}`)}
+                    <option key={u.emp_no} value={u.emp_no}>
+                      {formatUser(u, u.emp_no, u.emp_no)}
                     </option>
                   ))}
                 </select>
               </td>
               <td className="p-3 text-center">{workTypeLabel(t.work_type)}</td>
-              <td className="p-3 text-center">{categoryLabel(t.category)}</td>
+                <td className="p-3 text-center">{categoryLabel(t.category_id)}</td>
               <td className="p-3 text-center text-slate-600 whitespace-nowrap">{formatDate(t.updated_at)}</td>
             </tr>
           ))}
@@ -400,7 +391,7 @@ export default function AdminTicketsPage() {
         title="요청관리"
         meta={
           <span>
-            미배정 <span className="text-emerald-700 font-semibold">{unassignedTickets.length}</span>건 · 내 담당{" "}
+            미배정 <span className="text-emerald-700 font-semibold">{unassignedTickets.length}</span>건 / 내 담당{" "}
             <span className="text-emerald-700 font-semibold">{myTickets.length}</span>건
           </span>
         }
