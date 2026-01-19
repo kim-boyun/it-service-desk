@@ -1,4 +1,18 @@
 services:
+  web:
+    build:
+      context: ../apps/web
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
+    env_file:
+      - .env
+    depends_on:
+      - api
+
   api:
     build:
       context: ../apps/api
@@ -14,4 +28,4 @@ services:
       - .env
     volumes:
       - ./data/uploads:/data/uploads
-      - ${USERPROFILE:-C:\Users\kdischool}\.aws:/root/.aws:ro
+      - ${AWS_SHARED_CREDENTIALS_DIR:-/home/ubuntu/.aws}:/root/.aws:ro
