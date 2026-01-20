@@ -99,10 +99,19 @@ export default function NewTicketPage() {
       });
 
       if (files.length) {
-        for (const file of files) {
-          const fd = new FormData();
-          fd.append("file", file);
-          await apiForm(`/tickets/${created.id}/attachments/upload`, fd);
+        try {
+          for (const file of files) {
+            const fd = new FormData();
+            fd.append("file", file);
+            await apiForm(`/tickets/${created.id}/attachments/upload`, fd);
+          }
+        } catch (err) {
+          try {
+            await api(`/tickets/${created.id}`, { method: "DELETE" });
+          } catch (cleanupError) {
+            console.error("ticket cleanup failed after attachment error", cleanupError);
+          }
+          throw err;
         }
       }
 
@@ -113,7 +122,12 @@ export default function NewTicketPage() {
       router.replace(`/tickets/${res.id}`);
     },
     onError: (err: any) => {
-      setError(err?.message ?? "요청 생성에 실패했습니다.");
+      const message = err?.message ?? "요청 생성에 실패했습니다.";
+      if (message.includes("413")) {
+        setError("첨부파일 용량이 서버 제한을 초과했습니다. 25MB 이하로 줄이거나 서버 업로드 제한을 늘려주세요.");
+        return;
+      }
+      setError(message);
     },
   });
 
