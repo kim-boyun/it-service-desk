@@ -30,7 +30,6 @@ from ..services.assignment_service import get_category_admins
 from ..services.mail_events import (
     notify_admin_assigned,
     notify_admins_ticket_created,
-    notify_requester_assignee_changed,
     notify_requester_status_changed,
     notify_requester_ticket_created,
 )
@@ -505,9 +504,6 @@ def assign_ticket(
     session.commit()
 
     try:
-        requester = session.get(User, ticket.requester_emp_no)
-        if requester:
-            notify_requester_assignee_changed(ticket, requester, assignee)
         if assignee:
             notify_admin_assigned(ticket, assignee)
     except Exception:

@@ -82,8 +82,6 @@ def _render_plain(
     lines.append("")
     lines.append("\ubcf8 \uba54\uc77c\uc740 \uc2dc\uc2a4\ud15c \uc54c\ub9bc\uc6a9\uc73c\ub85c \ubc1c\uc1a1\ub418\uc5c8\uc2b5\ub2c8\ub2e4.")
     lines.append("\ubc1c\uc2e0 \uc804\uc6a9 \uba54\uc77c\uc785\ub2c8\ub2e4(\ud68c\uc2e0 \ubd88\uac00).")
-    if settings.app_base_url:
-        lines.append(f"\ud5ec\ud504\ub370\uc2a4\ud06c: {settings.app_base_url}")
     return "\n".join(lines)
 
 
@@ -98,8 +96,6 @@ def _render_html(
 ) -> str:
     status_badge = _status_badge(status_label)
     priority_badge = _priority_badge(priority_label)
-    base_url = settings.app_base_url or ""
-
     rows = "".join(
         f"""
         <tr>
@@ -110,19 +106,13 @@ def _render_html(
         for label, value in fields
     )
 
-    footer_link = (
-        f"<a href=\"{_esc(base_url)}\" style=\"color:#4b5563;text-decoration:underline;\">{_esc(base_url)}</a>"
-        if base_url
-        else ""
-    )
-
     return f"""
 <!DOCTYPE html>
 <html lang=\"ko\">
-  <body style=\"margin:0;padding:24px;background:#f5f7fb;\">
-    <table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"background:#f5f7fb;\">
+  <body style=\"margin:0;padding:24px;background:#ffffff;\">
+    <table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"background:#ffffff;\">
       <tr>
-        <td align=\"left\">
+        <td align=\"center\">
           <table role=\"presentation\" width=\"680\" cellspacing=\"0\" cellpadding=\"0\" style=\"width:680px;margin:0;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e5e7eb;\">
             <tr>
               <td style=\"padding:20px 24px;border-bottom:1px solid #e5e7eb;\">
@@ -149,7 +139,6 @@ def _render_html(
               <td style=\"padding:16px 24px;border-top:1px solid #e5e7eb;font-size:12px;color:#6b7280;line-height:1.6;\">
                 <div>\ubcf8 \uba54\uc77c\uc740 \uc2dc\uc2a4\ud15c \uc54c\ub9bc\uc6a9\uc73c\ub85c \ubc1c\uc1a1\ub418\uc5c8\uc2b5\ub2c8\ub2e4.</div>
                 <div>\ubc1c\uc2e0 \uc804\uc6a9 \uba54\uc77c\uc785\ub2c8\ub2e4(\ud68c\uc2e0 \ubd88\uac00).</div>
-                {f"<div>\ud5ec\ud504\ub370\uc2a4\ud06c: {footer_link}</div>" if footer_link else ""}
               </td>
             </tr>
           </table>
