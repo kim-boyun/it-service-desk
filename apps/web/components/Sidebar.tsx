@@ -148,11 +148,12 @@ export default function Sidebar() {
         <Link href="/home" className="pt-1">
           <div className="flex items-center w-full">
             <Image
-              src="/kdis-desk-logo.png?v=20260119"
+              src="/kdis-desk-logo.png"
               alt="KDIS DESK"
               width={390}
               height={139}
               priority
+              unoptimized
               className="w-[90%] max-w-none h-auto ml-3"
             />
           </div>
