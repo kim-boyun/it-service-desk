@@ -245,9 +245,9 @@ export default function EditTicketPage() {
   }
 
   if (data && data.requester_emp_no !== me.emp_no) {
-    return <div className="p-6 text-sm text-gray-500">???? ??? ? ????.</div>;
+    return <div className="p-6 text-sm text-gray-500">요청자만 수정할 수 있습니다.</div>;
   }
-  if (isLoading) return <div className="p-6 text-sm text-gray-500">???? ?...</div>;
+  if (isLoading) return <div className="p-6 text-sm text-gray-500">요청을 불러오는 중입니다...</div>;
 
   return (
 

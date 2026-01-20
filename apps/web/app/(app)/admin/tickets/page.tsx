@@ -35,7 +35,7 @@ const STATUS_OPTIONS = [
   { value: "open", label: "대기" },
   { value: "in_progress", label: "진행" },
   { value: "resolved", label: "완료" },
-  { value: "closed", label: "사업검토" },
+  { value: "closed", label: "사업 검토" },
 ];
 
 const STATUS_SORT: Record<string, number> = {
@@ -69,7 +69,7 @@ function statusMeta(status: string) {
     return { label: "진행", cls: "bg-amber-50 text-amber-700 border-amber-200" };
   }
   if (s == "resolved") return { label: "완료", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" };
-  if (s == "closed") return { label: "사업검토", cls: "bg-slate-100 text-slate-700 border-slate-200" };
+  if (s == "closed") return { label: "사업 검토", cls: "bg-slate-100 text-slate-700 border-slate-200" };
   return { label: status, cls: "bg-gray-100 text-gray-700 border-gray-200" };
 }
 

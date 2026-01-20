@@ -386,7 +386,7 @@ export default function AdminDashboard() {
     { label: "대기", value: stats.byStatus.open },
     { label: "진행", value: stats.byStatus.in_progress },
     { label: "완료", value: stats.byStatus.resolved },
-    { label: "사업검토", value: stats.byStatus.closed },
+    { label: "사업 검토", value: stats.byStatus.closed },
   ];
 
   const workTypeChartData = [

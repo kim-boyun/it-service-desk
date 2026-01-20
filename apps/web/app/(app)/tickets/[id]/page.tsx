@@ -88,7 +88,7 @@ const STATUS_OPTIONS = [
   { value: "open", label: "대기" },
   { value: "in_progress", label: "진행" },
   { value: "resolved", label: "완료" },
-  { value: "closed", label: "사업검토" },
+  { value: "closed", label: "사업 검토" },
 ];
 
 function statusMeta(status: string) {
@@ -103,7 +103,7 @@ function statusMeta(status: string) {
     return { label: "완료", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" };
   }
   if (s === "closed") {
-    return { label: "사업검토", cls: "bg-slate-100 text-slate-700 border-slate-200" };
+    return { label: "사업 검토", cls: "bg-slate-100 text-slate-700 border-slate-200" };
   }
   return { label: status, cls: "bg-gray-100 text-gray-700 border-gray-200" };
 }
@@ -361,7 +361,7 @@ export default function TicketDetailPage() {
       const next = [...prev];
       for (const file of Array.from(fileList)) {
         if (file.size > MAX_COMMENT_FILE_BYTES) {
-          setCommentError("?? ??? 25MB ?? ?? ?? ???.");
+          setCommentError("첨부파일은 25MB 이하로만 가능합니다.");
           continue;
         }
         next.push(file);
@@ -792,20 +792,20 @@ export default function TicketDetailPage() {
                     >
                       파일 선택
                     </button>
-                    <span className="text-sm text-slate-500">??? ??? ? ?? ?? ???.</span>
+                    <span className="text-sm text-slate-500">여기로 드래그 앤 드롭해도 됩니다.</span>
                     {commentFiles.length > 0 && (
                       <button
                         type="button"
                         className="text-sm text-slate-600 hover:underline"
                         onClick={() => setCommentFiles([])}
                       >
-                        ?? ??
+                        모두 제거
                       </button>
                     )}
                   </div>
                   <div className="mt-2 space-y-1.5">
                     {commentFiles.length === 0 && (
-                      <p className="text-sm text-slate-500">?? ??? ?? ??.</p>
+                      <p className="text-sm text-slate-500">첨부파일이 없습니다.</p>
                     )}
                     {commentFiles.map((file, idx) => (
                       <div
