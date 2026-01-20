@@ -46,17 +46,17 @@ type Project = {
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 
 const priorities = [
-  { value: "low", label: "??쓬" },
-  { value: "medium", label: "蹂댄넻" },
-  { value: "high", label: "?믪쓬" },
-  { value: "urgent", label: "湲닿툒" },
+  { value: "low", label: "낮음" },
+  { value: "medium", label: "보통" },
+  { value: "high", label: "높음" },
+  { value: "urgent", label: "긴급" },
 ];
 
 const workTypeOptions = [
-  { value: "incident", label: "?μ븷", description: "?쒖뒪?쒖씠 ?뺤긽?곸쑝濡??숈옉?섏? ?딅뒗 寃쎌슦" },
-  { value: "request", label: "?붿껌", description: "?덈줈???묒뾽?대굹 吏?먯쓣 ?붿껌?섎뒗 寃쎌슦" },
-  { value: "change", label: "蹂寃?, description: "湲곗〈 ?ㅼ젙?대굹 湲곕뒫???섏젙?섎뒗 寃쎌슦" },
-  { value: "other", label: "湲고?", description: "????ぉ??紐낇솗???대떦?섏? ?딅뒗 寃쎌슦" },
+  { value: "incident", label: "장애", description: "시스템이 정상적으로 동작하지 않는 경우" },
+  { value: "request", label: "요청", description: "새로운 작업이나 지원을 요청하는 경우" },
+  { value: "change", label: "변경", description: "기존 설정이나 기능을 수정하는 경우" },
+  { value: "other", label: "기타", description: "위 항목에 명확히 해당하지 않는 경우" },
 ];
 
 function formatBytes(bytes: number) {
@@ -91,8 +91,6 @@ export default function NewTicketPage() {
 
   useUnsavedChangesWarning(isDirty);
 
-
-
   const createTicket = useMutation({
     mutationFn: async ({ form: payload, files }: { form: TicketCreateIn; files: File[] }) => {
       const created = await api<TicketOut>("/tickets", {
@@ -115,7 +113,7 @@ export default function NewTicketPage() {
       router.replace(`/tickets/${res.id}`);
     },
     onError: (err: any) => {
-      setError(err?.message ?? "?붿껌 ?앹꽦???ㅽ뙣?덉뒿?덈떎.");
+      setError(err?.message ?? "요청 생성에 실패했습니다.");
     },
   });
 
@@ -140,7 +138,7 @@ export default function NewTicketPage() {
       router.push("/tickets/drafts");
     },
     onError: (err: any) => {
-      setError(err?.message ?? "?꾩떆??μ뿉 ?ㅽ뙣?덉뒿?덈떎.");
+      setError(err?.message ?? "임시저장에 실패했습니다.");
     },
   });
 
@@ -157,7 +155,7 @@ export default function NewTicketPage() {
       const next = [...prev];
       for (const file of Array.from(fileList)) {
         if (file.size > MAX_FILE_BYTES) {
-          setError("泥⑤??뚯씪? 25MB ?댄븯濡쒕쭔 媛?ν빀?덈떎.");
+          setError("첨부파일은 25MB 이하로만 가능합니다.");
           continue;
         }
         next.push(file);
@@ -176,25 +174,25 @@ export default function NewTicketPage() {
     setError(null);
 
     if (!isDirty) {
-      setError("?묒꽦 ?댁슜???놁뒿?덈떎.");
+      setError("작성 내용이 없습니다.");
       return;
     }
 
     const title = form.title.trim();
     if (!title) {
-      setError("?쒕ぉ???낅젰?섏꽭??");
+      setError("제목을 입력하세요.");
       return;
     }
     if (isEmptyDoc(form.description)) {
-      setError("?댁슜???낅젰?섏꽭??");
+      setError("내용을 입력하세요.");
       return;
     }
     if (!form.category_id) {
-      setError("移댄뀒怨좊━瑜??좏깮?섏꽭??");
+      setError("카테고리를 선택하세요.");
       return;
     }
     if (!form.work_type) {
-      setError("?묒뾽 援щ텇???좏깮?섏꽭??");
+      setError("작업 구분을 선택하세요.");
       return;
     }
 
@@ -214,7 +212,7 @@ export default function NewTicketPage() {
   function onSaveDraft() {
     setError(null);
     if (!isDirty) {
-      setError("?묒꽦 ?댁슜???놁뒿?덈떎.");
+      setError("작성 내용이 없습니다.");
       return;
     }
     saveDraft.mutate();
@@ -235,7 +233,7 @@ export default function NewTicketPage() {
 
   return (
     <div className="p-5 space-y-5">
-      <PageHeader title="?붿껌 ?앹꽦" />
+      <PageHeader title="요청 생성" />
 
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="flex items-center gap-2">
@@ -244,7 +242,7 @@ export default function NewTicketPage() {
             className="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-60"
             disabled={createTicket.isPending}
           >
-            {createTicket.isPending ? "?깅줉 以?.." : "?깅줉"}
+            {createTicket.isPending ? "등록 중..." : "등록"}
           </button>
           <button
             type="button"
@@ -252,14 +250,14 @@ export default function NewTicketPage() {
             onClick={onSaveDraft}
             disabled={saveDraft.isPending}
           >
-            {saveDraft.isPending ? "?꾩떆???以?.." : "?꾩떆???}
+            {saveDraft.isPending ? "임시저장 중..." : "임시저장"}
           </button>
         </div>
 
         <div className="border border-slate-200/70 rounded-2xl overflow-hidden bg-white shadow-sm">
           <div className="grid grid-cols-12 border-b border-slate-200/70">
             <div className="col-span-3 bg-slate-50 text-sm font-medium text-slate-700 px-3 py-2 border-r border-slate-200/70">
-              ?쒕ぉ
+              제목
             </div>
             <div className="col-span-9 px-3 py-2">
               <div className="flex items-center gap-3">
@@ -267,7 +265,7 @@ export default function NewTicketPage() {
                   className="flex-1 border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm"
                   value={form.title}
                   onChange={(e) => handleChange("title", e.target.value)}
-                  placeholder="?붿껌 ?쒕ぉ???낅젰?섏꽭??"
+                  placeholder="요청 제목을 입력하세요."
                   required
                   maxLength={200}
                   minLength={3}
@@ -279,7 +277,7 @@ export default function NewTicketPage() {
 
           <div className="grid grid-cols-12 border-b border-slate-200/70">
             <div className="col-span-3 bg-slate-50 text-sm font-medium text-slate-700 px-3 py-2 border-r border-slate-200/70">
-              ?꾨줈?앺듃
+              프로젝트
             </div>
             <div className="col-span-9 px-3 py-2">
               <div className="flex items-center gap-2 flex-wrap">
@@ -288,11 +286,11 @@ export default function NewTicketPage() {
                   className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white text-slate-700 hover:bg-slate-50"
                   onClick={() => setProjectModalOpen(true)}
                 >
-                  {project ? "?꾨줈?앺듃 蹂寃? : "?꾨줈?앺듃 ?좏깮"}
+                  {project ? "프로젝트 변경" : "프로젝트 선택"}
                 </button>
                 {project && (
                   <button type="button" className="text-sm text-slate-600 hover:underline" onClick={clearProject}>
-                    ?댁젣
+                    해제
                   </button>
                 )}
                 {project && (
@@ -305,14 +303,14 @@ export default function NewTicketPage() {
                     ) : null}
                   </div>
                 )}
-                {!project && <span className="text-sm text-slate-500">誘몄꽑??媛??/span>}
+                {!project && <span className="text-sm text-slate-500">미선택 가능</span>}
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-12 border-b border-slate-200/70">
             <div className="col-span-3 bg-slate-50 text-sm font-medium text-slate-700 px-3 py-2 border-r border-slate-200/70">
-              ?곗꽑?쒖쐞
+              우선순위
             </div>
             <div className="col-span-9 px-3 py-2">
               <select
@@ -331,7 +329,7 @@ export default function NewTicketPage() {
 
           <div className="grid grid-cols-12 border-b border-slate-200/70">
             <div className="col-span-3 bg-slate-50 text-sm font-medium text-slate-700 px-3 py-2 border-r border-slate-200/70">
-              移댄뀒怨좊━
+              카테고리
             </div>
             <div className="col-span-9 px-3 py-2 space-y-1.5">
               {categories.length > 0 ? (
@@ -345,7 +343,8 @@ export default function NewTicketPage() {
                   required
                 >
                   <option value="" disabled>
-                    移댄뀒怨좊━瑜??좏깮?섏꽭??                  </option>
+                    카테고리를 선택하세요
+                  </option>
                   {categories.map((c) => (
                     <option key={c.id} value={String(c.id)}>
                       {c.name}
@@ -360,13 +359,13 @@ export default function NewTicketPage() {
                     setCategoryTouched(true);
                     handleChange("category_id", e.target.value);
                   }}
-                  placeholder="移댄뀒怨좊━ 肄붾뱶(?? it_service)"
+                  placeholder="카테고리 코드(예: it_service)"
                 />
               )}
               {categoryError && <div className="text-xs text-red-600">{categoryError}</div>}
               {!categoryLoading && categories.length === 0 && (
                 <div className="text-sm text-slate-500">
-                  移댄뀒怨좊━媛 鍮꾩뼱 ?덉뒿?덈떎. 愿由ъ옄?먯꽌 癒쇱? ?깅줉?섏꽭??
+                  카테고리가 비어 있습니다. 관리자에서 먼저 등록하세요.
                 </div>
               )}
             </div>
@@ -374,7 +373,7 @@ export default function NewTicketPage() {
 
           <div className="grid grid-cols-12 border-b border-slate-200/70">
             <div className="col-span-3 bg-slate-50 text-sm font-medium text-slate-700 px-3 py-2 border-r border-slate-200/70">
-              ?묒뾽 援щ텇
+              작업 구분
             </div>
             <div className="col-span-9 px-3 py-2">
               <div className="flex flex-wrap gap-4 text-sm">
@@ -404,7 +403,7 @@ export default function NewTicketPage() {
         </div>
 
         <div className="space-y-2">
-          <div className="text-sm text-slate-600">?뚯씪??理쒕? 25MB</div>
+          <div className="text-sm text-slate-600">파일당 최대 25MB</div>
           <input
             id="attachment-input"
             type="file"
@@ -451,7 +450,7 @@ export default function NewTicketPage() {
               >
                 파일 선택
               </button>
-              <span className="text-sm text-slate-500">?쒕옒洹?遺숈뿬?ｊ린濡?異붽??????덉뒿?덈떎.</span>
+              <span className="text-sm text-slate-500">드래그/붙여넣기로 추가할 수 있습니다.</span>
               {attachments.length > 0 && (
                 <button
                   type="button"
@@ -459,12 +458,12 @@ export default function NewTicketPage() {
                   onClick={() => setAttachments([])}
                   disabled={createTicket.isPending}
                 >
-                  紐⑤몢 ?쒓굅
+                  모두 제거
                 </button>
               )}
             </div>
             <div className="mt-2 space-y-1.5">
-              {attachments.length === 0 && <p className="text-sm text-slate-500">?좏깮???뚯씪???놁뒿?덈떎.</p>}
+              {attachments.length === 0 && <p className="text-sm text-slate-500">선택된 파일이 없습니다.</p>}
               {attachments.map((file, idx) => (
                 <div
                   key={`${file.name}-${idx}`}
@@ -480,7 +479,7 @@ export default function NewTicketPage() {
                     onClick={() => removeFile(idx)}
                     disabled={createTicket.isPending}
                   >
-                    ?쒓굅
+                    제거
                   </button>
                 </div>
               ))}
@@ -493,9 +492,9 @@ export default function NewTicketPage() {
             value={form.description}
             onChange={(doc) => handleChange("description", doc)}
             onError={setError}
-            placeholder="?붿껌 ?댁슜???낅젰?섏꽭??"
+            placeholder="요청 내용을 입력하세요."
           />
-          <p className="text-xs text-slate-500">?대?吏???쒕옒洹?遺숈뿬?ｊ린濡?異붽??????덉뒿?덈떎.</p>
+          <p className="text-xs text-slate-500">이미지는 드래그/붙여넣기로 추가할 수 있습니다.</p>
         </div>
 
         {error && <div className="text-sm text-red-600">{error}</div>}

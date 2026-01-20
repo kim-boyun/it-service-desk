@@ -122,12 +122,12 @@ function priorityMeta(priority: string) {
     high: { label: "높음", cls: "bg-amber-50 text-amber-800 border-amber-200" },
     urgent: { label: "긴급", cls: "bg-red-50 text-red-700 border-red-200" },
   };
-  return map[priority] ?? map.medium;
+  return map[priority] ?? ?? ?? ?? ?? ?? ?? ?? map.medium;
 }
 
 function categoryLabel(c: number | null | undefined, map: Record<number, string>) {
   if (!c) return "-";
-  return map[c] ?? String(c);
+  return map[c] ?? ?? ?? ?? ?? ?? ?? ?? String(c);
 }
 
 function workTypeLabel(value?: string | null) {
@@ -140,7 +140,7 @@ function workTypeLabel(value?: string | null) {
     maintenance: "기타",
     project: "기타",
   };
-  return map[value] ?? value;
+  return map[value] ?? ?? ?? ?? ?? ?? ?? ?? value;
 }
 
 function formatBytes(bytes: number) {
@@ -171,7 +171,7 @@ function FieldRow({ label, value }: { label: string; value?: React.ReactNode }) 
   return (
     <div className="grid grid-cols-12 border-b">
       <div className="col-span-3 bg-gray-50 text-sm text-gray-600 px-3 py-2 border-r">{label}</div>
-      <div className="col-span-9 text-sm px-3 py-2">{value ?? "-"}</div>
+      <div className="col-span-9 text-sm px-3 py-2">{value ?? ?? ?? ?? ?? ?? ?? ?? "-"}</div>
     </div>
   );
 }
@@ -192,7 +192,7 @@ function eventLabel(type: string) {
     category_changed: "카테고리 변경",
     work_type_changed: "작업 구분 변경",
   };
-  return map[type] ?? type;
+  return map[type] ?? ?? ?? ?? ?? ?? ?? ?? type;
 }
 
 function parseEditNote(note?: string | null): { summary: string; before?: any } | null {
@@ -262,15 +262,15 @@ export default function AdminTicketDetailPage() {
     if (!data?.ticket) return;
     const t = data.ticket;
     setStatus(t.status);
-    setAssigneeEmpNo(t.assignee_emp_no ?? "");
-    setCategoryId(t.category_id ?? "");
-    setWorkType(t.work_type ?? "");
+    setAssigneeEmpNo(t.assignee_emp_no ?? ?? ?? ?? ?? ?? ?? ?? "");
+    setCategoryId(t.category_id ?? ?? ?? ?? ?? ?? ?? ?? "");
+    setWorkType(t.work_type ?? ?? ?? ?? ?? ?? ?? ?? "");
   }, [data?.ticket]);
 
   const downloadAttachmentM = useMutation({
     mutationFn: async (attachmentId: number) => {
       const { url } = await api<{ url: string }>(`/attachments/${attachmentId}/download-url`);
-      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? ?? ?? ?? ?? ?? ?? ?? "http://localhost:8000";
       const token = getToken();
       const isAbsolute = /^https?:\/\//i.test(url);
       const targetUrl = isAbsolute ? url : `${apiBase}${url}`;
@@ -294,9 +294,9 @@ export default function AdminTicketDetailPage() {
         throw new Error(`Download failed ${res.status}: ${text}`);
       }
 
-      const cd = res.headers.get("content-disposition") ?? "";
+      const cd = res.headers.get("content-disposition") ?? ?? ?? ?? ?? ?? ?? ?? "";
       const m = /filename="([^"]+)"/.exec(cd);
-      const filename = m?.[1] ?? `attachment-${attachmentId}`;
+      const filename = m?.[1] ?? ?? ?? ?? ?? ?? ?? ?? `attachment-${attachmentId}`;
 
       const blob = await res.blob();
       const objectUrl = URL.createObjectURL(blob);
@@ -392,7 +392,7 @@ export default function AdminTicketDetailPage() {
       qc.invalidateQueries({ queryKey: ["admin-ticket-detail", ticketId] });
     },
     onError: (err: any) => {
-      setCommentError(err?.message ?? "댓글 등록에 실패했습니다.");
+      setCommentError(err?.message ?? ?? ?? ?? ?? ?? ?? ?? "댓글 등록에 실패했습니다.");
     },
   });
 
@@ -430,7 +430,7 @@ export default function AdminTicketDetailPage() {
   ]
     .filter(Boolean)
     .join(" · ");
-  const selectedComment = data.comments.find((c) => c.id === openCommentId) ?? null;
+  const selectedComment = data.comments.find((c) => c.id === openCommentId) ?? ?? ?? ?? ?? ?? ?? ?? null;
   const ticketAttachments = data.attachments.filter((a) => !a.comment_id);
   const selectedAttachments = data.attachments.filter((a) => a.comment_id === openCommentId);
 
@@ -538,7 +538,7 @@ export default function AdminTicketDetailPage() {
           </select>
         }
       />
-      <FieldRow label="프로젝트" value={t.project_name ?? "-"} />
+      <FieldRow label="프로젝트" value={t.project_name ?? ?? ?? ?? ?? ?? ?? ?? "-"} />
       <FieldRow label="생성일" value={formatDate(t.created_at)} />
       <FieldRow label="업데이트" value={formatDate(t.updated_at)} />
     </div>
@@ -602,7 +602,7 @@ export default function AdminTicketDetailPage() {
       />
       {updateStatusM.isError && (
         <div className="text-xs text-red-600">
-          {(updateStatusM.error as any)?.message ?? "상태 변경에 실패했습니다."}
+          {(updateStatusM.error as any)?.message ?? ?? ?? ?? ?? ?? ?? ?? "상태 변경에 실패했습니다."}
         </div>
       )}
       <button
@@ -632,10 +632,10 @@ export default function AdminTicketDetailPage() {
         <tbody>
           {data.events.map((e, idx) => {
             const editNote = e.type === "requester_updated" ? parseEditNote(e.note) : null;
-            const summary = editNote?.summary ?? e.note ?? "-";
+            const summary = editNote?.summary ?? ?? ?? ?? ?? ?? ?? ?? e.note ?? ?? ?? ?? ?? ?? ?? ?? "-";
             const isExpandable = Boolean(editNote?.before);
             const isOpen = openEventId === e.id;
-            const before = editNote?.before ?? {};
+            const before = editNote?.before ?? ?? ?? ?? ?? ?? ?? ?? {};
             const rowNo = data.events.length - idx;
             return (
               <Fragment key={e.id}>
@@ -662,14 +662,14 @@ export default function AdminTicketDetailPage() {
                               <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
                                 제목
                               </div>
-                              <div className="col-span-9 px-2 py-2">{before.title ?? "-"}</div>
+                              <div className="col-span-9 px-2 py-2">{before.title ?? ?? ?? ?? ?? ?? ?? ?? "-"}</div>
                             </div>
                             <div className="grid grid-cols-12 border-b">
                               <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
                                 우선순위
                               </div>
                               <div className="col-span-9 px-2 py-2">
-                                {priorityMeta(before.priority ?? "medium").label}
+                                {priorityMeta(before.priority ?? ?? ?? ?? ?? ?? ?? ?? "medium").label}
                               </div>
                             </div>
                             <div className="grid grid-cols-12 border-b">
@@ -677,7 +677,7 @@ export default function AdminTicketDetailPage() {
                                 카테고리
                               </div>
                               <div className="col-span-9 px-2 py-2">
-                                {categoryLabel(before.category_id ?? null, categoryMap)}
+                                {categoryLabel(before.category_id ?? ?? ?? ?? ?? ?? ?? ?? null, categoryMap)}
                               </div>
                             </div>
                             <div className="grid grid-cols-12 border-b">
@@ -690,7 +690,7 @@ export default function AdminTicketDetailPage() {
                               <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
                                 프로젝트
                               </div>
-                              <div className="col-span-9 px-2 py-2">{before.project_name ?? "-"}</div>
+                              <div className="col-span-9 px-2 py-2">{before.project_name ?? ?? ?? ?? ?? ?? ?? ?? "-"}</div>
                             </div>
                             <div className="grid grid-cols-12 border-b">
                               <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
@@ -709,7 +709,7 @@ export default function AdminTicketDetailPage() {
 <div className="border rounded bg-white">
                           <div className="px-3 py-2 text-xs font-semibold border-b">수정 전 요청 상세</div>
                           <div className="p-3 text-sm">
-                            <TiptapViewer value={before.description ?? { type: "doc", content: [] }} />
+                            <TiptapViewer value={before.description ?? ?? ?? ?? ?? ?? ?? ?? { type: "doc", content: [] }} />
                           </div>
                         </div>
                       </div>
@@ -874,20 +874,20 @@ export default function AdminTicketDetailPage() {
                     >
                       파일 선택
                     </button>
-                    <span className="text-sm text-slate-500">??? ??? ? ???? ???.</span>
+                    <span className="text-sm text-slate-500">?? ??? ?? ??? ? ?? ?? ?? ?? ?? ???.</span>
                     {commentFiles.length > 0 && (
                       <button
                         type="button"
                         className="text-sm text-slate-600 hover:underline"
                         onClick={() => setCommentFiles([])}
                       >
-                        ?? ??
+                        ?? ?? ?? ??
                       </button>
                     )}
                   </div>
                   <div className="mt-2 space-y-1.5">
                     {commentFiles.length === 0 && (
-                      <p className="text-sm text-slate-500">????? ????.</p>
+                      <p className="text-sm text-slate-500">?? ?? ?? ??? ?? ?? ?? ??.</p>
                     )}
                     {commentFiles.map((file, idx) => (
                       <div
@@ -903,7 +903,7 @@ export default function AdminTicketDetailPage() {
                           className="text-sm text-red-600 hover:underline"
                           onClick={() => removeCommentFile(idx)}
                         >
-                          ??
+                          ?? ?? ?? ?? ?? ?? ?? ??
                         </button>
                       </div>
                     ))}

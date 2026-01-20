@@ -792,7 +792,7 @@ export default function TicketDetailPage() {
                     >
                       파일 선택
                     </button>
-                    <span className="text-sm text-slate-500">??? ??? ? ???? ???.</span>
+                    <span className="text-sm text-slate-500">??? ??? ? ?? ?? ???.</span>
                     {commentFiles.length > 0 && (
                       <button
                         type="button"
@@ -805,7 +805,7 @@ export default function TicketDetailPage() {
                   </div>
                   <div className="mt-2 space-y-1.5">
                     {commentFiles.length === 0 && (
-                      <p className="text-sm text-slate-500">????? ????.</p>
+                      <p className="text-sm text-slate-500">?? ??? ?? ??.</p>
                     )}
                     {commentFiles.map((file, idx) => (
                       <div
