@@ -10,7 +10,7 @@ STATUS_LABELS = {
     "open": "접수",
     "in_progress": "진행",
     "resolved": "완료",
-    "closed": "사업검토",
+    "closed": "사업 검토",
 }
 
 PRIORITY_LABELS = {
@@ -50,6 +50,11 @@ def _priority_label(priority: str | None) -> str:
     return PRIORITY_LABELS.get(priority.lower(), PRIORITY_LABELS["medium"])
 
 
+def _subject_status(status: str | None) -> str:
+    label = _status_label(status)
+    return label if label and label != "-" else "현재상태"
+
+
 def _user_label(user: User | None, fallback: str | None = None) -> str:
     if not user:
         return fallback or "-"
@@ -65,21 +70,30 @@ def _assignee_label(assignee: User | None) -> str:
     return _user_label(assignee, assignee.emp_no)
 
 
+def _build_subject(alert_type: str, status_label: str, title: str) -> str:
+    return f"[KDIS-DESK][{alert_type}][{status_label}] {title}"
+
+
 def notify_requester_ticket_created(ticket: Ticket, requester: User) -> None:
-    subject = f"[요청 접수] {ticket.title}"
-    body = (
-        "요청이 접수되었습니다.\n"
-        f"요청 제목: {ticket.title}\n"
-        f"현재 상태: {_status_label(ticket.status)}\n"
-        f"우선순위: {_priority_label(ticket.priority)}"
-    )
+    status_label = _status_label(ticket.status)
+    priority_label = _priority_label(ticket.priority)
+    subject = _build_subject("신규요청", _subject_status(ticket.status), ticket.title)
+    summary = "요청이 접수되었습니다."
+    fields = [
+        ("요청 제목", ticket.title),
+        ("요청자", _user_label(requester, requester.emp_no)),
+    ]
     enqueue_ticket_mail(
         event_key=f"ticket_created:requester:{ticket.id}:{requester.emp_no}",
         event_type="ticket_created",
         ticket=ticket,
         recipient=_requester_target(requester),
         subject=subject,
-        body=body,
+        alert_type="신규 요청 접수",
+        summary=summary,
+        fields=fields,
+        status_label=status_label,
+        priority_label=priority_label,
         is_admin_link=False,
     )
 
@@ -87,81 +101,99 @@ def notify_requester_ticket_created(ticket: Ticket, requester: User) -> None:
 def notify_admins_ticket_created(ticket: Ticket, requester: User, admins: list[User]) -> None:
     requester_label = _user_label(requester, requester.emp_no)
     for admin in admins:
-        subject = f"[신규 요청] {ticket.title}"
-        body = (
-            "신규 요청이 접수되었습니다.\n"
-            f"요청 제목: {ticket.title}\n"
-            f"요청자: {requester_label}\n"
-            f"우선순위: {_priority_label(ticket.priority)}\n"
-            f"현재 상태: {_status_label(ticket.status)}"
-        )
+        status_label = _status_label(ticket.status)
+        priority_label = _priority_label(ticket.priority)
+        subject = _build_subject("신규요청", _subject_status(ticket.status), ticket.title)
+        summary = "신규 요청이 접수되었습니다."
+        fields = [
+            ("요청 제목", ticket.title),
+            ("요청자", requester_label),
+        ]
         enqueue_ticket_mail(
             event_key=f"ticket_created:admin:{ticket.id}:{admin.emp_no}",
             event_type="ticket_created_admin",
             ticket=ticket,
             recipient=_admin_target(admin),
             subject=subject,
-            body=body,
+            alert_type="신규 요청 접수",
+            summary=summary,
+            fields=fields,
+            status_label=status_label,
+            priority_label=priority_label,
             is_admin_link=True,
         )
 
 
 def notify_requester_assignee_changed(ticket: Ticket, requester: User, assignee: User | None) -> None:
-    subject = f"[담당자 변경] {ticket.title}"
     assignee_label = _assignee_label(assignee)
-    body = (
-        "담당자가 변경되었습니다.\n"
-        f"요청 제목: {ticket.title}\n"
-        f"담당자: {assignee_label}\n"
-        f"우선순위: {_priority_label(ticket.priority)}\n"
-        f"현재 상태: {_status_label(ticket.status)}"
-    )
+    status_label = _status_label(ticket.status)
+    priority_label = _priority_label(ticket.priority)
+    subject = _build_subject("담당변경", _subject_status(ticket.status), ticket.title)
+    summary = "담당자가 변경되었습니다."
+    fields = [
+        ("요청 제목", ticket.title),
+        ("담당자", assignee_label),
+        ("요청자", _user_label(requester, requester.emp_no)),
+    ]
     enqueue_ticket_mail(
         event_key=f"assignee_changed:requester:{ticket.id}:{requester.emp_no}:{assignee.emp_no if assignee else 'none'}",
         event_type="assignee_changed",
         ticket=ticket,
         recipient=_requester_target(requester),
         subject=subject,
-        body=body,
+        alert_type="담당자 변경",
+        summary=summary,
+        fields=fields,
+        status_label=status_label,
+        priority_label=priority_label,
         is_admin_link=False,
     )
 
 
 def notify_admin_assigned(ticket: Ticket, assignee: User) -> None:
-    subject = f"[담당자 배정] {ticket.title}"
-    body = (
-        "요청 담당자로 배정되었습니다.\n"
-        f"요청 제목: {ticket.title}\n"
-        f"담당자: {_assignee_label(assignee)}\n"
-        f"우선순위: {_priority_label(ticket.priority)}\n"
-        f"현재 상태: {_status_label(ticket.status)}"
-    )
+    status_label = _status_label(ticket.status)
+    priority_label = _priority_label(ticket.priority)
+    subject = _build_subject("담당배정", _subject_status(ticket.status), ticket.title)
+    summary = "요청 담당자로 배정되었습니다."
+    fields = [
+        ("요청 제목", ticket.title),
+        ("담당자", _assignee_label(assignee)),
+    ]
     enqueue_ticket_mail(
         event_key=f"assignee_assigned:admin:{ticket.id}:{assignee.emp_no}",
         event_type="assignee_assigned",
         ticket=ticket,
         recipient=_admin_target(assignee),
         subject=subject,
-        body=body,
+        alert_type="담당자 배정",
+        summary=summary,
+        fields=fields,
+        status_label=status_label,
+        priority_label=priority_label,
         is_admin_link=True,
     )
 
 
 def notify_requester_status_changed(ticket: Ticket, requester: User, new_status: str) -> None:
-    subject = f"[상태 변경] {ticket.title}"
-    body = (
-        "요청 상태가 변경되었습니다.\n"
-        f"요청 제목: {ticket.title}\n"
-        f"변경된 상태: {_status_label(new_status)}\n"
-        f"우선순위: {_priority_label(ticket.priority)}"
-    )
+    status_label = _status_label(new_status)
+    priority_label = _priority_label(ticket.priority)
+    subject = _build_subject("상태변경", _subject_status(new_status), ticket.title)
+    summary = "요청 상태가 변경되었습니다."
+    fields = [
+        ("요청 제목", ticket.title),
+        ("변경된 상태", status_label),
+    ]
     enqueue_ticket_mail(
         event_key=f"status_changed:requester:{ticket.id}:{requester.emp_no}:{new_status}",
         event_type="status_changed",
         ticket=ticket,
         recipient=_requester_target(requester),
         subject=subject,
-        body=body,
+        alert_type="상태 변경",
+        summary=summary,
+        fields=fields,
+        status_label=status_label,
+        priority_label=priority_label,
         is_admin_link=False,
     )
 
@@ -174,14 +206,15 @@ def notify_requester_commented(
 ) -> None:
     requester_label = _user_label(requester, requester.emp_no)
     for admin in admins:
-        subject = f"[요청자 댓글] {ticket.title}"
-        body = (
-            "요청에 댓글이 등록되었습니다.\n"
-            f"요청 제목: {ticket.title}\n"
-            f"요청자: {requester_label}\n"
-            f"댓글 제목: {comment.title or '-'}\n"
-            f"우선순위: {_priority_label(ticket.priority)}"
-        )
+        status_label = _status_label(ticket.status)
+        priority_label = _priority_label(ticket.priority)
+        subject = _build_subject("요청자댓글", _subject_status(ticket.status), ticket.title)
+        summary = "요청에 댓글이 등록되었습니다."
+        fields = [
+            ("요청 제목", ticket.title),
+            ("요청자", requester_label),
+            ("댓글 제목", comment.title or "-"),
+        ]
         enqueue_comment_mail(
             event_key=f"comment_requester:admin:{ticket.id}:{comment.id}:{admin.emp_no}",
             event_type="comment_requester",
@@ -189,20 +222,25 @@ def notify_requester_commented(
             comment=comment,
             recipient=_admin_target(admin),
             subject=subject,
-            body=body,
+            alert_type="요청자 댓글",
+            summary=summary,
+            fields=fields,
+            status_label=status_label,
+            priority_label=priority_label,
             is_admin_link=True,
         )
 
 
 def notify_admin_commented(ticket: Ticket, comment: TicketComment, requester: User, author: User) -> None:
-    subject = f"[담당자 댓글] {ticket.title}"
-    body = (
-        "담당자가 댓글을 등록했습니다.\n"
-        f"요청 제목: {ticket.title}\n"
-        f"담당자: {_user_label(author, author.emp_no)}\n"
-        f"댓글 제목: {comment.title or '-'}\n"
-        f"우선순위: {_priority_label(ticket.priority)}"
-    )
+    status_label = _status_label(ticket.status)
+    priority_label = _priority_label(ticket.priority)
+    subject = _build_subject("담당자댓글", _subject_status(ticket.status), ticket.title)
+    summary = "담당자가 댓글을 등록했습니다."
+    fields = [
+        ("요청 제목", ticket.title),
+        ("담당자", _user_label(author, author.emp_no)),
+        ("댓글 제목", comment.title or "-"),
+    ]
     enqueue_comment_mail(
         event_key=f"comment_admin:requester:{ticket.id}:{comment.id}:{requester.emp_no}",
         event_type="comment_admin",
@@ -210,6 +248,10 @@ def notify_admin_commented(ticket: Ticket, comment: TicketComment, requester: Us
         comment=comment,
         recipient=_requester_target(requester),
         subject=subject,
-        body=body,
+        alert_type="담당자 댓글",
+        summary=summary,
+        fields=fields,
+        status_label=status_label,
+        priority_label=priority_label,
         is_admin_link=False,
     )

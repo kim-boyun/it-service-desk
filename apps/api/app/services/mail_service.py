@@ -80,7 +80,7 @@ def _cooldown_hit(session: Session, payload: MailPayload, now: datetime) -> bool
 
 def enqueue_mail(payload: MailPayload) -> None:
     if not _is_smtp_ready():
-        logger.info("SMTP 설정 누락으로 메일 발송을 생략합니다. event_key=%s", payload.event_key)
+        logger.info("SMTP \uc124\uc815 \ub204\ub77d\uc73c\ub85c \uba54\uc77c \ubc1c\uc1a1\uc744 \uc0dd\ub7b5\ud569\ub2c8\ub2e4. event_key=%s", payload.event_key)
         return
 
     normalized = _validate_email(payload.recipient_email)
@@ -101,11 +101,11 @@ def enqueue_mail(payload: MailPayload) -> None:
                     status="skipped",
                     attempts=0,
                     last_attempt_at=now,
-                    error_message="이메일 주소 형식 오류로 발송 생략",
+                    error_message="\uc774\uba54\uc77c \uc8fc\uc18c \ud615\uc2dd \uc624\ub958\ub85c \ubc1c\uc1a1 \uc0dd\ub7b5",
                 )
             )
             session.commit()
-            logger.info("이메일 형식 오류로 발송 생략: %s", payload.recipient_email)
+            logger.info("\uc774\uba54\uc77c \ud615\uc2dd \uc624\ub958\ub85c \ubc1c\uc1a1 \uc0dd\ub7b5: %s", payload.recipient_email)
             return
 
         payload.recipient_email = normalized
@@ -124,16 +124,16 @@ def enqueue_mail(payload: MailPayload) -> None:
                     status="skipped",
                     attempts=0,
                     last_attempt_at=now,
-                    error_message="쿨다운 기간 내 중복 발송 차단",
+                    error_message="\ucfe8\ub2e4\uc6b4 \uae30\uac04 \uc911 \uc911\ubcf5 \ubc1c\uc1a1 \ucc28\ub2e8",
                 )
             )
             session.commit()
-            logger.info("쿨다운으로 메일 발송 생략: %s", payload.event_key)
+            logger.info("\ucfe8\ub2e4\uc6b4\uc73c\ub85c \uba54\uc77c \ubc1c\uc1a1 \uc0dd\ub7b5: %s", payload.event_key)
             return
 
         exists = session.execute(select(MailLog.id).where(MailLog.event_key == payload.event_key)).first()
         if exists:
-            logger.info("중복 이벤트로 메일 발송 생략: %s", payload.event_key)
+            logger.info("\uc911\ubcf5 \uc774\ubca4\ud2b8\ub85c \uba54\uc77c \ubc1c\uc1a1 \uc0dd\ub7b5: %s", payload.event_key)
             return
 
         session.add(
@@ -152,7 +152,7 @@ def enqueue_mail(payload: MailPayload) -> None:
             )
         )
         session.commit()
-        logger.info("메일 발송 대기 등록: %s", payload.event_key)
+        logger.info("\uba54\uc77c \ubc1c\uc1a1 \ud050 \ub4f1\ub85d: %s", payload.event_key)
 
 
 def _next_backoff(attempts: int) -> int:
@@ -199,14 +199,14 @@ def _process_once() -> int:
                 log.last_attempt_at = now
                 log.next_attempt_at = None
                 log.error_message = None
-                logger.info("메일 발송 성공: %s", log.event_key)
-            except Exception as exc:  # noqa: BLE001 - 운영 로그 우선
+                logger.info("\uba54\uc77c \ubc1c\uc1a1 \uc131\uacf5: %s", log.event_key)
+            except Exception as exc:  # noqa: BLE001 - \uc6b4\uc601 \ub85c\uadf8\uc6a9 \uc608\uc678 \ucc98\ub9ac
                 log.attempts += 1
                 log.status = "failed"
                 log.last_attempt_at = now
                 log.next_attempt_at = now + timedelta(seconds=_next_backoff(log.attempts))
                 log.error_message = str(exc)
-                logger.exception("메일 발송 실패: %s", log.event_key)
+                logger.exception("\uba54\uc77c \ubc1c\uc1a1 \uc2e4\ud328: %s", log.event_key)
         session.commit()
     return processed
 
@@ -216,13 +216,13 @@ def _worker_loop() -> None:
         try:
             _process_once()
         except Exception:
-            logger.exception("메일 발송 워커 오류")
+            logger.exception("\uba54\uc77c \ubc1c\uc1a1 \uc6cc\ucee4 \uc624\ub958")
         time.sleep(MAIL_POLL_SECONDS)
 
 
 def start_mail_worker_thread() -> None:
     if not _is_smtp_ready():
-        logger.info("SMTP 설정 미완료로 메일 워커를 시작하지 않습니다.")
+        logger.info("SMTP \uc124\uc815 \ubbf8\uc644\ub8cc\ub85c \uba54\uc77c \uc6cc\ucee4\ub97c \uc2dc\uc791\ud558\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.")
         return
     t = threading.Thread(target=_worker_loop, name="mail-worker", daemon=True)
     t.start()
