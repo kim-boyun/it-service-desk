@@ -11,7 +11,7 @@ import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes";
 
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), { ssr: false });
 
-const UNSAVED_MESSAGE = "? ???? ????????\n????? ???? ?? ? ????.";
+const UNSAVED_MESSAGE = "\uc774 \ud398\uc774\uc9c0\ub97c \ub098\uac00\uc2dc\uaca0\uc2b5\ub2c8\uae4c?\n\ubcc0\uacbd\uc0ac\ud56d\uc774 \uc800\uc7a5\ub418\uc9c0 \uc54a\uc744 \uc218 \uc788\uc2b5\ub2c8\ub2e4.";
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 
 type NoticeOut = {
@@ -19,7 +19,7 @@ type NoticeOut = {
 };
 
 function formatBytes(bytes: number) {
-  if (bytes == 0) return "0 B";
+  if (bytes === 0) return "0 B";
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
@@ -59,7 +59,7 @@ export default function NewNoticePage() {
       const next = [...prev];
       for (const file of files) {
         if (file.size > MAX_FILE_BYTES) {
-          setErr("????? 25MB ???? ?????.");
+          setErr("\ucca8\ubd80\ud30c\uc77c\uc740 25MB \uc774\ud558\ub85c\ub9cc \uac00\ub2a5\ud569\ub2c8\ub2e4.");
           continue;
         }
         next.push(file);
@@ -78,7 +78,7 @@ export default function NewNoticePage() {
     setErr(null);
     const trimmedTitle = title.trim();
     if (!trimmedTitle || isEmptyDoc(body)) {
-      setErr("??? ??? ?????.");
+      setErr("\uc81c\ubaa9\uacfc \ub0b4\uc6a9\uc744 \uc785\ub825\ud558\uc138\uc694.");
       return;
     }
 
@@ -100,7 +100,7 @@ export default function NewNoticePage() {
       setIsDirty(false);
       router.replace("/notices");
     } catch (e: any) {
-      setErr(e.message ?? "???? ??? ??????.");
+      setErr(e.message ?? "\uacf5\uc9c0\uc0ac\ud56d \ub4f1\ub85d\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.");
     } finally {
       setSaving(false);
     }
@@ -110,11 +110,11 @@ export default function NewNoticePage() {
 
   return (
     <div className="p-5 space-y-5">
-      <PageHeader title="???? ??" />
+      <PageHeader title="\uacf5\uc9c0\uc0ac\ud56d \ub4f1\ub85d" />
       <form onSubmit={handleSubmit} className="space-y-5 border border-slate-200/70 rounded-2xl bg-white p-5 shadow-sm">
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <label className="text-sm text-slate-700">??</label>
+            <label className="text-sm text-slate-700">\uc81c\ubaa9</label>
             <span className="text-xs text-slate-500">{title.length}/255</span>
           </div>
           <input
@@ -124,25 +124,25 @@ export default function NewNoticePage() {
               setTitle(e.target.value);
               setIsDirty(true);
             }}
-            placeholder="??? ?????."
+            placeholder="\uc81c\ubaa9\uc744 \uc785\ub825\ud558\uc138\uc694."
             maxLength={255}
           />
         </div>
         <div className="space-y-1">
-          <label className="text-sm text-slate-700">??</label>
+          <label className="text-sm text-slate-700">\ub0b4\uc6a9</label>
           <RichTextEditor
             value={body}
             onChange={(next) => {
               setBody(next);
               setIsDirty(true);
             }}
-            placeholder="???? ??? ?????."
+            placeholder="\uacf5\uc9c0\uc0ac\ud56d \ub0b4\uc6a9\uc744 \uc785\ub825\ud558\uc138\uc694."
             onError={setErr}
           />
         </div>
 
         <div className="space-y-2">
-          <div className="text-sm text-slate-600">??? ?? 25MB</div>
+          <div className="text-sm text-slate-600">\ud30c\uc77c\ub2f9 \ucd5c\ub300 25MB</div>
           <input
             id="notice-attachment-input"
             type="file"
@@ -188,9 +188,9 @@ export default function NewNoticePage() {
                   }
                 }}
               >
-                ?? ??
+                \ud30c\uc77c \uc120\ud0dd
               </button>
-              <span className="text-sm text-slate-500">???/????? ??? ? ????.</span>
+              <span className="text-sm text-slate-500">\ub4dc\ub798\uadf8/\ubd99\uc5ec\ub123\uae30\ub85c \ucd94\uac00\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4.</span>
               {attachments.length > 0 && (
                 <button
                   type="button"
@@ -198,12 +198,12 @@ export default function NewNoticePage() {
                   onClick={() => setAttachments([])}
                   disabled={saving}
                 >
-                  ?? ??
+                  \ubaa8\ub450 \uc81c\uac70
                 </button>
               )}
             </div>
             <div className="mt-2 space-y-1.5">
-              {attachments.length == 0 && <p className="text-sm text-slate-500">????? ????.</p>}
+              {attachments.length === 0 && <p className="text-sm text-slate-500">\ucca8\ubd80\ud30c\uc77c\uc774 \uc5c6\uc2b5\ub2c8\ub2e4.</p>}
               {attachments.map((file, idx) => (
                 <div
                   key={`${file.name}-${idx}`}
@@ -219,7 +219,7 @@ export default function NewNoticePage() {
                     onClick={() => removeFile(idx)}
                     disabled={saving}
                   >
-                    ??
+                    \uc81c\uac70
                   </button>
                 </div>
               ))}
@@ -238,14 +238,14 @@ export default function NewNoticePage() {
             }}
             disabled={saving}
           >
-            ??
+            \ucde8\uc18c
           </button>
           <button
             type="submit"
             className="px-4 py-2 text-sm rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition"
             disabled={saving}
           >
-            ??
+            \ub4f1\ub85d
           </button>
         </div>
       </form>

@@ -66,7 +66,7 @@ export default function NoticeDetailPage() {
       })
       .catch((e: any) => {
         if (!alive) return;
-        setError(e.message ?? "????? ???? ?????.");
+        setError(e.message ?? "\uacf5\uc9c0\uc0ac\ud56d\uc744 \ubd88\ub7ec\uc624\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4.");
       })
       .finally(() => {
         if (!alive) return;
@@ -84,7 +84,7 @@ export default function NoticeDetailPage() {
       await api(`/notices/${notice.id}`, { method: "DELETE" });
       router.push("/notices");
     } catch (e: any) {
-      setError(e.message ?? "??? ??????.");
+      setError(e.message ?? "\uc0ad\uc81c\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.");
     } finally {
       setDeleting(false);
     }
@@ -93,20 +93,22 @@ export default function NoticeDetailPage() {
   const handleSave = async () => {
     if (!notice) return;
     if (!draft.title.trim() || isEmptyDoc(draft.body)) {
-      setError("??? ??? ?????.");
+      setError("\uc81c\ubaa9\uacfc \ub0b4\uc6a9\uc744 \uc785\ub825\ud558\uc138\uc694.");
       return;
     }
     setSaving(true);
     try {
-      const updated = await api<Notice>(`/notices/${notice.id}`, {
-        method: "PATCH",
-        body: { title: draft.title.trim(), body: draft.body },
-      });
+      const updated = await api<Notice>(`/notices/${notice.id}`,
+        {
+          method: "PATCH",
+          body: { title: draft.title.trim(), body: draft.body },
+        }
+      );
       setNotice(updated);
       setDraft({ title: updated.title, body: updated.body });
       setEditing(false);
     } catch (e: any) {
-      setError(e.message ?? "??? ??????.");
+      setError(e.message ?? "\uc218\uc815\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.");
     } finally {
       setSaving(false);
     }
@@ -154,21 +156,21 @@ export default function NoticeDetailPage() {
       a.remove();
       URL.revokeObjectURL(objectUrl);
     } catch (e: any) {
-      setError(e.message ?? "???? ????? ??????.");
+      setError(e.message ?? "\ucca8\ubd80\ud30c\uc77c \ub2e4\uc6b4\ub85c\ub4dc\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.");
     } finally {
       setDownloadingId(null);
     }
   };
 
   if (loading) {
-    return <div className="p-6 text-sm text-gray-500">????? ???? ????...</div>;
+    return <div className="p-6 text-sm text-gray-500">\uacf5\uc9c0\uc0ac\ud56d\uc744 \ubd88\ub7ec\uc624\ub294 \uc911\uc785\ub2c8\ub2e4...</div>;
   }
 
   if (!notice) {
     return (
       <div className="p-6 space-y-2">
-        <div className="text-sm text-gray-500">????? ?? ? ????.</div>
-        <button className="text-sm text-blue-700 underline" onClick={() => router.push("/notices")}>????</button>
+        <div className="text-sm text-gray-500">\uacf5\uc9c0\uc0ac\ud56d\uc744 \ucc3e\uc744 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4.</div>
+        <button className="text-sm text-blue-700 underline" onClick={() => router.push("/notices")}>\ubaa9\ub85d\uc73c\ub85c</button>
       </div>
     );
   }
@@ -187,7 +189,7 @@ export default function NoticeDetailPage() {
           ) : (
             <h1 className="text-2xl font-semibold">{notice.title}</h1>
           )}
-          <div className="text-xs text-gray-500">??? {formatDate(notice.created_at)}</div>
+          <div className="text-xs text-gray-500">\uc0dd\uc131\uc77c {formatDate(notice.created_at)}</div>
         </div>
       </div>
 
@@ -202,9 +204,9 @@ export default function NoticeDetailPage() {
       </div>
 
       <div className="border rounded-lg bg-white p-4 shadow-sm">
-        <div className="text-sm font-semibold mb-3">????</div>
+        <div className="text-sm font-semibold mb-3">\ucca8\ubd80\ud30c\uc77c</div>
         {notice.attachments.length === 0 ? (
-          <div className="text-sm text-gray-500">????? ????.</div>
+          <div className="text-sm text-gray-500">\ucca8\ubd80\ud30c\uc77c\uc774 \uc5c6\uc2b5\ub2c8\ub2e4.</div>
         ) : (
           <div className="border rounded divide-y">
             {notice.attachments.map((a) => (
@@ -215,7 +217,7 @@ export default function NoticeDetailPage() {
                   onClick={() => downloadAttachment(a.id)}
                   disabled={downloadingId === a.id}
                 >
-                  {downloadingId === a.id ? "???? ?..." : "????"}
+                  {downloadingId === a.id ? "\ub2e4\uc6b4\ub85c\ub4dc \uc911..." : "\ub2e4\uc6b4\ub85c\ub4dc"}
                 </button>
               </div>
             ))}
@@ -224,7 +226,7 @@ export default function NoticeDetailPage() {
       </div>
 
       <div className="flex items-center justify-end gap-2">
-        <button className="px-4 py-2 text-sm rounded border bg-white text-gray-800 hover:bg-gray-100" onClick={() => router.push("/notices")}>??</button>
+        <button className="px-4 py-2 text-sm rounded border bg-white text-gray-800 hover:bg-gray-100" onClick={() => router.push("/notices")}>\ubaa9\ub85d</button>
         {canEdit && (
           <>
             {editing ? (
@@ -237,27 +239,27 @@ export default function NoticeDetailPage() {
                   }}
                   disabled={saving}
                 >
-                  ??
+                  \ucde8\uc18c
                 </button>
                 <button
                   className="px-4 py-2 text-sm rounded border bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
                   onClick={handleSave}
                   disabled={saving}
                 >
-                  ??
+                  \uc800\uc7a5
                 </button>
               </>
             ) : (
               <>
                 <button className="px-4 py-2 text-sm rounded border bg-white text-gray-800 hover:bg-gray-100" onClick={() => setEditing(true)}>
-                  ??
+                  \uc218\uc815
                 </button>
                 <button
                   className="px-4 py-2 text-sm rounded border bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
                   onClick={handleDelete}
                   disabled={deleting}
                 >
-                  ??
+                  \uc0ad\uc81c
                 </button>
               </>
             )}
