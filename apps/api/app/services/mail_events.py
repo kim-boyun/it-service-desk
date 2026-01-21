@@ -20,6 +20,14 @@ PRIORITY_LABELS = {
     "urgent": "긴급",
 }
 
+WORK_TYPE_LABELS = {
+    "incident": "장애",
+    "request": "요청",
+    "change": "변경",
+    "other": "기타",
+    "maintenance": "기타",
+    "project": "기타",
+}
 
 def _requester_target(user: User) -> MailTarget:
     return MailTarget(emp_no=user.emp_no, email=user.email)
@@ -69,18 +77,38 @@ def _assignee_label(assignee: User | None) -> str:
         return "미배정"
     return _user_label(assignee, assignee.emp_no)
 
+def _category_value(ticket: Ticket, label_override: str | None = None) -> str:
+    if label_override:
+        return label_override
+    return str(ticket.category_id) if ticket.category_id is not None else "-"
+
+
+def _work_type_value(ticket: Ticket, label_override: str | None = None) -> str:
+    if label_override:
+        return label_override
+    if not ticket.work_type:
+        return "-"
+    return WORK_TYPE_LABELS.get(ticket.work_type, ticket.work_type)
+
 
 def _build_subject(summary: str) -> str:
     return f"[KDIS-DESK] {summary}"
 
 
-def notify_requester_ticket_created(ticket: Ticket, requester: User) -> None:
+def notify_requester_ticket_created(
+    ticket: Ticket,
+    requester: User,
+    category_label: str | None = None,
+    work_type_label: str | None = None,
+) -> None:
     status_label = _status_label(ticket.status)
     priority_label = _priority_label(ticket.priority)
     summary = "요청이 접수되었습니다."
     subject = _build_subject(summary)
     fields = [
         ("요청 제목", ticket.title),
+        ("카테고리", _category_value(ticket, category_label)),
+        ("작업 구분", _work_type_value(ticket, work_type_label)),
         ("요청자", _user_label(requester, requester.emp_no)),
     ]
     enqueue_ticket_mail(
@@ -98,7 +126,13 @@ def notify_requester_ticket_created(ticket: Ticket, requester: User) -> None:
     )
 
 
-def notify_admins_ticket_created(ticket: Ticket, requester: User, admins: list[User]) -> None:
+def notify_admins_ticket_created(
+    ticket: Ticket,
+    requester: User,
+    admins: list[User],
+    category_label: str | None = None,
+    work_type_label: str | None = None,
+) -> None:
     requester_label = _user_label(requester, requester.emp_no)
     for admin in admins:
         status_label = _status_label(ticket.status)
@@ -107,6 +141,8 @@ def notify_admins_ticket_created(ticket: Ticket, requester: User, admins: list[U
         subject = _build_subject(summary)
         fields = [
             ("요청 제목", ticket.title),
+            ("카테고리", _category_value(ticket, category_label)),
+            ("작업 구분", _work_type_value(ticket, work_type_label)),
             ("요청자", requester_label),
         ]
         enqueue_ticket_mail(
@@ -124,7 +160,13 @@ def notify_admins_ticket_created(ticket: Ticket, requester: User, admins: list[U
         )
 
 
-def notify_requester_assignee_changed(ticket: Ticket, requester: User, assignee: User | None) -> None:
+def notify_requester_assignee_changed(
+    ticket: Ticket,
+    requester: User,
+    assignee: User | None,
+    category_label: str | None = None,
+    work_type_label: str | None = None,
+) -> None:
     assignee_label = _assignee_label(assignee)
     status_label = _status_label(ticket.status)
     priority_label = _priority_label(ticket.priority)
@@ -132,6 +174,8 @@ def notify_requester_assignee_changed(ticket: Ticket, requester: User, assignee:
     subject = _build_subject(summary)
     fields = [
         ("요청 제목", ticket.title),
+        ("카테고리", _category_value(ticket, category_label)),
+        ("작업 구분", _work_type_value(ticket, work_type_label)),
         ("담당자", assignee_label),
         ("요청자", _user_label(requester, requester.emp_no)),
     ]
@@ -150,13 +194,20 @@ def notify_requester_assignee_changed(ticket: Ticket, requester: User, assignee:
     )
 
 
-def notify_admin_assigned(ticket: Ticket, assignee: User) -> None:
+def notify_admin_assigned(
+    ticket: Ticket,
+    assignee: User,
+    category_label: str | None = None,
+    work_type_label: str | None = None,
+) -> None:
     status_label = _status_label(ticket.status)
     priority_label = _priority_label(ticket.priority)
     summary = "요청 담당자로 배정되었습니다."
     subject = _build_subject(summary)
     fields = [
         ("요청 제목", ticket.title),
+        ("카테고리", _category_value(ticket, category_label)),
+        ("작업 구분", _work_type_value(ticket, work_type_label)),
         ("담당자", _assignee_label(assignee)),
     ]
     enqueue_ticket_mail(
@@ -174,13 +225,21 @@ def notify_admin_assigned(ticket: Ticket, assignee: User) -> None:
     )
 
 
-def notify_requester_status_changed(ticket: Ticket, requester: User, new_status: str) -> None:
+def notify_requester_status_changed(
+    ticket: Ticket,
+    requester: User,
+    new_status: str,
+    category_label: str | None = None,
+    work_type_label: str | None = None,
+) -> None:
     status_label = _status_label(new_status)
     priority_label = _priority_label(ticket.priority)
     summary = "요청 상태가 변경되었습니다."
     subject = _build_subject(summary)
     fields = [
         ("요청 제목", ticket.title),
+        ("카테고리", _category_value(ticket, category_label)),
+        ("작업 구분", _work_type_value(ticket, work_type_label)),
         ("변경된 상태", status_label),
     ]
     enqueue_ticket_mail(
@@ -203,6 +262,8 @@ def notify_requester_commented(
     comment: TicketComment,
     requester: User,
     admins: list[User],
+    category_label: str | None = None,
+    work_type_label: str | None = None,
 ) -> None:
     requester_label = _user_label(requester, requester.emp_no)
     for admin in admins:
@@ -212,6 +273,8 @@ def notify_requester_commented(
         subject = _build_subject(summary)
         fields = [
             ("요청 제목", ticket.title),
+            ("카테고리", _category_value(ticket, category_label)),
+            ("작업 구분", _work_type_value(ticket, work_type_label)),
             ("요청자", requester_label),
             ("댓글 제목", comment.title or "-"),
         ]
@@ -231,13 +294,22 @@ def notify_requester_commented(
         )
 
 
-def notify_admin_commented(ticket: Ticket, comment: TicketComment, requester: User, author: User) -> None:
+def notify_admin_commented(
+    ticket: Ticket,
+    comment: TicketComment,
+    requester: User,
+    author: User,
+    category_label: str | None = None,
+    work_type_label: str | None = None,
+) -> None:
     status_label = _status_label(ticket.status)
     priority_label = _priority_label(ticket.priority)
     summary = "담당자가 댓글을 등록했습니다."
     subject = _build_subject(summary)
     fields = [
         ("요청 제목", ticket.title),
+        ("카테고리", _category_value(ticket, category_label)),
+        ("작업 구분", _work_type_value(ticket, work_type_label)),
         ("담당자", _user_label(author, author.emp_no)),
         ("댓글 제목", comment.title or "-"),
     ]

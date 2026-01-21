@@ -169,9 +169,9 @@ function Badge({ label, cls }: { label: string; cls: string }) {
 
 function FieldRow({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-12 border-b">
-      <div className="col-span-3 bg-gray-50 text-sm text-gray-600 px-3 py-2 border-r">{label}</div>
-      <div className="col-span-9 text-sm px-3 py-2">{value ?? "-"}</div>
+    <div className="grid grid-cols-12">
+      <div className="col-span-4 bg-gray-50 text-sm text-gray-600 px-3 py-2 border-r">{label}</div>
+      <div className="col-span-8 text-sm px-3 py-2">{value ?? "-"}</div>
     </div>
   );
 }
@@ -424,13 +424,6 @@ export default function AdminTicketDetailPage() {
   const t = data.ticket;
   const statusInfo = statusMeta(t.status);
   const priorityInfo = priorityMeta(t.priority);
-  const headerMeta = [
-    formatUser(t.requester, t.requester_emp_no),
-    t.assignee ? formatUser(t.assignee, t.assignee_emp_no) : null,
-    `생성 ${formatDate(t.created_at)}`,
-  ]
-    .filter(Boolean)
-    .join(" · ");
   const selectedComment = data.comments.find((c) => c.id === openCommentId) ?? null;
   const ticketAttachments = data.attachments.filter((a) => !a.comment_id);
   const selectedAttachments = data.attachments.filter((a) => a.comment_id === openCommentId);
@@ -443,9 +436,7 @@ export default function AdminTicketDetailPage() {
           <div className="flex items-center gap-2 mt-2">
             <Badge label={statusInfo.label} cls={statusInfo.cls} />
             <Badge label={priorityInfo.label} cls={priorityInfo.cls} />
-            <span className="text-xs text-gray-500">카테고리 {categoryLabel(t.category_id, categoryMap)}</span>
           </div>
-          <div className="text-xs text-gray-500 mt-1">{headerMeta}</div>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -470,119 +461,154 @@ export default function AdminTicketDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4">
-<div className="space-y-4">
-  <div className="border rounded bg-white">
-    <div className="px-4 py-3 border-b text-sm font-semibold">메타 정보</div>
-    <div className="divide-y">
-      <FieldRow label="요청자" value={formatUser(t.requester, t.requester_emp_no)} />
-      <FieldRow
-        label="담당자"
-        value={
-          <select
-            className="border border-slate-200 rounded-lg px-2 py-1 text-sm bg-white"
-            value={assigneeEmpNo}
-            onChange={(e) => {
-              const next = e.target.value;
-              setAssigneeEmpNo(next);
-              assignM.mutate(next || null);
-            }}
-          >
-            <option value="">미배정</option>
-            {staffOptions.map((u) => (
-              <option key={u.emp_no} value={u.emp_no}>
-                {formatUser(u, u.emp_no)}
-              </option>
-            ))}
-          </select>
-        }
-      />
-      <FieldRow
-        label="카테고리"
-        value={
-          <select
-            className="border border-slate-200 rounded-lg px-2 py-1 text-sm bg-white"
-            value={categoryId}
-            onChange={(e) => {
-              const next = e.target.value ? Number(e.target.value) : null;
-              setCategoryId(e.target.value ? Number(e.target.value) : "");
-              if (next) updateMetaM.mutate({ category_id: next });
-            }}
-          >
-            <option value="">카테고리 선택</option>
-            {categories.map((c) => (
-              <option key={c.id} value={String(c.id)}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        }
-      />
-      <FieldRow
-        label="작업 구분"
-        value={
-          <select
-            className="border border-slate-200 rounded-lg px-2 py-1 text-sm bg-white"
-            value={workType}
-            onChange={(e) => {
-              const next = e.target.value;
-              setWorkType(next);
-              updateMetaM.mutate({ work_type: next || null });
-            }}
-          >
-            <option value="">작업 구분 선택</option>
-            {WORK_TYPE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        }
-      />
-      <FieldRow label="프로젝트" value={t.project_name ?? "-"} />
-      <FieldRow label="생성일" value={formatDate(t.created_at)} />
-      <FieldRow label="업데이트" value={formatDate(t.updated_at)} />
-    </div>
-  </div>
-
-  <div className="border rounded bg-white">
-    <div className="px-4 py-3 border-b flex items-center gap-3">
-      <span className="text-sm font-semibold">요청 상세</span>
-    </div>
-    <div className="p-4 space-y-4">
-      <section className="space-y-2">
-        <div className="text-sm font-semibold">요청 내용</div>
-        <div className="border rounded p-3 text-sm">
-          <TiptapViewer value={t.description} />
-        </div>
-      </section>
-
-      <section className="space-y-2">
-        <div className="text-sm font-semibold">첨부파일</div>
-        {ticketAttachments.length === 0 ? (
-          <div className="text-sm text-gray-500">첨부파일이 없습니다.</div>
-        ) : (
-          <div className="border rounded divide-y">
-            {ticketAttachments.map((a) => (
-              <div key={a.id} className="flex items-center justify-between px-3 py-2">
-                <div className="text-sm">{a.filename}</div>
-                <button
-                  className="text-sm border rounded px-2 py-1 transition-colors hover:bg-slate-50 active:bg-slate-100"
-                  onClick={() => downloadAttachmentM.mutate(a.id)}
-                  disabled={downloadAttachmentM.isPending}
-                >
-                  다운로드
-                </button>
-              </div>
-            ))}
+      <div className="space-y-4">
+        <div className="border rounded bg-white">
+          <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x">
+            <div className="divide-y">
+              <FieldRow label="요청자" value={formatUser(t.requester, t.requester_emp_no)} />
+              <FieldRow
+                label="담당자"
+                value={
+                  <select
+                    className="border border-slate-200 rounded-lg px-2 py-1 text-sm bg-white"
+                    value={assigneeEmpNo}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setAssigneeEmpNo(next);
+                      assignM.mutate(next || null);
+                    }}
+                  >
+                    <option value="">미배정</option>
+                    {staffOptions.map((u) => (
+                      <option key={u.emp_no} value={u.emp_no}>
+                        {formatUser(u, u.emp_no)}
+                      </option>
+                    ))}
+                  </select>
+                }
+              />
+              <FieldRow
+                label="카테고리"
+                value={
+                  <select
+                    className="border border-slate-200 rounded-lg px-2 py-1 text-sm bg-white"
+                    value={categoryId}
+                    onChange={(e) => {
+                      const next = e.target.value ? Number(e.target.value) : null;
+                      setCategoryId(e.target.value ? Number(e.target.value) : "");
+                      if (next) updateMetaM.mutate({ category_id: next });
+                    }}
+                  >
+                    <option value="">카테고리 선택</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={String(c.id)}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                }
+              />
+              <FieldRow
+                label="작업 구분"
+                value={
+                  <select
+                    className="border border-slate-200 rounded-lg px-2 py-1 text-sm bg-white"
+                    value={workType}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setWorkType(next);
+                      updateMetaM.mutate({ work_type: next || null });
+                    }}
+                  >
+                    <option value="">작업 구분 선택</option>
+                    {WORK_TYPE_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                }
+              />
+            </div>
+            <div className="divide-y">
+              <FieldRow label="프로젝트" value={t.project_name ?? "-"} />
+              <FieldRow label="생성일" value={formatDate(t.created_at)} />
+              <FieldRow label="최근 업데이트" value={formatDate(t.updated_at || t.created_at)} />
+            </div>
           </div>
-        )}
-      </section>
-    </div>
-  </div>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4">
+          <div className="space-y-4">
+            <div className="border rounded bg-white">
+              <div className="px-4 py-3 border-b flex items-center gap-3">
+                <span className="text-sm font-semibold">요청 상세</span>
+              </div>
+              <div className="p-4 space-y-4">
+                <section className="space-y-2">
+                  <div className="text-sm font-semibold">요청 내용</div>
+                  <div className="border rounded p-3 text-sm">
+                    <TiptapViewer value={t.description} />
+                  </div>
+                </section>
+
+                <section className="space-y-2">
+                  <div className="text-sm font-semibold">첨부파일</div>
+                  {ticketAttachments.length === 0 ? (
+                    <div className="text-sm text-gray-500">첨부파일이 없습니다.</div>
+                  ) : (
+                    <div className="border rounded divide-y">
+                      {ticketAttachments.map((a) => (
+                        <div key={a.id} className="flex items-center justify-between px-3 py-2">
+                          <div className="text-sm">{a.filename}</div>
+                          <button
+                            className="text-sm border rounded px-2 py-1 transition-colors hover:bg-slate-50 active:bg-slate-100"
+                            onClick={() => downloadAttachmentM.mutate(a.id)}
+                            disabled={downloadAttachmentM.isPending}
+                          >
+                            다운로드
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </div>
+            </div>
+          </div>
+
+          <aside className="border rounded bg-white h-fit">
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+              <span className="text-sm font-semibold">댓글</span>
+              <button className="text-xs border rounded px-2 py-1" onClick={() => setCommentModalOpen(true)}>
+                등록
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              {data.comments.length === 0 ? (
+                <div className="text-sm text-gray-500">등록된 댓글이 없습니다.</div>
+              ) : (
+                <div className="border rounded divide-y max-h-[520px] overflow-auto">
+                  {data.comments.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className="w-full text-left px-3 py-2 transition-colors hover:bg-gray-50 active:bg-gray-100"
+                      onClick={() => setOpenCommentId(c.id)}
+                    >
+                      <div className="text-sm font-semibold text-slate-900">{c.title || "제목 없음"}</div>
+                      <div className="text-xs text-slate-600 mt-1">{formatUser(c.author, c.author_emp_no)}</div>
+                      <div className="text-xs text-slate-500 mt-1">{formatDate(c.created_at)}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </aside>
+        </div>
 
   <div className="border rounded bg-white">
-    <div className="px-4 py-3 border-b text-sm font-semibold">메타 정보</div>
+    <div className="px-4 py-3 border-b text-sm font-semibold">상태 변경</div>
     <div className="p-4 space-y-3">
       <select
         className="w-full border rounded px-3 py-2 text-sm"
@@ -725,37 +751,6 @@ export default function AdminTicketDetailPage() {
     )}
   </div>
 </div>
-        <aside className="border rounded bg-white h-fit">
-          <div className="flex items-center justify-between px-4 py-3 border-b">
-            <span className="text-sm font-semibold">댓글</span>
-            <button
-              className="text-xs border rounded px-2 py-1"
-              onClick={() => setCommentModalOpen(true)}
-            >
-              등록
-            </button>
-          </div>
-          <div className="p-4 space-y-4">
-            {data.comments.length === 0 ? (
-              <div className="text-sm text-gray-500">등록된 댓글이 없습니다.</div>
-            ) : (
-              <div className="border rounded divide-y max-h-[520px] overflow-auto">
-                {data.comments.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    className="w-full text-left px-3 py-2 transition-colors hover:bg-gray-50 active:bg-gray-100"
-                    onClick={() => setOpenCommentId(c.id)}
-                  >
-                    <div className="text-sm font-semibold text-slate-900">{c.title || "제목 없음"}</div>
-                    <div className="text-xs text-slate-600 mt-1">{formatUser(c.author, c.author_emp_no)}</div>
-                    <div className="text-xs text-slate-500 mt-1">{formatDate(c.created_at)}</div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </aside>
       </div>
 
 

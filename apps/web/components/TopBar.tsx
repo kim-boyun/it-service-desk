@@ -14,11 +14,13 @@ function formatDate(v?: string | null) {
 
 function typeLabel(type: string) {
   const map: Record<string, string> = {
+    ticket_created: "요청 접수",
     status_changed: "상태 변경",
     assignee_assigned: "담당자 배정",
     assignee_changed: "담당자 변경",
     requester_updated: "요청 수정",
     requester_commented: "요청자 댓글",
+    staff_commented: "담당자 댓글",
     new_ticket: "새 요청",
   };
   return map[type] ?? type;

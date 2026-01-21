@@ -20,12 +20,37 @@ def is_staff(user: User) -> bool:
     return user.role == "admin"
 
 
+STATUS_LABELS = {
+    "open": "접수",
+    "in_progress": "진행",
+    "resolved": "완료",
+    "closed": "사업 검토",
+}
+
+
+def _status_label(value: str | None) -> str:
+    if not value:
+        return "-"
+    s = value.lower()
+    if s in ("open", "new", "pending"):
+        return STATUS_LABELS["open"]
+    if s in ("in_progress", "processing", "assigned", "working", "progress"):
+        return STATUS_LABELS["in_progress"]
+    if s in ("resolved", "done", "completed"):
+        return STATUS_LABELS["resolved"]
+    if s in ("closed", "review", "business_review"):
+        return STATUS_LABELS["closed"]
+    return value
+
+
 def _event_message(event: TicketEvent) -> str:
     if event.type == "ticket_created":
         return "요청이 접수되었습니다."
     if event.type == "status_changed":
         if event.from_value or event.to_value:
-            return f"{event.from_value or '-'} -> {event.to_value or '-'}"
+            before = _status_label(event.from_value)
+            after = _status_label(event.to_value)
+            return f"{before} -> {after}"
     if event.type in ("assignee_assigned", "assignee_changed"):
         if event.note:
             return event.note
@@ -48,7 +73,7 @@ def list_notifications(
     items: list[NotificationOut] = []
     seen_event_ids: set[int] = set()
 
-    # 1) Ticket events for the user's own requests (정책 기준)
+    # 1) Ticket events for the user's own requests
     event_stmt = (
         select(TicketEvent, Ticket)
         .join(Ticket, TicketEvent.ticket_id == Ticket.id)
@@ -58,7 +83,7 @@ def list_notifications(
         .limit(50)
     )
     for event, ticket in session.execute(event_stmt).all():
-        if event.type == "status_changed" and event.to_value not in ("resolved", "closed"):
+        if event.type == "status_changed" and event.to_value not in ("resolved", "closed", "in_progress"):
             continue
         created_at = event.created_at or ticket.updated_at or ticket.created_at
         if not created_at:
@@ -167,7 +192,7 @@ def list_notifications(
             created_at = comment.created_at or ticket.updated_at or ticket.created_at
             if not created_at:
                 continue
-            snippet = comment.title or "담당자 댓글이 등록되었습니다."
+            snippet = comment.title or "댓글이 등록되었습니다."
             items.append(
                 NotificationOut(
                     id=f"comment:{comment.id}",
