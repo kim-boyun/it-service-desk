@@ -345,7 +345,6 @@ export default function TicketDetailPage() {
       setCommentBody(EMPTY_DOC);
       setCommentFiles([]);
       setCommentNotifyEmail(false);
-      모두 제거
       setCommentError(null);
       qc.invalidateQueries({ queryKey: ["ticketDetail", ticketId, scopeParam] });
     },
@@ -373,7 +372,8 @@ export default function TicketDetailPage() {
 
   function removeCommentFile(idx: number) {
     setCommentFiles((prev) => prev.filter((_, i) => i != idx));
-  제거
+  }
+
   if (isLoading) return <div className="p-6">요청을 불러오는 중입니다...</div>;
   if (error) return <div className="p-6 text-red-600">오류: {(error as any).message}</div>;
   if (!data) return <div className="p-6 text-sm text-gray-500">요청이 없습니다.</div>;
