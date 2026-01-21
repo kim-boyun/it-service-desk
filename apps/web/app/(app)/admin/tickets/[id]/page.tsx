@@ -387,12 +387,12 @@ export default function AdminTicketDetailPage() {
       setCommentBody(EMPTY_DOC);
       setCommentFiles([]);
       setCommentNotifyEmail(false);
-      setCommentModalOpen(false);
+      모두 제거
       setCommentError(null);
       qc.invalidateQueries({ queryKey: ["admin-ticket-detail", ticketId] });
     },
     onError: (err: any) => {
-      setCommentError(err?.message ?? "댓글 등록???ㅽ뙣?덉뒿?덈떎.");
+      setCommentError("?? ??? ?????.");
     },
   });
 
@@ -404,7 +404,7 @@ export default function AdminTicketDetailPage() {
       const next = [...prev];
       for (const file of files) {
         if (file.size > MAX_COMMENT_FILE_BYTES) {
-          setCommentError("????? 25MB ???? ?????.");
+          setCommentError("파일은 25MB 이하여야 합니다.");
           continue;
         }
         next.push(file);
@@ -415,7 +415,7 @@ export default function AdminTicketDetailPage() {
 
   function removeCommentFile(idx: number) {
     setCommentFiles((prev) => prev.filter((_, i) => i != idx));
-  }
+  제거
 
   if (isLoading) return <div className="p-6">요청을 불러오는 중입니다...</div>;
   if (error) return <div className="p-6 text-red-600">오류: {(error as any).message}</div>;
@@ -446,7 +446,7 @@ export default function AdminTicketDetailPage() {
               router.back();
             }}
           >
-            돌아가기
+            제거
           </button>
           <button
             className="border border-red-200 text-red-700 rounded px-3 py-2 text-sm hover:bg-red-50"
@@ -462,198 +462,54 @@ export default function AdminTicketDetailPage() {
       </div>
 
             <div className="space-y-4">
+        
         <div className="border rounded bg-white">
-          <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x">
-            <div className="divide-y">
-              <FieldRow label="요청자" value={formatUser(t.requester, t.requester_emp_no)} />
-              <FieldRow
-                label="담당자"
-                value={
-                  <select
-                    className="border border-slate-200 rounded-lg px-2 py-1 text-sm bg-white"
-                    value={assigneeEmpNo}
-                    onChange={(e) => {
-                      const next = e.target.value;
-                      setAssigneeEmpNo(next);
-                      assignM.mutate(next || null);
-                    }}
-                  >
-                    <option value="">미배정</option>
-                    {staffOptions.map((u) => (
-                      <option key={u.emp_no} value={u.emp_no}>
-                        {formatUser(u, u.emp_no)}
-                      </option>
-                    ))}
-                  </select>
-                }
-              />
-              <FieldRow
-                label="카테고리"
-                value={
-                  <select
-                    className="border border-slate-200 rounded-lg px-2 py-1 text-sm bg-white"
-                    value={categoryId}
-                    onChange={(e) => {
-                      const next = e.target.value ? Number(e.target.value) : null;
-                      setCategoryId(e.target.value ? Number(e.target.value) : "");
-                      if (next) updateMetaM.mutate({ category_id: next });
-                    }}
-                  >
-                    <option value="">카테고리 선택</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={String(c.id)}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                }
-              />
-              <FieldRow
-                label="작업 구분"
-                value={
-                  <select
-                    className="border border-slate-200 rounded-lg px-2 py-1 text-sm bg-white"
-                    value={workType}
-                    onChange={(e) => {
-                      const next = e.target.value;
-                      setWorkType(next);
-                      updateMetaM.mutate({ work_type: next || null });
-                    }}
-                  >
-                    <option value="">작업 구분 선택</option>
-                    {WORK_TYPE_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                }
-              />
-            </div>
-            <div className="divide-y">
-              <FieldRow label="프로젝트" value={t.project_name ?? "-"} />
-              <FieldRow label="생성일" value={formatDate(t.created_at)} />
-              <FieldRow label="최근 업데이트" value={formatDate(t.updated_at || t.created_at)} />
-            </div>
+          <div className="px-4 py-3 border-b text-sm font-semibold">상태 변경</div>
+          <div className="p-4 space-y-3">
+            <select
+              className="w-full border rounded px-3 py-2 text-sm"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              {STATUS_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+            <textarea
+              className="w-full border rounded px-3 py-2 text-sm min-h-[80px]"
+              placeholder="상태 변경 메모 (선택)"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+            {updateStatusM.isError && (
+              <div className="text-xs text-red-600">
+                {(updateStatusM.error as any)?.message ?? "상태 변경에 실패했습니다."}
+              </div>
+            )}
+            <button
+              className="w-full border rounded px-3 py-2 text-sm bg-white text-black hover:bg-gray-100 disabled:opacity-60"
+              onClick={() => updateStatusM.mutate()}
+              disabled={updateStatusM.isPending}
+            >
+              {updateStatusM.isPending ? "변경 중.." : "상태 업데이트"}
+            </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4">
-          <div className="space-y-4">
-            <div className="border rounded bg-white">
-              <div className="px-4 py-3 border-b flex items-center gap-3">
-                <span className="text-sm font-semibold">요청 상세</span>
-              </div>
-              <div className="p-4 space-y-4">
-                <section className="space-y-2">
-                  <div className="text-sm font-semibold">요청 내용</div>
-                  <div className="border rounded p-3 text-sm">
-                    <TiptapViewer value={t.description} />
-                  </div>
-                </section>
-
-                <section className="space-y-2">
-                  <div className="text-sm font-semibold">첨부파일</div>
-                  {ticketAttachments.length === 0 ? (
-                    <div className="text-sm text-gray-500">첨부파일이 없습니다.</div>
-                  ) : (
-                    <div className="border rounded divide-y">
-                      {ticketAttachments.map((a) => (
-                        <div key={a.id} className="flex items-center justify-between px-3 py-2">
-                          <div className="text-sm">{a.filename}</div>
-                          <button
-                            className="text-sm border rounded px-2 py-1 transition-colors hover:bg-slate-50 active:bg-slate-100"
-                            onClick={() => downloadAttachmentM.mutate(a.id)}
-                            disabled={downloadAttachmentM.isPending}
-                          >
-                            다운로드
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </section>
-              </div>
-            </div>
-          </div>
-
-          <aside className="border rounded bg-white h-fit">
-            <div className="flex items-center justify-between px-4 py-3 border-b">
-              <span className="text-sm font-semibold">댓글</span>
-              <button className="text-xs border rounded px-2 py-1" onClick={() => setCommentModalOpen(true)}>
-                등록
-              </button>
-            </div>
-            <div className="p-4 space-y-4">
-              {data.comments.length === 0 ? (
-                <div className="text-sm text-gray-500">등록된 댓글이 없습니다.</div>
-              ) : (
-                <div className="border rounded divide-y max-h-[520px] overflow-auto">
-                  {data.comments.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      className="w-full text-left px-3 py-2 transition-colors hover:bg-gray-50 active:bg-gray-100"
-                      onClick={() => setOpenCommentId(c.id)}
-                    >
-                      <div className="text-sm font-semibold text-slate-900">{c.title || "제목 없음"}</div>
-                      <div className="text-xs text-slate-600 mt-1">{formatUser(c.author, c.author_emp_no)}</div>
-                      <div className="text-xs text-slate-500 mt-1">{formatDate(c.created_at)}</div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </aside>
-        </div>
-
   <div className="border rounded bg-white">
-    <div className="px-4 py-3 border-b text-sm font-semibold">?곹깭 蹂寃?/div>
-    <div className="p-4 space-y-3">
-      <select
-        className="w-full border rounded px-3 py-2 text-sm"
-        value={status}
-        onChange={(e) => setStatus(e.target.value)}
-      >
-        {STATUS_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-      <textarea
-        className="w-full border rounded px-3 py-2 text-sm min-h-[80px]"
-        placeholder="?곹깭 蹂寃?硫붾え (?좏깮)"
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-      />
-      {updateStatusM.isError && (
-        <div className="text-xs text-red-600">
-          {(updateStatusM.error as any)?.message ?? "?곹깭 蹂寃쎌뿉 ?ㅽ뙣?덉뒿?덈떎."}
-        </div>
-      )}
-      <button
-        className="w-full border rounded px-3 py-2 text-sm bg-white text-black hover:bg-gray-100 disabled:opacity-60"
-        onClick={() => updateStatusM.mutate()}
-        disabled={updateStatusM.isPending}
-      >
-        {updateStatusM.isPending ? "蹂寃?以?.." : "?곹깭 업데이트"}
-      </button>
-    </div>
-  </div>
-
-  <div className="border rounded bg-white">
-    <div className="px-4 py-2 border-b text-sm font-semibold">泥섎━ ?대젰</div>
+    <div className="px-4 py-2 border-b text-sm font-semibold">처리 이력</div>
     {data.events.length === 0 ? (
-      <div className="p-4 text-sm text-gray-500">?대젰???놁뒿?덈떎.</div>
+      <div className="p-4 text-sm text-gray-500">처리 이력이 없습니다.</div>
     ) : (
       <table className="w-full text-sm">
         <thead className="bg-gray-50">
           <tr className="border-b">
             <th className="text-center p-2 w-16">No</th>
-            <th className="text-center p-2 w-44">?쒓컖</th>
-            <th className="text-center p-2 w-28">?좏삎</th>
-            <th className="text-center p-2">?댁슜</th>
+            <th className="text-center p-2 w-44">시각</th>
+            <th className="text-center p-2 w-28">유형</th>
+            <th className="text-center p-2">내용</th>
           </tr>
         </thead>
         <tbody>
@@ -683,17 +539,17 @@ export default function AdminTicketDetailPage() {
                     <td className="p-3" colSpan={4}>
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         <div className="border rounded bg-white">
-                          <div className="px-3 py-2 text-xs font-semibold border-b">?섏젙 ??硫뷀??뺣낫</div>
+                          <div className="px-3 py-2 text-xs font-semibold border-b">수정 전 정보</div>
                           <div className="divide-y text-xs">
                             <div className="grid grid-cols-12 border-b">
                               <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                ?쒕ぉ
+                                제목
                               </div>
                               <div className="col-span-9 px-2 py-2">{before.title ?? "-"}</div>
                             </div>
                             <div className="grid grid-cols-12 border-b">
                               <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                ?곗꽑?쒖쐞
+                                제목
                               </div>
                               <div className="col-span-9 px-2 py-2">
                                 {priorityMeta(before.priority ?? "medium").label}
@@ -701,7 +557,7 @@ export default function AdminTicketDetailPage() {
                             </div>
                             <div className="grid grid-cols-12 border-b">
                               <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                카테고리
+                                제목
                               </div>
                               <div className="col-span-9 px-2 py-2">
                                 {categoryLabel(before.category_id ?? null, categoryMap)}
@@ -709,25 +565,25 @@ export default function AdminTicketDetailPage() {
                             </div>
                             <div className="grid grid-cols-12 border-b">
                               <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                작업 구분
+                                제목
                               </div>
                               <div className="col-span-9 px-2 py-2">{workTypeLabel(before.work_type)}</div>
                             </div>
                             <div className="grid grid-cols-12 border-b">
                               <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                프로젝트
+                                제목
                               </div>
                               <div className="col-span-9 px-2 py-2">{before.project_name ?? "-"}</div>
                             </div>
                             <div className="grid grid-cols-12 border-b">
                               <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                생성일
+                                제목
                               </div>
                               <div className="col-span-9 px-2 py-2">{formatDate(before.created_at)}</div>
                             </div>
                             <div className="grid grid-cols-12">
                               <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                업데이트
+                                제목
                               </div>
                               <div className="col-span-9 px-2 py-2">{formatDate(before.updated_at)}</div>
                             </div>
@@ -806,21 +662,21 @@ export default function AdminTicketDetailPage() {
             <div className="flex items-start justify-between gap-3 border-b px-4 py-3">
               <div>
                 <div className="text-base font-semibold">댓글 등록</div>
-                <div className="text-xs text-gray-500 mt-1">?쒕ぉ怨??댁슜???낅젰??二쇱꽭??</div>
+                <div className="text-xs text-gray-500 mt-1">제목과 내용을 입력해 주세요.</div>
               </div>
             </div>
             <div className="p-4 space-y-4">
               <div className="border border-slate-200/70 rounded-2xl overflow-hidden bg-white">
                 <div className="grid grid-cols-12 border-b border-slate-200/70">
                   <div className="col-span-3 bg-slate-50 text-sm font-medium text-slate-700 px-3 py-2 border-r border-slate-200/70">
-                    ?쒕ぉ
+                    제목
                   </div>
                   <div className="col-span-9 px-3 py-2">
                     <input
                       className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm"
                       value={commentTitle}
                       onChange={(e) => setCommentTitle(e.target.value)}
-                      placeholder="댓글 ?쒕ぉ???낅젰?섏꽭??"
+                      placeholder="댓글 제목을 입력하세요."
                       maxLength={200}
                       required
                     />
@@ -829,7 +685,7 @@ export default function AdminTicketDetailPage() {
               </div>
 
               <div className="space-y-2">
-                <div className="text-sm text-slate-600">?뚯씪??理쒕? 25MB</div>
+                <div className="text-sm text-slate-600">파일당 최대 25MB</div>
                 <input
                   id="admin-comment-file-input"
                   type="file"
@@ -869,16 +725,16 @@ export default function AdminTicketDetailPage() {
                         }
                       }}
                     >
-                      ?뚯씪 ?좏깮
+                      파일 선택
                     </button>
-                    <span className="text-sm text-slate-500">?ш린濡??쒕옒洹????쒕∼?대룄 ?⑸땲??</span>
+                    <span className="text-sm text-slate-500">드래그/붙여넣기로 추가할 수 있습니다.</span>
                     {commentFiles.length > 0 && (
                       <button
                         type="button"
                         className="text-sm text-slate-600 hover:underline"
                         onClick={() => setCommentFiles([])}
                       >
-                        紐⑤몢 ?쒓굅
+                        모두 제거
                       </button>
                     )}
                   </div>
@@ -900,7 +756,7 @@ export default function AdminTicketDetailPage() {
                           className="text-sm text-red-600 hover:underline"
                           onClick={() => removeCommentFile(idx)}
                         >
-                          ?쒓굅
+                          제거
                         </button>
                       </div>
                     ))}
@@ -913,7 +769,7 @@ export default function AdminTicketDetailPage() {
                   value={commentBody}
                   onChange={(doc) => setCommentBody(doc)}
                   onError={setCommentError}
-                  placeholder="댓글 ?댁슜???낅젰?섏꽭??"
+                  placeholder="댓글 내용을 입력하세요."
                 />
               </div>
 
@@ -922,9 +778,9 @@ export default function AdminTicketDetailPage() {
                   type="checkbox"
                   className="h-4 w-4 rounded border-slate-300"
                   checked={commentNotifyEmail}
-                  onChange={(e) => setCommentNotifyEmail(e.target.checked)}
+                  메일 알림 발송
                 />
-                硫붿씪 ?뚮┝ 諛쒖넚
+                메일 알림 발송
               </label>
 
               {commentError && <div className="text-sm text-red-600">{commentError}</div>}
@@ -936,9 +792,8 @@ export default function AdminTicketDetailPage() {
                   onClick={() => {
                     setCommentModalOpen(false);
                     setCommentError(null);
-                  }}
                 >
-                  痍⑥냼
+                  취소
                 </button>
                 <button
                   className="border rounded px-3 py-1 text-sm bg-slate-900 text-white transition-colors hover:bg-slate-800 active:bg-slate-900 disabled:opacity-60"
@@ -946,18 +801,18 @@ export default function AdminTicketDetailPage() {
                   onClick={() => {
                     setCommentError(null);
                     if (!commentTitle.trim()) {
-                      setCommentError("댓글 ?쒕ぉ???낅젰?섏꽭??");
+                      setCommentError("댓글 제목을 입력하세요.");
                       return;
                     }
                     if (isEmptyDoc(commentBody)) {
-                      setCommentError("댓글 ?댁슜???낅젰?섏꽭??");
+                      setCommentError("댓글 내용을 입력하세요.");
                       return;
                     }
                     createCommentM.mutate();
                   }}
-                  disabled={createCommentM.isPending}
+                  {createCommentM.isPending ? "등록 중.." : "등록"}
                 >
-                  {createCommentM.isPending ? "등록 以?.." : "등록"}
+                  {createCommentM.isPending ? "등록 중.." : "등록"}
                 </button>
               </div>
             </div>

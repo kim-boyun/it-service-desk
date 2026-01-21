@@ -345,12 +345,12 @@ export default function TicketDetailPage() {
       setCommentBody(EMPTY_DOC);
       setCommentFiles([]);
       setCommentNotifyEmail(false);
-      setCommentModalOpen(false);
+      모두 제거
       setCommentError(null);
       qc.invalidateQueries({ queryKey: ["ticketDetail", ticketId, scopeParam] });
     },
     onError: (err: any) => {
-      setCommentError(err?.message ?? "댓글 등록???ㅽ뙣?덉뒿?덈떎.");
+      setCommentError("?? ??? ?????.");
     },
   });
 
@@ -362,7 +362,7 @@ export default function TicketDetailPage() {
       const next = [...prev];
       for (const file of files) {
         if (file.size > MAX_COMMENT_FILE_BYTES) {
-          setCommentError("????? 25MB ???? ?????.");
+          setCommentError("파일은 25MB 이하여야 합니다.");
           continue;
         }
         next.push(file);
@@ -373,7 +373,7 @@ export default function TicketDetailPage() {
 
   function removeCommentFile(idx: number) {
     setCommentFiles((prev) => prev.filter((_, i) => i != idx));
-  }
+  제거
   if (isLoading) return <div className="p-6">요청을 불러오는 중입니다...</div>;
   if (error) return <div className="p-6 text-red-600">오류: {(error as any).message}</div>;
   if (!data) return <div className="p-6 text-sm text-gray-500">요청이 없습니다.</div>;
@@ -409,7 +409,7 @@ export default function TicketDetailPage() {
                   router.push(`/tickets/${t.id}/edit`);
                 }}
               >
-                수정
+                제거
               </button>
               <button
                 className="border rounded px-3 py-2 text-sm text-red-600 border-red-200 transition-colors hover:bg-red-50 active:bg-red-100 disabled:opacity-60"
@@ -501,7 +501,7 @@ export default function TicketDetailPage() {
             </div>
             <div className="p-4 space-y-4">
               {comments.length === 0 ? (
-                <div className="text-sm text-gray-500">댓글???놁뒿?덈떎.</div>
+                <div className="text-sm text-gray-500">댓글이 없습니다.</div>
               ) : (
                 <div className="border rounded divide-y max-h-[520px] overflow-auto">
                   {comments.map((c) => (
@@ -522,55 +522,56 @@ export default function TicketDetailPage() {
           </aside>
         </div>
 
+          
           {isStaffScope && (
-            <div className="border rounded bg-white">
-              <div className="px-4 py-3 border-b text-sm font-semibold">?곹깭 蹂寃?/div>
-              <div className="p-4 space-y-3">
-                <select
-                  className="w-full border rounded px-3 py-2 text-sm"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                >
-                  {STATUS_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-                <textarea
-                  className="w-full border rounded px-3 py-2 text-sm min-h-[80px]"
-                  placeholder="?곹깭 蹂寃?硫붾え (?좏깮)"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                />
-                {updateStatusM.isError && (
-                  <div className="text-xs text-red-600">
-                    {(updateStatusM.error as any)?.message ?? "?곹깭 蹂寃쎌뿉 ?ㅽ뙣?덉뒿?덈떎."}
-                  </div>
-                )}
-                <button
-                  className="w-full border rounded px-3 py-2 text-sm bg-white text-black transition-colors hover:bg-gray-100 active:bg-gray-200 disabled:opacity-60"
-                  onClick={() => updateStatusM.mutate()}
-                  disabled={updateStatusM.isPending}
-                >
-                  {updateStatusM.isPending ? "蹂寃?以?.." : "?곹깭 업데이트"}
-                </button>
+            <>
+              <div className="border rounded bg-white">
+                <div className="px-4 py-3 border-b text-sm font-semibold">상태 변경</div>
+                <div className="p-4 space-y-3">
+                  <select
+                    className="w-full border rounded px-3 py-2 text-sm"
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                  >
+                    {STATUS_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                  <textarea
+                    className="w-full border rounded px-3 py-2 text-sm min-h-[80px]"
+                    placeholder="상태 변경 메모 (선택)"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                  />
+                  {updateStatusM.isError && (
+                    <div className="text-xs text-red-600">
+                      {(updateStatusM.error as any)?.message ?? "상태 변경에 실패했습니다."}
+                    </div>
+                  )}
+                  <button
+                    className="w-full border rounded px-3 py-2 text-sm bg-white text-black hover:bg-gray-100 disabled:opacity-60"
+                    onClick={() => updateStatusM.mutate()}
+                    disabled={updateStatusM.isPending}
+                  >
+                    {updateStatusM.isPending ? "?? ?.." : "?? ????"}
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
 
           <div className="border rounded bg-white">
-            <div className="px-4 py-2 border-b text-sm font-semibold">泥섎━ ?대젰</div>
+            <div className="px-4 py-2 border-b text-sm font-semibold">처리 이력</div>
             {data.events.length === 0 ? (
-              <div className="p-4 text-sm text-gray-500">?대젰???놁뒿?덈떎.</div>
+              <div className="p-4 text-sm text-gray-500">처리 이력이 없습니다.</div>
             ) : (
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
                   <tr className="border-b">
                     <th className="text-center p-2 w-16">No</th>
-                    <th className="text-center p-2 w-44">?쒓컖</th>
-                    <th className="text-center p-2 w-28">?좏삎</th>
-                    <th className="text-center p-2">?댁슜</th>
+                    <th className="text-center p-2 w-44">시각</th>
+                    <th className="text-center p-2 w-28">유형</th>
+                    <th className="text-center p-2">내용</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -600,17 +601,17 @@ export default function TicketDetailPage() {
                             <td className="p-3" colSpan={4}>
                               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                 <div className="border rounded bg-white">
-                                  <div className="px-3 py-2 text-xs font-semibold border-b">?섏젙 ??硫뷀??뺣낫</div>
+                                  <div className="px-3 py-2 text-xs font-semibold border-b">수정 전 정보</div>
                                   <div className="divide-y text-xs">
                                     <div className="grid grid-cols-12 border-b">
                                       <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                        ?쒕ぉ
+                                        제목
                                       </div>
                                       <div className="col-span-9 px-2 py-2">{before.title ?? "-"}</div>
                                     </div>
                                     <div className="grid grid-cols-12 border-b">
                                       <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                        ?곗꽑?쒖쐞
+                                        제목
                                       </div>
                                       <div className="col-span-9 px-2 py-2">
                                         {priorityMeta(before.priority ?? "medium").label}
@@ -618,7 +619,7 @@ export default function TicketDetailPage() {
                                     </div>
                                     <div className="grid grid-cols-12 border-b">
                                       <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                        카테고리
+                                        제목
                                       </div>
                                       <div className="col-span-9 px-2 py-2">
                                         {categoryLabel(before.category_id ?? null, categoryMap)}
@@ -626,25 +627,25 @@ export default function TicketDetailPage() {
                                     </div>
                                     <div className="grid grid-cols-12 border-b">
                                       <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                        작업 구분
+                                        제목
                                       </div>
                                       <div className="col-span-9 px-2 py-2">{workTypeLabel(before.work_type)}</div>
                                     </div>
                                     <div className="grid grid-cols-12 border-b">
                                       <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                        프로젝트
+                                        제목
                                       </div>
                                       <div className="col-span-9 px-2 py-2">{before.project_name ?? "-"}</div>
                                     </div>
                                     <div className="grid grid-cols-12 border-b">
                                       <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                        생성일
+                                        제목
                                       </div>
                                       <div className="col-span-9 px-2 py-2">{formatDate(before.created_at)}</div>
                                     </div>
                                     <div className="grid grid-cols-12">
                                       <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                        업데이트
+                                        제목
                                       </div>
                                       <div className="col-span-9 px-2 py-2">{formatDate(before.updated_at)}</div>
                                     </div>
@@ -726,21 +727,21 @@ export default function TicketDetailPage() {
             <div className="flex items-start justify-between gap-3 border-b px-4 py-3">
               <div>
                 <div className="text-base font-semibold">댓글 등록</div>
-                <div className="text-xs text-gray-500 mt-1">?쒕ぉ怨??댁슜???낅젰??二쇱꽭??</div>
+                <div className="text-xs text-gray-500 mt-1">제목과 내용을 입력해 주세요.</div>
               </div>
             </div>
             <div className="p-4 space-y-4">
               <div className="border border-slate-200/70 rounded-2xl overflow-hidden bg-white">
                 <div className="grid grid-cols-12 border-b border-slate-200/70">
                   <div className="col-span-3 bg-slate-50 text-sm font-medium text-slate-700 px-3 py-2 border-r border-slate-200/70">
-                    ?쒕ぉ
+                    제목
                   </div>
                   <div className="col-span-9 px-3 py-2">
                     <input
                       className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm"
                       value={commentTitle}
                       onChange={(e) => setCommentTitle(e.target.value)}
-                      placeholder="댓글 ?쒕ぉ???낅젰?섏꽭??"
+                      placeholder="댓글 제목을 입력하세요."
                       maxLength={200}
                       required
                     />
@@ -749,7 +750,7 @@ export default function TicketDetailPage() {
               </div>
 
               <div className="space-y-2">
-                <div className="text-sm text-slate-600">?뚯씪??理쒕? 25MB</div>
+                <div className="text-sm text-slate-600">파일당 최대 25MB</div>
                 <input
                   id="comment-file-input"
                   type="file"
@@ -789,16 +790,16 @@ export default function TicketDetailPage() {
                         }
                       }}
                     >
-                      ?뚯씪 ?좏깮
+                      파일 선택
                     </button>
-                    <span className="text-sm text-slate-500">?ш린濡??쒕옒洹????쒕∼?대룄 ?⑸땲??</span>
+                    <span className="text-sm text-slate-500">드래그/붙여넣기로 추가할 수 있습니다.</span>
                     {commentFiles.length > 0 && (
                       <button
                         type="button"
                         className="text-sm text-slate-600 hover:underline"
                         onClick={() => setCommentFiles([])}
                       >
-                        紐⑤몢 ?쒓굅
+                        모두 제거
                       </button>
                     )}
                   </div>
@@ -820,7 +821,7 @@ export default function TicketDetailPage() {
                           className="text-sm text-red-600 hover:underline"
                           onClick={() => removeCommentFile(idx)}
                         >
-                          ??
+                          제거
                         </button>
                       </div>
                     ))}
@@ -833,7 +834,7 @@ export default function TicketDetailPage() {
                   value={commentBody}
                   onChange={(doc) => setCommentBody(doc)}
                   onError={setCommentError}
-                  placeholder="댓글 ?댁슜???낅젰?섏꽭??"
+                  placeholder="댓글 내용을 입력하세요."
                 />
               </div>
 
@@ -842,9 +843,9 @@ export default function TicketDetailPage() {
                   type="checkbox"
                   className="h-4 w-4 rounded border-slate-300"
                   checked={commentNotifyEmail}
-                  onChange={(e) => setCommentNotifyEmail(e.target.checked)}
+                  메일 알림 발송
                 />
-                硫붿씪 ?뚮┝ 諛쒖넚
+                메일 알림 발송
               </label>
 
               {commentError && <div className="text-sm text-red-600">{commentError}</div>}
@@ -856,9 +857,8 @@ export default function TicketDetailPage() {
                   onClick={() => {
                     setCommentModalOpen(false);
                     setCommentError(null);
-                  }}
                 >
-                  痍⑥냼
+                  취소
                 </button>
                 <button
                   className="border rounded px-3 py-1 text-sm bg-slate-900 text-white transition-colors hover:bg-slate-800 active:bg-slate-900 disabled:opacity-60"
@@ -866,18 +866,18 @@ export default function TicketDetailPage() {
                   onClick={() => {
                     setCommentError(null);
                     if (!commentTitle.trim()) {
-                      setCommentError("댓글 ?쒕ぉ???낅젰?섏꽭??");
+                      setCommentError("댓글 제목을 입력하세요.");
                       return;
                     }
                     if (isEmptyDoc(commentBody)) {
-                      setCommentError("댓글 ?댁슜???낅젰?섏꽭??");
+                      setCommentError("댓글 내용을 입력하세요.");
                       return;
                     }
                     createCommentM.mutate();
                   }}
-                  disabled={createCommentM.isPending}
+                  {createCommentM.isPending ? "등록 중.." : "등록"}
                 >
-                  {createCommentM.isPending ? "등록 以?.." : "등록"}
+                  {createCommentM.isPending ? "등록 중.." : "등록"}
                 </button>
               </div>
             </div>
