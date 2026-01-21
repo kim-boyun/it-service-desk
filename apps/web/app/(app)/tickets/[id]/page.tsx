@@ -668,9 +668,9 @@ export default function TicketDetailPage() {
               </table>
             )}
           </div>
-        </div>
-
-      </div>
+        </>
+      )}
+    </div>
 
       {selectedComment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
@@ -838,12 +838,12 @@ export default function TicketDetailPage() {
                 />
               </div>
 
-              <label className="flex items-center gap-2 text-sm text-slate-600">
+                            <label className="flex items-center gap-2 text-sm text-slate-600">
                 <input
                   type="checkbox"
                   className="h-4 w-4 rounded border-slate-300"
                   checked={commentNotifyEmail}
-                  메일 알림 발송
+                  onChange={(e) => setCommentNotifyEmail(e.target.checked)}
                 />
                 메일 알림 발송
               </label>
@@ -851,16 +851,17 @@ export default function TicketDetailPage() {
               {commentError && <div className="text-sm text-red-600">{commentError}</div>}
 
               <div className="flex items-center justify-end gap-2">
-                <button
+                                <button
                   className="border rounded px-3 py-1 text-sm transition-colors hover:bg-slate-50 active:bg-slate-100"
                   type="button"
                   onClick={() => {
                     setCommentModalOpen(false);
                     setCommentError(null);
+                  }}
                 >
                   취소
                 </button>
-                <button
+                                <button
                   className="border rounded px-3 py-1 text-sm bg-slate-900 text-white transition-colors hover:bg-slate-800 active:bg-slate-900 disabled:opacity-60"
                   type="button"
                   onClick={() => {
@@ -875,7 +876,6 @@ export default function TicketDetailPage() {
                     }
                     createCommentM.mutate();
                   }}
-                  {createCommentM.isPending ? "등록 중.." : "등록"}
                 >
                   {createCommentM.isPending ? "등록 중.." : "등록"}
                 </button>
