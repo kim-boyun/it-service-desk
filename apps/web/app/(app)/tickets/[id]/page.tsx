@@ -81,14 +81,14 @@ type TicketDetail = {
 
 const READ_KEY = "it_service_desk_ticket_reads";
 const UNSAVED_MESSAGE =
-  "???섏씠吏瑜??좊굹?쒓쿋?듬땲源?\n蹂寃쎌궗??씠 ??λ릺吏 ?딆쓣 ???덉뒿?덈떎.";
+  "페이지를 나가면 변경사항이 저장되지 않습니다.\n그래도 이동하시겠습니까?";
 const MAX_COMMENT_FILE_BYTES = 25 * 1024 * 1024;
 
 const STATUS_OPTIONS = [
-  { value: "open", label: "?湲? },
-  { value: "in_progress", label: "吏꾪뻾" },
-  { value: "resolved", label: "?꾨즺" },
-  { value: "closed", label: "?ъ뾽 寃?? },
+  { value: "open", label: "접수" },
+  { value: "in_progress", label: "진행" },
+  { value: "resolved", label: "완료" },
+  { value: "closed", label: "사업 검토" },
 ];
 
 function statusMeta(status: string) {
@@ -134,7 +134,9 @@ function workTypeLabel(value?: string | null) {
     project: "기타",
   };
   return map[value] ?? value;
-}\nfunction formatBytes(bytes: number) {
+}
+
+function formatBytes(bytes: number) {
   if (bytes === 0) return "0 B";
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"];

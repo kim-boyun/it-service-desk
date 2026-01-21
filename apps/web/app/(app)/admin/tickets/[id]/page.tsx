@@ -141,7 +141,9 @@ function workTypeLabel(value?: string | null) {
     project: "기타",
   };
   return map[value] ?? value;
-}\nfunction formatBytes(bytes: number) {
+}
+
+function formatBytes(bytes: number) {
   if (bytes === 0) return "0 B";
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"];
