@@ -148,10 +148,11 @@ export default function Sidebar() {
         <Link href="/home" className="pt-1 block no-underline">
           <div className="flex items-center w-full px-4">
             <h1 
-              className="text-3xl font-black text-black uppercase tracking-tighter"
+              className="flex items-center gap-x-3 text-3xl font-black text-black uppercase tracking-tighter"
               style={{ WebkitTextStroke: '1.5px black' }}
             >
-              I T    D E S K
+              <span>IT</span>
+              <span>DESK</span>
             </h1>
           </div>
         </Link>
