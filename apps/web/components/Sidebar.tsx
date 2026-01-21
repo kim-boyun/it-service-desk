@@ -151,8 +151,8 @@ export default function Sidebar() {
               className="flex items-center gap-x-3 text-3xl font-black text-black uppercase tracking-tighter"
               style={{ WebkitTextStroke: '1.5px black' }}
             >
-              <span>IT</span>
-              <span>DESK</span>
+              <span>I T</span>
+              <span>D E S K</span>
             </h1>
           </div>
         </Link>
