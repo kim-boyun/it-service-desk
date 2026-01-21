@@ -349,7 +349,7 @@ export default function TicketDetailPage() {
       qc.invalidateQueries({ queryKey: ["ticketDetail", ticketId, scopeParam] });
     },
     onError: (err: any) => {
-      setCommentError("?? ??? ?????.");
+      setCommentError("댓글 등록에 실패했습니다.");
     },
   });
 
@@ -399,7 +399,7 @@ export default function TicketDetailPage() {
             <Badge label={priorityInfo.label} cls={priorityInfo.cls} />
           </div>
         </div>
-                <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
           {canEdit && (
             <>
               <button
@@ -409,7 +409,7 @@ export default function TicketDetailPage() {
                   router.push(`/tickets/${t.id}/edit`);
                 }}
               >
-                제거
+                수정
               </button>
               <button
                 className="border rounded px-3 py-2 text-sm text-red-600 border-red-200 transition-colors hover:bg-red-50 active:bg-red-100 disabled:opacity-60"
@@ -435,7 +435,7 @@ export default function TicketDetailPage() {
         </div>
       </div>
 
-            <div className="space-y-4">
+      <div className="space-y-4">
         <div className="border rounded bg-white">
           <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x">
             <div className="divide-y">
@@ -524,41 +524,41 @@ export default function TicketDetailPage() {
 
           
           {isStaffScope && (
-            <>
-              <div className="border rounded bg-white">
-                <div className="px-4 py-3 border-b text-sm font-semibold">상태 변경</div>
-                <div className="p-4 space-y-3">
-                  <select
-                    className="w-full border rounded px-3 py-2 text-sm"
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                  >
-                    {STATUS_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                  <textarea
-                    className="w-full border rounded px-3 py-2 text-sm min-h-[80px]"
-                    placeholder="상태 변경 메모 (선택)"
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                  />
-                  {updateStatusM.isError && (
-                    <div className="text-xs text-red-600">
-                      {(updateStatusM.error as any)?.message ?? "상태 변경에 실패했습니다."}
-                    </div>
-                  )}
-                  <button
-                    className="w-full border rounded px-3 py-2 text-sm bg-white text-black hover:bg-gray-100 disabled:opacity-60"
-                    onClick={() => updateStatusM.mutate()}
-                    disabled={updateStatusM.isPending}
-                  >
-                    {updateStatusM.isPending ? "?? ?.." : "?? ????"}
-                  </button>
-                </div>
+            <div className="border rounded bg-white">
+              <div className="px-4 py-3 border-b text-sm font-semibold">상태 변경</div>
+              <div className="p-4 space-y-3">
+                <select
+                  className="w-full border rounded px-3 py-2 text-sm"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                >
+                  {STATUS_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <textarea
+                  className="w-full border rounded px-3 py-2 text-sm min-h-[80px]"
+                  placeholder="상태 변경 메모 (선택)"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                />
+                {updateStatusM.isError && (
+                  <div className="text-xs text-red-600">
+                    {(updateStatusM.error as any)?.message ?? "상태 변경에 실패했습니다."}
+                  </div>
+                )}
+                <button
+                  className="w-full border rounded px-3 py-2 text-sm bg-white text-black hover:bg-gray-100 disabled:opacity-60"
+                  onClick={() => updateStatusM.mutate()}
+                  disabled={updateStatusM.isPending}
+                >
+                  {updateStatusM.isPending ? "변경 중.." : "상태 업데이트"}
+                </button>
               </div>
+            </div>
+          )}
 
           <div className="border rounded bg-white">
             <div className="px-4 py-2 border-b text-sm font-semibold">처리 이력</div>
@@ -668,8 +668,6 @@ export default function TicketDetailPage() {
               </table>
             )}
           </div>
-        </>
-      )}
     </div>
 
       {selectedComment && (

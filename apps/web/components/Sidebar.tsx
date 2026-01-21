@@ -151,7 +151,7 @@ export default function Sidebar() {
               className="text-3xl font-black text-black uppercase tracking-tighter"
               style={{ WebkitTextStroke: '1.5px black' }}
             >
-              IT DESK
+              I T    D E S K
             </h1>
           </div>
         </Link>

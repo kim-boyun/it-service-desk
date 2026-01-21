@@ -391,7 +391,7 @@ export default function AdminTicketDetailPage() {
       qc.invalidateQueries({ queryKey: ["admin-ticket-detail", ticketId] });
     },
     onError: (err: any) => {
-      setCommentError("?? ??? ?????.");
+      setCommentError("댓글 등록에 실패했습니다.");
     },
   });
 
@@ -437,7 +437,7 @@ export default function AdminTicketDetailPage() {
             <Badge label={priorityInfo.label} cls={priorityInfo.cls} />
           </div>
         </div>
-                <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <button
             className="border rounded px-3 py-2 text-sm bg-white transition-all hover:bg-slate-50 active:bg-slate-100 hover:shadow-sm active:translate-y-px"
             onClick={() => {
@@ -445,7 +445,7 @@ export default function AdminTicketDetailPage() {
               router.back();
             }}
           >
-            제거
+            돌아가기
           </button>
           <button
             className="border border-red-200 text-red-700 rounded px-3 py-2 text-sm hover:bg-red-50"
@@ -460,153 +460,290 @@ export default function AdminTicketDetailPage() {
         </div>
       </div>
 
-            <div className="space-y-4">
-        
+      <div className="space-y-4">
         <div className="border rounded bg-white">
-          <div className="px-4 py-3 border-b text-sm font-semibold">상태 변경</div>
-          <div className="p-4 space-y-3">
-            <select
-              className="w-full border rounded px-3 py-2 text-sm"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              {STATUS_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-            <textarea
-              className="w-full border rounded px-3 py-2 text-sm min-h-[80px]"
-              placeholder="상태 변경 메모 (선택)"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
-            {updateStatusM.isError && (
-              <div className="text-xs text-red-600">
-                {(updateStatusM.error as any)?.message ?? "상태 변경에 실패했습니다."}
-              </div>
-            )}
-            <button
-              className="w-full border rounded px-3 py-2 text-sm bg-white text-black hover:bg-gray-100 disabled:opacity-60"
-              onClick={() => updateStatusM.mutate()}
-              disabled={updateStatusM.isPending}
-            >
-              {updateStatusM.isPending ? "변경 중.." : "상태 업데이트"}
-            </button>
+          <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x">
+            <div className="divide-y">
+              <FieldRow label="요청자" value={formatUser(t.requester, t.requester_emp_no)} />
+              <FieldRow
+                label="담당자"
+                value={
+                  <select
+                    className="w-full border rounded px-2 py-1 text-sm"
+                    value={assigneeEmpNo}
+                    onChange={(e) => {
+                      const next = e.target.value || null;
+                      setAssigneeEmpNo(e.target.value);
+                      assignM.mutate(next);
+                    }}
+                  >
+                    <option value="">미배정</option>
+                    {staffOptions.map((u) => (
+                      <option key={u.emp_no} value={u.emp_no}>
+                        {formatUser(u, u.emp_no)}
+                      </option>
+                    ))}
+                  </select>
+                }
+              />
+              <FieldRow
+                label="카테고리"
+                value={
+                  <select
+                    className="w-full border rounded px-2 py-1 text-sm"
+                    value={categoryId}
+                    onChange={(e) => {
+                      const next = e.target.value ? Number(e.target.value) : null;
+                      setCategoryId(next ?? "");
+                      updateMetaM.mutate({
+                        category_id: next,
+                        work_type: workType || null,
+                      });
+                    }}
+                  >
+                    <option value="">선택 안 함</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                }
+              />
+              <FieldRow
+                label="작업 구분"
+                value={
+                  <select
+                    className="w-full border rounded px-2 py-1 text-sm"
+                    value={workType}
+                    onChange={(e) => {
+                      const next = e.target.value || null;
+                      setWorkType(e.target.value);
+                      updateMetaM.mutate({
+                        category_id: categoryId === "" ? null : Number(categoryId),
+                        work_type: next,
+                      });
+                    }}
+                  >
+                    <option value="">선택 안 함</option>
+                    {WORK_TYPE_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                }
+              />
+            </div>
+            <div className="divide-y">
+              <FieldRow label="프로젝트" value={t.project_name ?? "-"} />
+              <FieldRow label="생성일" value={formatDate(t.created_at)} />
+              <FieldRow label="최근 업데이트" value={formatDate(t.updated_at || t.created_at)} />
+            </div>
           </div>
         </div>
 
-  <div className="border rounded bg-white">
-    <div className="px-4 py-2 border-b text-sm font-semibold">처리 이력</div>
-    {data.events.length === 0 ? (
-      <div className="p-4 text-sm text-gray-500">처리 이력이 없습니다.</div>
-    ) : (
-      <table className="w-full text-sm">
-        <thead className="bg-gray-50">
-          <tr className="border-b">
-            <th className="text-center p-2 w-16">No</th>
-            <th className="text-center p-2 w-44">시각</th>
-            <th className="text-center p-2 w-28">유형</th>
-            <th className="text-center p-2">내용</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.events.map((e, idx) => {
-            const editNote = e.type === "requester_updated" ? parseEditNote(e.note) : null;
-            const summary = editNote?.summary ?? e.note ?? "-";
-            const isExpandable = Boolean(editNote?.before);
-            const isOpen = openEventId === e.id;
-            const before = editNote?.before ?? {};
-            const rowNo = data.events.length - idx;
-            return (
-              <Fragment key={e.id}>
-                <tr
-                  className={`border-b ${isExpandable ? "cursor-pointer hover:bg-gray-50" : ""}`}
-                  onClick={() => {
-                    if (!isExpandable) return;
-                    setOpenEventId(isOpen ? null : e.id);
-                  }}
-                >
-                  <td className="p-2 text-center">{rowNo}</td>
-                  <td className="p-2 text-center text-gray-600">{formatDate(e.created_at)}</td>
-                  <td className="p-2 text-center">{eventLabel(e.type)}</td>
-                  <td className="p-2 text-center text-gray-700">{summary}</td>
-                </tr>
-                {isExpandable && isOpen && (
-                  <tr className="border-b bg-gray-50/50">
-                    <td className="p-3" colSpan={4}>
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        <div className="border rounded bg-white">
-                          <div className="px-3 py-2 text-xs font-semibold border-b">수정 전 정보</div>
-                          <div className="divide-y text-xs">
-                            <div className="grid grid-cols-12 border-b">
-                              <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                제목
-                              </div>
-                              <div className="col-span-9 px-2 py-2">{before.title ?? "-"}</div>
-                            </div>
-                            <div className="grid grid-cols-12 border-b">
-                              <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                제목
-                              </div>
-                              <div className="col-span-9 px-2 py-2">
-                                {priorityMeta(before.priority ?? "medium").label}
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-12 border-b">
-                              <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                제목
-                              </div>
-                              <div className="col-span-9 px-2 py-2">
-                                {categoryLabel(before.category_id ?? null, categoryMap)}
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-12 border-b">
-                              <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                제목
-                              </div>
-                              <div className="col-span-9 px-2 py-2">{workTypeLabel(before.work_type)}</div>
-                            </div>
-                            <div className="grid grid-cols-12 border-b">
-                              <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                제목
-                              </div>
-                              <div className="col-span-9 px-2 py-2">{before.project_name ?? "-"}</div>
-                            </div>
-                            <div className="grid grid-cols-12 border-b">
-                              <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                제목
-                              </div>
-                              <div className="col-span-9 px-2 py-2">{formatDate(before.created_at)}</div>
-                            </div>
-                            <div className="grid grid-cols-12">
-                              <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                제목
-                              </div>
-                              <div className="col-span-9 px-2 py-2">{formatDate(before.updated_at)}</div>
-                            </div>
-                          </div>
-                        </div>
-        <div className="border rounded bg-white">
-                          <div className="px-3 py-2 text-xs font-semibold border-b">이전 요청 상세</div>
-                          <div className="p-3 text-sm">
-                            <TiptapViewer value={before.description ?? { type: "doc", content: [] }} />
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </Fragment>
-            );
-          })}
-        </tbody>
-      </table>
-    )}
-  </div>
-    </div>
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4">
+          <div className="space-y-4">
+            <div className="border rounded bg-white">
+              <div className="px-4 py-3 border-b text-sm font-semibold">요청 상세</div>
+              <div className="p-4 space-y-4">
+                <section className="space-y-2">
+                  <div className="text-sm font-semibold">요청 내용</div>
+                  <div className="border rounded p-3 text-sm">
+                    <TiptapViewer value={t.description} />
+                  </div>
+                </section>
 
+                <section className="space-y-2">
+                  <div className="text-sm font-semibold">첨부파일</div>
+                  {ticketAttachments.length === 0 ? (
+                    <div className="text-sm text-gray-500">첨부파일이 없습니다.</div>
+                  ) : (
+                    <div className="border rounded divide-y">
+                      {ticketAttachments.map((a) => (
+                        <div key={a.id} className="flex items-center justify-between px-3 py-2">
+                          <div className="text-sm">{a.filename}</div>
+                          <button
+                            className="text-sm border rounded px-2 py-1 bg-white transition-all hover:bg-slate-50 active:bg-slate-100 hover:shadow-sm active:translate-y-px"
+                            onClick={() => downloadAttachmentM.mutate(a.id)}
+                            disabled={downloadAttachmentM.isPending}
+                          >
+                            ????
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </div>
+            </div>
+          </div>
+
+          <aside className="border rounded bg-white h-fit">
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+              <span className="text-sm font-semibold">댓글</span>
+              <button
+                className="text-xs border rounded px-2 py-1 transition-colors hover:bg-slate-50 active:bg-slate-100"
+                onClick={() => setCommentModalOpen(true)}
+              >
+                등록
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              {data.comments.length === 0 ? (
+                <div className="text-sm text-gray-500">댓글이 없습니다.</div>
+              ) : (
+                <div className="border rounded divide-y max-h-[520px] overflow-auto">
+                  {data.comments.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className="w-full text-left px-3 py-2 transition-colors hover:bg-slate-50 active:bg-slate-100"
+                      onClick={() => setOpenCommentId(c.id)}
+                    >
+                      <div className="text-sm font-semibold text-slate-900">{c.title || "제목 없음"}</div>
+                      <div className="text-xs text-slate-600 mt-1">{formatUser(c.author, c.author_emp_no)}</div>
+                      <div className="text-xs text-slate-500 mt-1">{formatDate(c.created_at)}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      <div className="border rounded bg-white">
+        <div className="px-4 py-3 border-b text-sm font-semibold">상태 변경</div>
+        <div className="p-4 space-y-3">
+          <select
+            className="w-full border rounded px-3 py-2 text-sm"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+          >
+            {STATUS_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          <textarea
+            className="w-full border rounded px-3 py-2 text-sm min-h-[80px]"
+            placeholder="상태 변경 메모 (선택)"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+          {updateStatusM.isError && (
+            <div className="text-xs text-red-600">
+              {(updateStatusM.error as any)?.message ?? "상태 변경에 실패했습니다."}
+            </div>
+          )}
+          <button
+            className="w-full border rounded px-3 py-2 text-sm bg-white text-black hover:bg-gray-100 disabled:opacity-60"
+            onClick={() => updateStatusM.mutate()}
+            disabled={updateStatusM.isPending}
+          >
+            {updateStatusM.isPending ? "변경 중.." : "상태 업데이트"}
+          </button>
+        </div>
+      </div>
+
+      <div className="border rounded bg-white">
+        <div className="px-4 py-2 border-b text-sm font-semibold">처리 이력</div>
+        {data.events.length === 0 ? (
+          <div className="p-4 text-sm text-gray-500">처리 이력이 없습니다.</div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr className="border-b">
+                <th className="text-center p-2 w-16">No</th>
+                <th className="text-center p-2 w-44">시각</th>
+                <th className="text-center p-2 w-28">유형</th>
+                <th className="text-center p-2">내용</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.events.map((e, idx) => {
+                const editNote = e.type === "requester_updated" ? parseEditNote(e.note) : null;
+                const summary = editNote?.summary ?? e.note ?? "-";
+                const isExpandable = Boolean(editNote?.before);
+                const isOpen = openEventId === e.id;
+                const before = editNote?.before ?? {};
+                const rowNo = data.events.length - idx;
+                return (
+                  <Fragment key={e.id}>
+                    <tr
+                      className={`border-b ${isExpandable ? "cursor-pointer hover:bg-gray-50" : ""}`}
+                      onClick={() => {
+                        if (!isExpandable) return;
+                        setOpenEventId(isOpen ? null : e.id);
+                      }}
+                    >
+                      <td className="p-2 text-center">{rowNo}</td>
+                      <td className="p-2 text-center text-gray-600">{formatDate(e.created_at)}</td>
+                      <td className="p-2 text-center">{eventLabel(e.type)}</td>
+                      <td className="p-2 text-center text-gray-700">{summary}</td>
+                    </tr>
+                    {isExpandable && isOpen && (
+                      <tr className="border-b bg-gray-50/50">
+                        <td className="p-3" colSpan={4}>
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <div className="border rounded bg-white">
+                              <div className="px-3 py-2 text-xs font-semibold border-b">수정 전 정보</div>
+                              <div className="divide-y text-xs">
+                                <div className="grid grid-cols-12 border-b">
+                                  <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">제목</div>
+                                  <div className="col-span-9 px-2 py-2">{before.title ?? "-"}</div>
+                                </div>
+                                <div className="grid grid-cols-12 border-b">
+                                  <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">우선순위</div>
+                                  <div className="col-span-9 px-2 py-2">
+                                    {priorityMeta(before.priority ?? "medium").label}
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-12 border-b">
+                                  <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">카테고리</div>
+                                  <div className="col-span-9 px-2 py-2">
+                                    {categoryLabel(before.category_id ?? null, categoryMap)}
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-12 border-b">
+                                  <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">작업 구분</div>
+                                  <div className="col-span-9 px-2 py-2">{workTypeLabel(before.work_type)}</div>
+                                </div>
+                                <div className="grid grid-cols-12 border-b">
+                                  <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">프로젝트</div>
+                                  <div className="col-span-9 px-2 py-2">{before.project_name ?? "-"}</div>
+                                </div>
+                                <div className="grid grid-cols-12 border-b">
+                                  <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">생성일</div>
+                                  <div className="col-span-9 px-2 py-2">{formatDate(before.created_at)}</div>
+                                </div>
+                                <div className="grid grid-cols-12">
+                                  <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">최근 업데이트</div>
+                                  <div className="col-span-9 px-2 py-2">{formatDate(before.updated_at)}</div>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="border rounded bg-white">
+                              <div className="px-3 py-2 text-xs font-semibold border-b">이전 요청 상세</div>
+                              <div className="p-3 text-sm">
+                                <TiptapViewer value={before.description ?? { type: "doc", content: [] }} />
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
       {selectedComment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
           <div className="w-full max-w-3xl rounded-xl bg-white shadow-lg">
