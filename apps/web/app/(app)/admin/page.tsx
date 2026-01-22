@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
@@ -59,9 +59,6 @@ function KPICard({
           </span>
         </div>
       </div>
-      <div className="mt-auto h-1.5 w-full rounded-full bg-slate-100">
-        <div className="h-full rounded-full" style={{ width: "60%", backgroundColor: accent }} />
-      </div>
     </div>
   );
 }
@@ -102,41 +99,53 @@ function ChartCard({
   );
 }
 
-function BarChart({
+function RadialChart({
   data,
-  maxHeight = 200,
-  formatLabel,
+  size = 180,
+  thickness = 24,
 }: {
   data: { label: string; value: number }[];
-  maxHeight?: number;
-  formatLabel?: (label: string) => React.ReactNode;
+  size?: number;
+  thickness?: number;
 }) {
-  const max = Math.max(1, ...data.map((d) => d.value));
+  const total = data.reduce((acc, cur) => acc + cur.value, 0);
+  const palette = ["#2563eb", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#14b8a6", "#64748b", "#f97316"];
+  let acc = 0;
+  const segments = data.map((d, i) => {
+    const pct = total > 0 ? (d.value / total) * 100 : 0;
+    const start = acc;
+    acc += pct;
+    return { ...d, pct, start, end: acc, color: palette[i % palette.length] };
+  });
+  const gradient =
+    total > 0
+      ? `conic-gradient(${segments
+          .map((s) => `${s.color} ${s.start.toFixed(2)}% ${s.end.toFixed(2)}%`)
+          .join(", ")})`
+      : "conic-gradient(#e5e7eb 0% 100%)";
 
   return (
-    <div className="flex items-end justify-between gap-3 mt-20" style={{ height: `${maxHeight}px` }}>
-      {data.map((item) => {
-        const heightPct = Math.max(8, (item.value / max) * 100);
-        return (
-          <div key={item.label} className="group flex flex-1 flex-col items-center gap-2">
-            <div className="relative flex w-full items-end justify-center" style={{ height: `${maxHeight - 32}px` }}>
-              <div
-                className="absolute text-xs font-bold text-slate-700 transition-all group-hover:scale-110"
-                style={{ bottom: `calc(${heightPct}% + 10px)` }}
-              >
-                {item.value}
-              </div>
-              <div
-                className="w-full max-w-[36px] mx-auto rounded-t-xl bg-gradient-to-t from-blue-600 to-blue-400 shadow-md transition-all duration-300 group-hover:from-blue-700 group-hover:to-blue-500"
-                style={{ height: `${heightPct}%` }}
-              />
+    <div className="flex flex-wrap items-center gap-6">
+      <div className="relative" style={{ width: size, height: size }}>
+        <div className="h-full w-full rounded-full" style={{ background: gradient }} />
+        <div
+          className="absolute inset-0 m-auto rounded-full bg-white flex items-center justify-center text-sm font-semibold text-slate-800"
+          style={{ width: size - thickness * 2, height: size - thickness * 2 }}
+        >
+          {total}건
+        </div>
+      </div>
+      <div className="min-w-[180px] flex-1 space-y-2 max-h-[220px] overflow-auto">
+        {segments.map((s) => (
+          <div key={s.label} className="flex items-center justify-between gap-3 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+              <span className="text-slate-700">{s.label}</span>
             </div>
-            <div className="w-full text-center text-xs font-medium text-slate-700 leading-tight min-h-[44px] flex items-end justify-center pb-1">
-              {formatLabel ? formatLabel(item.label) : item.label}
-            </div>
+            <span className="font-semibold text-slate-900">{s.value}</span>
           </div>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 }
@@ -155,6 +164,8 @@ function AreaChart({
   const padding = 24;
   const max = Math.max(1, ...values);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const hoverRef = useRef<number | null>(null);
+  const rafRef = useRef<number | null>(null);
 
   const points = values.map((v, i) => {
     const x = padding + (i / Math.max(1, values.length - 1)) * (width - padding * 2);
@@ -172,20 +183,30 @@ function AreaChart({
         className="h-64 w-full"
         onMouseMove={(e) => {
           if (points.length === 0) return;
-          const rect = e.currentTarget.getBoundingClientRect();
+          const target = e.currentTarget;
+          const rect = target.getBoundingClientRect();
           const x = ((e.clientX - rect.left) / rect.width) * width;
-          let nearest = 0;
-          let min = Number.POSITIVE_INFINITY;
-          for (let i = 0; i < points.length; i += 1) {
-            const dist = Math.abs(points[i].x - x);
-            if (dist < min) {
-              min = dist;
-              nearest = i;
+          if (rafRef.current) cancelAnimationFrame(rafRef.current);
+          rafRef.current = requestAnimationFrame(() => {
+            let nearest = 0;
+            let min = Number.POSITIVE_INFINITY;
+            for (let i = 0; i < points.length; i += 1) {
+              const dist = Math.abs(points[i].x - x);
+              if (dist < min) {
+                min = dist;
+                nearest = i;
+              }
             }
-          }
-          setHoverIdx(nearest);
+            if (hoverRef.current !== nearest) {
+              hoverRef.current = nearest;
+              setHoverIdx(nearest);
+            }
+          });
         }}
-        onMouseLeave={() => setHoverIdx(null)}
+        onMouseLeave={() => {
+          hoverRef.current = null;
+          setHoverIdx(null);
+        }}
       >
         <defs>
           <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
@@ -242,7 +263,7 @@ function AreaChart({
 
       {hoverIdx !== null && points[hoverIdx] ? (
         <div
-          className="absolute z-10 -translate-x-1/2 -translate-y-full rounded-lg border border-slate-200 bg-white px-4 py-2 shadow-xl"
+          className="absolute z-10 -translate-x-1/2 -translate-y-full rounded-lg border border-slate-200 bg-white px-4 py-2 shadow-xl pointer-events-none"
           style={{
             left: `${(points[hoverIdx].x / width) * 100}%`,
             top: `${(points[hoverIdx].y / height) * 100}%`,
@@ -263,14 +284,15 @@ function AreaChart({
 }
 
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-function toKstDate(d: Date) {
-  return new Date(d.getTime() + KST_OFFSET_MS);
+function kstMidnightTs(date: Date) {
+  const kst = new Date(date.getTime() + KST_OFFSET_MS);
+  return Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate()) - KST_OFFSET_MS;
 }
 
-function startOfKstDay(d: Date) {
-  const kst = toKstDate(d);
-  return new Date(kst.getFullYear(), kst.getMonth(), kst.getDate());
+function kstDayDiff(a: Date, b: Date) {
+  return Math.floor((kstMidnightTs(a) - kstMidnightTs(b)) / DAY_MS);
 }
 
 function formatWeekKey(d: Date) {
@@ -308,9 +330,8 @@ export default function AdminDashboard() {
 
   const stats = useMemo(() => {
     const now = new Date();
-    const today = startOfKstDay(now);
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    const todayStartTs = kstMidnightTs(now);
+    const yesterdayStartTs = todayStartTs - DAY_MS;
 
     let todayNew = 0;
     let yesterdayNew = 0;
@@ -325,15 +346,19 @@ export default function AdminDashboard() {
     const byWorkType = { incident: 0, request: 0, change: 0, other: 0 };
 
     (data ?? []).forEach((t) => {
-      const created = t.created_at ? toKstDate(new Date(t.created_at)) : null;
-      const updated = t.updated_at ? toKstDate(new Date(t.updated_at)) : created;
+      const createdTs = t.created_at ? new Date(t.created_at).getTime() : null;
+      const updatedTs = t.updated_at ? new Date(t.updated_at).getTime() : createdTs;
       const status = (t.status || "").toLowerCase();
 
       if (status === "open" || status === "in_progress") totalPending++;
-      if (created && created >= today) todayNew++;
-      if (created && created >= yesterday && created < today) yesterdayNew++;
-      if (updated && updated >= today && status === "resolved") todayDone++;
-      if (updated && updated >= yesterday && updated < today && status === "resolved") yesterdayDone++;
+      if (createdTs !== null && createdTs >= todayStartTs) todayNew++;
+      if (createdTs !== null && createdTs >= yesterdayStartTs && createdTs < todayStartTs) yesterdayNew++;
+      if (updatedTs !== null && updatedTs >= todayStartTs && (status === "resolved" || status === "closed")) {
+        todayDone++;
+      }
+      if (updatedTs !== null && updatedTs >= yesterdayStartTs && updatedTs < todayStartTs) {
+        if (status === "resolved" || status === "closed") yesterdayDone++;
+      }
 
       if (t.category_id == null) {
         unknownCategory += 1;
@@ -351,8 +376,9 @@ export default function AdminDashboard() {
       else byWorkType.other += 1;
     });
 
-    const newTrend = yesterdayNew > 0 ? ((todayNew - yesterdayNew) / yesterdayNew) * 100 : 0;
-    const doneTrend = yesterdayDone > 0 ? ((todayDone - yesterdayDone) / yesterdayDone) * 100 : 0;
+    const newTrend = yesterdayNew === 0 ? (todayNew === 0 ? 0 : 100) : ((todayNew - yesterdayNew) / yesterdayNew) * 100;
+    const doneTrend =
+      yesterdayDone === 0 ? (todayDone === 0 ? 0 : 100) : ((todayDone - yesterdayDone) / yesterdayDone) * 100;
 
     return {
       todayNew,
@@ -396,45 +422,24 @@ export default function AdminDashboard() {
     { label: "기타", value: stats.byWorkType.other },
   ];
 
-  const formatCategoryLabel = (label: string) => {
-    if (label === "VDI(Gabia DaaS)") {
-      return (
-        <>
-          VDI
-          <br />
-          (Gabia DaaS)
-        </>
-      );
-    }
-    if (label === "MIS(일반행정)") {
-      return (
-        <>
-          MIS
-          <br />
-          (일반행정)
-        </>
-      );
-    }
-    return label;
-  };
-
   const timeSeriesData = useMemo(() => {
     const tickets = data ?? [];
-    const now = startOfKstDay(new Date());
+    const now = new Date(kstMidnightTs(new Date()));
     const periods = range === "monthly" ? 12 : range === "weekly" ? 12 : 30;
     const labels: string[] = [];
     const values: number[] = [];
 
     if (range === "monthly") {
       for (let i = periods - 1; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
         labels.push(`${d.getFullYear()}년 ${d.getMonth() + 1}월`);
         values.push(0);
       }
       tickets.forEach((t) => {
         if (!t.created_at) return;
-        const d = toKstDate(new Date(t.created_at));
-        const idx = (d.getFullYear() - now.getFullYear()) * 12 + (d.getMonth() - now.getMonth()) + (periods - 1);
+        const d = new Date(new Date(t.created_at).getTime() + KST_OFFSET_MS);
+        const idx =
+          (d.getUTCFullYear() - now.getUTCFullYear()) * 12 + (d.getUTCMonth() - now.getUTCMonth()) + (periods - 1);
         if (idx >= 0 && idx < periods) values[idx]++;
       });
     } else if (range === "weekly") {
@@ -446,7 +451,7 @@ export default function AdminDashboard() {
       }
       tickets.forEach((t) => {
         if (!t.created_at) return;
-        const key = formatWeekKey(toKstDate(new Date(t.created_at)));
+        const key = formatWeekKey(new Date(new Date(t.created_at).getTime() + KST_OFFSET_MS));
         const idx = labels.findIndex((_, i) => {
           const d = new Date(now);
           d.setDate(d.getDate() - (periods - 1 - i) * 7);
@@ -463,8 +468,8 @@ export default function AdminDashboard() {
       }
       tickets.forEach((t) => {
         if (!t.created_at) return;
-        const created = toKstDate(new Date(t.created_at));
-        const diff = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+        const created = new Date(new Date(t.created_at).getTime() + KST_OFFSET_MS);
+        const diff = kstDayDiff(now, created);
         if (diff >= 0 && diff < periods) values[periods - 1 - diff]++;
       });
     }
@@ -547,17 +552,17 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <ChartCard title="작업 유형" subtitle="요청 유형별 분류" icon="🧰" className="min-h-[320px]">
-          <BarChart data={workTypeChartData} maxHeight={150} />
+          <RadialChart data={workTypeChartData} />
         </ChartCard>
 
         <ChartCard title="상태별 분포" subtitle="현재 요청 진행 상태" icon="🧾" className="min-h-[320px]">
-          <BarChart data={statusChartData} maxHeight={150} />
+          <RadialChart data={statusChartData} />
         </ChartCard>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
         <ChartCard title="카테고리별 분포" subtitle="서비스 유형별 요청 현황" icon="📊" className="lg:col-span-3 min-h-[320px]">
-          <BarChart data={categoryChartData} formatLabel={formatCategoryLabel} maxHeight={150} />
+          <RadialChart data={categoryChartData} />
         </ChartCard>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex h-full flex-col lg:col-span-1">

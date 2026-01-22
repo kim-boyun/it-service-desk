@@ -1,5 +1,20 @@
 import { getToken } from "./auth";
 
+function handleRedirectForStatus(status: number) {
+  if (typeof window === "undefined") return;
+  if (![401, 403, 404].includes(status)) return;
+  const token = getToken();
+  if (!token) {
+    const redirect = encodeURIComponent(window.location.pathname);
+    window.location.href = `/login?redirect=${redirect}`;
+    return;
+  }
+  if (window.location.pathname !== "/home") {
+    window.location.href = "/home";
+  }
+}
+
+
 const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 if (!baseUrl) {
@@ -25,6 +40,7 @@ export async function api<T>(
   });
 
   if (!res.ok) {
+    handleRedirectForStatus(res.status);
     // 응답 바디가 json일 수도 있고 아닐 수도 있어 안전하게 처리
     const text = await res.text().catch(() => "");
     throw new Error(`API ${res.status} ${res.statusText}: ${text}`);
@@ -51,6 +67,7 @@ export async function apiForm<T>(
   });
 
   if (!res.ok) {
+    handleRedirectForStatus(res.status);
     const text = await res.text().catch(() => "");
     throw new Error(`API ${res.status} ${res.statusText}: ${text}`);
   }
