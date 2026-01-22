@@ -68,7 +68,7 @@ def _render_plain(
     link_url: str,
 ) -> str:
     lines: list[str] = []
-    lines.append(f"KDIS DESK | {alert_type}")
+    lines.append(f"IT DESK | {alert_type}")
     lines.append("")
     lines.append(summary)
     lines.append("")
@@ -116,7 +116,7 @@ def _render_html(
           <table role=\"presentation\" width=\"680\" cellspacing=\"0\" cellpadding=\"0\" style=\"width:680px;margin:0;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e5e7eb;\">
             <tr>
               <td style=\"padding:20px 24px;border-bottom:1px solid #e5e7eb;\">
-                <div style=\"font-size:12px;color:#6b7280;font-weight:600;letter-spacing:0.04em;\">KDIS DESK | {_esc(alert_type)}</div>
+                <div style=\"font-size:12px;color:#6b7280;font-weight:600;letter-spacing:0.04em;\">IT DESK | {_esc(alert_type)}</div>
                 <div style=\"margin-top:6px;font-size:20px;font-weight:700;color:#111827;\">{_esc(summary)}</div>
               </td>
             </tr>

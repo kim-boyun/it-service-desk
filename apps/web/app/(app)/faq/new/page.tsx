@@ -84,6 +84,7 @@ export default function NewFaqPage() {
       setErr("질문과 답변을 입력하세요.");
       return;
     }
+    if (!confirm("등록하시겠습니까?")) return;
 
     setSaving(true);
     try {

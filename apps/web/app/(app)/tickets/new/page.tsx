@@ -211,6 +211,8 @@ export default function NewTicketPage() {
       return;
     }
 
+    if (!confirm("등록하시겠습니까?")) return;
+
     createTicket.mutate({
       form: {
         title,
@@ -230,6 +232,7 @@ export default function NewTicketPage() {
       setError("작성 내용이 없습니다.");
       return;
     }
+    if (!confirm("임시저장하시겠습니까?")) return;
     saveDraft.mutate();
   }
 

@@ -51,7 +51,7 @@ def _validate_email(addr: str) -> str | None:
 def _build_message(payload: MailPayload) -> EmailMessage:
     msg = EmailMessage()
     msg["Subject"] = payload.subject
-    msg["From"] = f'KDIS-DESK <{settings.smtp_from}>'
+    msg["From"] = f'KDIS-IT-DESK <{settings.smtp_from}>'
     msg["To"] = payload.recipient_email
     msg.set_content(payload.body_text)
     msg.add_alternative(payload.body_html, subtype="html")

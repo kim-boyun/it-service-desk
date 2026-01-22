@@ -94,6 +94,7 @@ export default function NoticeDetailPage() {
 
   const handleDelete = async () => {
     if (!notice) return;
+    if (!confirm("삭제하시겠습니까?")) return;
     setDeleting(true);
     try {
       await api(`/notices/${notice.id}`, { method: "DELETE" });
@@ -146,6 +147,7 @@ export default function NoticeDetailPage() {
       setError("제목과 내용을 입력하세요.");
       return;
     }
+    if (!confirm("변경을 저장하시겠습니까?")) return;
     setSaving(true);
     try {
       await api<Notice>(`/notices/${notice.id}`,

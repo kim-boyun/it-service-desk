@@ -22,10 +22,10 @@ function resolvePageTitle(pathname: string) {
   if (pathname.startsWith("/admin/users")) return "사용자 관리";
   if (pathname.startsWith("/admin/tickets/all")) return "모든 요청 관리";
   if (pathname.startsWith("/admin/tickets")) return "요청 관리";
-  if (pathname.startsWith("/admin/manager")) return "고객담당자 관리";
+  if (pathname.startsWith("/admin/manager")) return "카테고리 관리";
   if (pathname.startsWith("/notices")) return "공지사항";
   if (pathname.startsWith("/faq")) return "FAQ";
-  return "KDIS DESK";
+  return "IT DESK";
 }
 
 function AppShell({ children }: { children: React.ReactNode }) {
@@ -39,7 +39,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const pageTitle = resolvePageTitle(pathname);
-    document.title = pageTitle === "KDIS DESK" ? "KDIS DESK" : `KDIS DESK - ${pageTitle}`;
+    document.title = pageTitle === "IT DESK" ? "IT DESK" : `IT DESK - ${pageTitle}`;
   }, [pathname]);
 
   return (

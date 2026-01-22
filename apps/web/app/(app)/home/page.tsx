@@ -135,9 +135,6 @@ function StatCard({
       <div className="mt-2 text-3xl font-bold" style={{ color: accentColor }}>
         {loading ? "..." : value}
       </div>
-      <div className="mt-3 h-1.5 w-full rounded-full bg-white/60">
-        <div className="h-full rounded-full" style={{ width: "60%", backgroundColor: accentColor }} />
-      </div>
     </div>
   );
 }

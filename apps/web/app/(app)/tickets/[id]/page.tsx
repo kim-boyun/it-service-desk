@@ -85,7 +85,7 @@ const UNSAVED_MESSAGE =
 const MAX_COMMENT_FILE_BYTES = 25 * 1024 * 1024;
 
 const STATUS_OPTIONS = [
-  { value: "open", label: "접수" },
+  { value: "open", label: "대기" },
   { value: "in_progress", label: "진행" },
   { value: "resolved", label: "완료" },
   { value: "closed", label: "사업 검토" },
@@ -94,7 +94,7 @@ const STATUS_OPTIONS = [
 function statusMeta(status: string) {
   const s = status.toLowerCase();
   if (["open", "new", "pending"].includes(s)) {
-    return { label: "접수", cls: "bg-blue-50 text-blue-700 border-blue-200" };
+    return { label: "대기", cls: "bg-blue-50 text-blue-700 border-blue-200" };
   }
   if (["in_progress", "processing", "assigned"].includes(s)) {
     return { label: "진행", cls: "bg-amber-50 text-amber-700 border-amber-200" };

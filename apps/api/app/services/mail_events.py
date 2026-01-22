@@ -92,7 +92,7 @@ def _work_type_value(ticket: Ticket, label_override: str | None = None) -> str:
 
 
 def _build_subject(summary: str) -> str:
-    return f"[KDIS-DESK] {summary}"
+    return f"[IT-DESK] {summary}"
 
 
 def notify_requester_ticket_created(

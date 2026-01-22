@@ -66,6 +66,7 @@ export default function FaqPage() {
   const toggle = (id: number) => setOpenId((prev) => (prev === id ? null : id));
 
   const handleDelete = async (id: number) => {
+    if (!confirm("삭제하시겠습니까?")) return;
     try {
       await api(`/faqs/${id}`, { method: "DELETE" });
       setFaqs((prev) => prev.filter((f) => f.id !== id));

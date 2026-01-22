@@ -276,7 +276,10 @@ export default function DraftTicketEditPage() {
           <button
             type="button"
             className="border rounded px-4 py-2 text-sm bg-white text-red-600 hover:bg-red-50 disabled:opacity-60"
-            onClick={() => deleteDraft.mutate()}
+            onClick={() => {
+              if (!confirm("삭제하시겠습니까?")) return;
+              deleteDraft.mutate();
+            }}
             disabled={deleteDraft.isPending}
           >
             삭제

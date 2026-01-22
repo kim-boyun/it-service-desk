@@ -75,7 +75,7 @@ function LoginForm() {
         <div className="flex justify-center pb-6">
           <Image
             src="/kdi-school-logo.png"
-            alt="KDIS DESK"
+            alt="IT DESK"
             width={999}
             height={251}
             priority

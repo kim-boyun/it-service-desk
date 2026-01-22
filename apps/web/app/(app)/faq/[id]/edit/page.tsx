@@ -110,6 +110,7 @@ export default function EditFaqPage() {
       setErr("질문과 답변을 입력하세요.");
       return;
     }
+    if (!confirm("변경을 저장하시겠습니까?")) return;
     setSaving(true);
     try {
       const resolvedCategoryId = await resolveCategoryId();

@@ -111,7 +111,7 @@ export default function Sidebar() {
   const adminSubNav = [
     { href: "/admin", label: "대시보드" },
     { href: "/admin/users", label: "사용자 관리" },
-    { href: "/admin/manager", label: "카테고리 담당자 관리" },
+    { href: "/admin/manager", label: "카테고리 관리" },
     { href: "/admin/tickets", label: "요청관리" },
     { href: "/admin/tickets/all", label: "모든 요청 관리" },
   ];
