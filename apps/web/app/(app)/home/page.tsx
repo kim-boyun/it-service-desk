@@ -311,7 +311,7 @@ export default function HomePage() {
           <div className="rounded-2xl border border-slate-200 bg-white px-6 py-5 shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <div className="text-sm font-semibold text-slate-500">KDIS DESK</div>
+                <div className="text-sm font-semibold text-slate-500">IT DESK</div>
                 <div className="mt-2 text-2xl font-bold text-slate-900">
                   안녕하세요, {me.kor_name || me.emp_no || "사용자"}님
                 </div>
@@ -328,9 +328,12 @@ export default function HomePage() {
                 )}
                 <Link
                   href="/tickets/new"
-                  className="inline-flex items-center justify-center rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-slate-800"
+                  className="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-neutral-800 transition-colors"
                 >
-                  요청 작성
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                  작성
                 </Link>
               </div>
             </div>
@@ -342,28 +345,24 @@ export default function HomePage() {
               value={waitingCount}
               accentColor="#00c68a"
               bgColor="#00c68a1A"
-              loading={isLoading || isFetching}
             />
             <StatCard
               label="진행 중인 요청"
               value={doingCount}
               accentColor="#3ea6f3"
               bgColor="#3ea6f31A"
-              loading={isLoading || isFetching}
             />
             <StatCard
               label="완료된 요청"
               value={doneCount}
               accentColor="#f2536e"
               bgColor="#f2536e1A"
-              loading={isLoading || isFetching}
             />
             <StatCard
               label="사업 검토"
               value={reviewCount}
               accentColor="#fda005"
               bgColor="#fda0051A"
-              loading={isLoading || isFetching}
             />
           </div>
 
@@ -376,7 +375,7 @@ export default function HomePage() {
           />
 
           <HomeCard
-            title="나의 요청"
+            title="처리 현황"
             right={
               <button className="text-sm text-gray-600 hover:underline" onClick={() => refetch()} title="새로고침">
                 {isFetching ? "갱신 중..." : "새로고침"}
@@ -428,7 +427,7 @@ export default function HomePage() {
 
             <div className="mt-2 text-right">
               <Link href="/tickets" className="text-base text-blue-700 hover:underline">
-                모든 요청 보기
+                더보기
               </Link>
             </div>
           </HomeCard>
@@ -438,7 +437,7 @@ export default function HomePage() {
               title="공지사항"
               right={
                 <Link href="/notices" className="text-sm text-gray-600 hover:underline">
-                  전체보기
+                  더보기
                 </Link>
               }
             >
@@ -462,7 +461,7 @@ export default function HomePage() {
               title="FAQ"
               right={
                 <Link href="/faq" className="text-sm text-gray-600 hover:underline">
-                  전체보기
+                  더보기
                 </Link>
               }
             >
