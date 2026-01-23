@@ -431,12 +431,16 @@ export default function NoticeDetailPage() {
                     setEditing(false);
                   }}
                   disabled={saving}
-                >취소</button>
+                >
+                  취소
+                </button>
                 <button
                   className="px-4 py-2 text-sm rounded border bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
                   onClick={handleSave}
                   disabled={saving}
-                >저장</button>
+                >
+                  저장
+                </button>
               </>
             ) : (
               <>
@@ -446,12 +450,16 @@ export default function NoticeDetailPage() {
                     setEditing(true);
                     setNewAttachments([]);
                   }}
-                >수정</button>
+                >
+                  수정
+                </button>
                 <button
                   className="px-4 py-2 text-sm rounded border bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
                   onClick={handleDelete}
                   disabled={deleting}
-                >삭제</button>
+                >
+                  삭제
+                </button>
               </>
             )}
           </>

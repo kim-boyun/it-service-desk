@@ -510,7 +510,7 @@ export default function AdminTicketDetailPage() {
                         : "선택 안 함";
                       if (!confirm(`${label}으로 변경하시겠습니까?`)) {
                         setCategoryId(prev);
-                        e.currentTarget.value = prev;
+                        e.currentTarget.value = prev === "" ? "" : String(prev);
                         return;
                       }
                       setCategoryId(next ?? "");
