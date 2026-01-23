@@ -107,7 +107,7 @@ export default function NoticesPage() {
           </div>
         </Card>
       ) : notices.length === 0 ? (
-        <Card padding="xl">
+        <Card padding="lg">
           <div className="text-center">
             <div className="mb-3" style={{ color: "var(--text-tertiary)" }}>
               <FileText className="mx-auto h-12 w-12" strokeWidth={1.5} />
