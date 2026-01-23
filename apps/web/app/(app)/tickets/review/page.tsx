@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useTicketCategories } from "@/lib/use-ticket-categories";
-import PageHeader from "@/components/PageHeader";
 import Pagination from "@/components/Pagination";
 import ErrorDialog from "@/components/ErrorDialog";
+import { Badge, Card, CardHeader, CardBody } from "@/components/ui";
+import { Search } from "lucide-react";
 
 type Ticket = {
   id: number;
@@ -123,13 +124,6 @@ function PriorityBadge({ priority }: { priority?: string }) {
   );
 }
 
-function formatUser(user?: UserSummary | null, fallbackEmpNo?: string | null, emptyLabel = "-") {
-  if (!user) return fallbackEmpNo || emptyLabel;
-  const parts = [user.kor_name, user.title, user.department].filter(Boolean);
-  if (parts.length) return parts.join(" / ");
-  return user.emp_no || fallbackEmpNo || emptyLabel;
-}
-
 export default function ReviewTicketsPage() {
   const router = useRouter();
   const { map: categoryMap } = useTicketCategories();
@@ -193,84 +187,147 @@ export default function ReviewTicketsPage() {
   };
 
   return (
-    <div className="p-5 space-y-5">
-      <PageHeader
-        title="사업 검토"
-        meta={
-          <span>
-            총 <span className="text-emerald-700 font-semibold">{filtered.length}</span>건
-          </span>
-        }
-      />
-
+    <div className="space-y-6 animate-fadeIn">
       <ErrorDialog message={errorMessage} onClose={() => setErrorMessage(null)} />
 
-      {isLoading && <div className="text-sm text-slate-500">목록을 불러오는 중...</div>}
-
-      <div className="flex items-center justify-end flex-wrap gap-2">
-        <div className="flex items-center gap-2 flex-wrap">
-          <select
-            className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white"
-            value={projectFilter}
-            onChange={(e) => setProjectFilter(e.target.value)}
-          >
-            <option value="all">전체 프로젝트</option>
-            {projects.map((p) => (
-              <option key={p.id} value={String(p.id)}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <input
-            className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-52 focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white"
-            placeholder="제목/ID 검색"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+            목록을 불러오는 중...
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="border border-slate-200/70 rounded-2xl overflow-hidden bg-white shadow-sm">
-        <table className="w-full text-sm text-center">
-          <thead className="bg-slate-50">
-            <tr>
-              <th className="text-left p-3">제목</th>
-              <th className="text-center p-3 w-28">상태</th>
-              <th className="text-center p-3 w-28">우선순위</th>
-              <th className="text-center p-3 w-28">작업 구분</th>
-              <th className="text-center p-3 w-40 whitespace-nowrap">카테고리</th>
-              <th className="text-center p-3 w-44 whitespace-nowrap">최근 업데이트</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pageItems.map((t) => (
-              <tr key={t.id} className="border-t cursor-pointer hover:bg-slate-50" onClick={() => router.push(`/tickets/${t.id}`)}>
-                <td className="p-3 text-left">
-                  <div className="min-h-[40px] flex items-center font-medium text-slate-900">{t.title}</div>
-                </td>
-                <td className="p-3 text-center">
-                  <StatusBadge status={t.status} />
-                </td>
-                <td className="p-3 text-center">
-                  <PriorityBadge priority={t.priority} />
-                </td>
-                <td className="p-3 text-center">{workTypeLabel(t.work_type)}</td>
-                <td className="p-3 text-center whitespace-nowrap">{categoryLabel(t.category_id)}</td>
-                <td className="p-3 text-center text-slate-600 whitespace-nowrap">{formatDate(t.updated_at)}</td>
-              </tr>
-            ))}
-            {!pageItems.length && !isLoading && (
-              <tr className="border-t">
-                <td className="p-4 text-slate-500 text-center" colSpan={6}>
-                  사업 검토 요청이 없습니다.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      {!isLoading && (
+        <Card padding="none">
+          <CardHeader>
+            <div className="flex items-center justify-between flex-wrap gap-4 w-full px-6 py-4">
+              <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                모든 요청
+              </h2>
 
-      <Pagination page={page} total={filtered.length} pageSize={pageSize} onChange={setPage} />
+              <div className="flex items-center gap-2 flex-wrap">
+                <select
+                  className="border rounded-lg px-3 py-2 text-sm transition-colors"
+                  style={{
+                    backgroundColor: "var(--bg-input)",
+                    borderColor: "var(--border-default)",
+                    color: "var(--text-primary)",
+                  }}
+                  value={projectFilter}
+                  onChange={(e) => setProjectFilter(e.target.value)}
+                >
+                  <option value="all">전체 프로젝트</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={String(p.id)}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="relative">
+                  <Search
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+                    style={{ color: "var(--text-tertiary)" }}
+                  />
+                  <input
+                    className="border rounded-lg pl-10 pr-3 py-2 text-sm w-52 transition-colors"
+                    style={{
+                      backgroundColor: "var(--bg-input)",
+                      borderColor: "var(--border-default)",
+                      color: "var(--text-primary)",
+                    }}
+                    placeholder="제목/ID 검색"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardBody padding="none">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead style={{ backgroundColor: "var(--bg-subtle)" }}>
+                  <tr style={{ borderBottom: "1px solid var(--border-default)" }}>
+                    <th className="text-left px-6 py-3 font-semibold" style={{ color: "var(--text-secondary)" }}>
+                      제목
+                    </th>
+                    <th className="text-center px-6 py-3 font-semibold w-28" style={{ color: "var(--text-secondary)" }}>
+                      상태
+                    </th>
+                    <th className="text-center px-6 py-3 font-semibold w-28" style={{ color: "var(--text-secondary)" }}>
+                      우선순위
+                    </th>
+                    <th className="text-center px-6 py-3 font-semibold w-28" style={{ color: "var(--text-secondary)" }}>
+                      작업 구분
+                    </th>
+                    <th
+                      className="text-center px-6 py-3 font-semibold w-40 whitespace-nowrap"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      카테고리
+                    </th>
+                    <th
+                      className="text-center px-6 py-3 font-semibold w-44 whitespace-nowrap"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      최근 업데이트
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageItems.map((t) => (
+                    <tr
+                      key={t.id}
+                      className="border-b cursor-pointer transition-colors"
+                      style={{ borderColor: "var(--border-default)" }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                      }}
+                      onClick={() => router.push(`/tickets/${t.id}`)}
+                    >
+                      <td className="px-6 py-4">
+                        <div className="min-h-[40px] flex items-center font-medium" style={{ color: "var(--text-primary)" }}>
+                          {t.title}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <StatusBadge status={t.status} />
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <PriorityBadge priority={t.priority} />
+                      </td>
+                      <td className="px-6 py-4 text-center" style={{ color: "var(--text-secondary)" }}>
+                        {workTypeLabel(t.work_type)}
+                      </td>
+                      <td className="px-6 py-4 text-center whitespace-nowrap" style={{ color: "var(--text-secondary)" }}>
+                        {categoryLabel(t.category_id)}
+                      </td>
+                      <td className="px-6 py-4 text-center whitespace-nowrap" style={{ color: "var(--text-tertiary)" }}>
+                        {formatDate(t.updated_at)}
+                      </td>
+                    </tr>
+                  ))}
+                  {!pageItems.length && !isLoading && (
+                    <tr>
+                      <td className="px-6 py-12 text-center" colSpan={6} style={{ color: "var(--text-tertiary)" }}>
+                        사업 검토 요청이 없습니다.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="px-6 py-4 border-t" style={{ borderColor: "var(--border-default)" }}>
+              <Pagination page={page} total={filtered.length} pageSize={pageSize} onChange={setPage} />
+            </div>
+          </CardBody>
+        </Card>
+      )}
     </div>
   );
 }
