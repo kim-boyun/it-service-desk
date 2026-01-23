@@ -145,7 +145,13 @@ function matchesSearch(t: Ticket, term: string) {
   if (!term) return true;
   const lower = term.toLowerCase();
   const requester = formatUser(t.requester, t.requester_emp_no, "").toLowerCase();
-  return t.title.toLowerCase().includes(lower) || requester.includes(lower);
+  const idValue = String(t.id);
+  const normalized = lower.replace("#", "");
+  return (
+    t.title.toLowerCase().includes(lower) ||
+    requester.includes(lower) ||
+    idValue.includes(normalized)
+  );
 }
 
 export default function AdminTicketsPage() {
@@ -309,7 +315,7 @@ export default function AdminTicketsPage() {
       </select>
       <input
         className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-60 focus:outline-none focus:ring-2 focus:ring-slate-300"
-        placeholder="제목/요청자 검색"
+        placeholder="제목/요청자/ID 검색"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
@@ -357,6 +363,12 @@ export default function AdminTicketsPage() {
                   onChange={(e) => {
                     const value = e.target.value;
                     const assigneeEmpNo = value || null;
+                    const target = staffOptions.find((u) => u.emp_no === assigneeEmpNo);
+                    const label = assigneeEmpNo ? formatUser(target, assigneeEmpNo, assigneeEmpNo) : "미배정";
+                    if (!confirm(`${label}으로 변경하시겠습니까?`)) {
+                      e.currentTarget.value = t.assignee_emp_no ?? "";
+                      return;
+                    }
                     assignM.mutate({ ticketId: t.id, assigneeEmpNo });
                   }}
                 >

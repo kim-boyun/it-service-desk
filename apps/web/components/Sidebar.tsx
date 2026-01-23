@@ -146,7 +146,7 @@ export default function Sidebar() {
     <aside className="relative lg:fixed lg:inset-y-0 lg:left-0 w-full lg:w-72 bg-white text-neutral-900 lg:border-r border-neutral-200 z-20">
       <div className="p-3 space-y-10 flex flex-col h-full">
         <Link href="/home" className="pt-1 block no-underline">
-          <div className="flex items-center w-full px-4">
+          <div className="flex items-center justify-center w-full px-4">
             <h1 
               className="flex items-center gap-x-3 text-3xl font-black text-black uppercase tracking-tighter"
               style={{ WebkitTextStroke: '1.5px black' }}

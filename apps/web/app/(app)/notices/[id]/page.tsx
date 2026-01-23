@@ -411,12 +411,14 @@ export default function NoticeDetailPage() {
       )}
 
       <div className="flex items-center justify-end gap-2">
-        <button
-          className="px-4 py-2 text-sm rounded border bg-white text-gray-800 hover:bg-gray-100"
-          onClick={() => router.push("/notices")}
-        >
-          목록
-        </button>
+        {!editing && (
+          <button
+            className="px-4 py-2 text-sm rounded border bg-white text-gray-800 hover:bg-gray-100"
+            onClick={() => router.push("/notices")}
+          >
+            목록
+          </button>
+        )}
         {canEdit && (
           <>
             {editing ? (

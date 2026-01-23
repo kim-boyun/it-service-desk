@@ -346,6 +346,7 @@ export default function TicketDetailPage() {
       setCommentFiles([]);
       setCommentNotifyEmail(false);
       setCommentError(null);
+      setCommentModalOpen(false);
       qc.invalidateQueries({ queryKey: ["ticketDetail", ticketId, scopeParam] });
     },
     onError: (err: any) => {

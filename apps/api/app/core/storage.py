@@ -79,12 +79,15 @@ def get_public_url(*, key: str) -> str:
         return f"{cfg.public_base_url.rstrip('/')}/{key}"
     return f"{cfg.endpoint_url.rstrip('/')}/{cfg.bucket}/{key}"
 
-def get_presigned_get_url(*, key: str, expires_in: int = 600) -> str:
+def get_presigned_get_url(*, key: str, expires_in: int = 600, filename: str | None = None) -> str:
     cfg = get_storage_config()
     s3 = get_s3_client()
+    params = {"Bucket": cfg.bucket, "Key": key}
+    if filename:
+        params["ResponseContentDisposition"] = f'attachment; filename="{filename}"'
     return s3.generate_presigned_url(
         ClientMethod="get_object",
-        Params={"Bucket": cfg.bucket, "Key": key},
+        Params=params,
         ExpiresIn=expires_in,
     )
 
