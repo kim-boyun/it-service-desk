@@ -169,8 +169,8 @@ function Badge({ label, cls }: { label: string; cls: string }) {
 
 function FieldRow({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-12 border-b border-slate-200">
-      <div className="col-span-4 bg-gray-50 text-sm text-gray-600 px-3 py-2 border-r">{label}</div>
+    <div className="grid grid-cols-12">
+      <div className="col-span-4 bg-gray-50 text-sm text-gray-600 px-3 py-2">{label}</div>
       <div className="col-span-8 text-sm px-3 py-2">{value ?? "-"}</div>
     </div>
   );
@@ -462,9 +462,9 @@ export default function AdminTicketDetailPage() {
       </div>
 
       <div className="space-y-4">
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x">
-            <div className="divide-y">
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-2 divide-y divide-slate-200 md:divide-y-0 md:divide-x">
+            <div className="divide-y divide-slate-200">
               <FieldRow label="요청자" value={formatUser(t.requester, t.requester_emp_no)} />
               <FieldRow
                 label="담당자"
@@ -536,7 +536,7 @@ export default function AdminTicketDetailPage() {
                 }
               />
             </div>
-            <div className="divide-y">
+            <div className="divide-y divide-slate-200">
               <FieldRow label="프로젝트" value={t.project_name ?? "-"} />
               <FieldRow label="생성일" value={formatDate(t.created_at)} />
               <FieldRow label="최근 업데이트" value={formatDate(t.updated_at || t.created_at)} />
