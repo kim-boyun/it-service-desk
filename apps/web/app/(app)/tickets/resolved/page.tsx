@@ -203,7 +203,7 @@ export default function ResolvedTicketsPage() {
           <CardHeader>
             <div className="flex items-center justify-between flex-wrap gap-4 w-full px-6 py-4">
               <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-                모든 요청
+                처리 완료
               </h2>
 
               <div className="flex items-center gap-2 flex-wrap">
