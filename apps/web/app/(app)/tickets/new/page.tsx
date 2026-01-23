@@ -8,8 +8,19 @@ import { api, apiForm } from "@/lib/api";
 import { useTicketCategories } from "@/lib/use-ticket-categories";
 import { EMPTY_DOC, isEmptyDoc, TiptapDoc } from "@/lib/tiptap";
 import ProjectPickerModal from "@/components/ProjectPickerModal";
-import PageHeader from "@/components/PageHeader";
 import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes";
+import {
+  ArrowRight,
+  ArrowLeft,
+  CheckCircle2,
+  AlertTriangle,
+  HelpCircle,
+  Settings,
+  FileText,
+  Paperclip,
+  X,
+  ChevronRight,
+} from "lucide-react";
 
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), { ssr: false });
 
@@ -43,20 +54,55 @@ type Project = {
   end_date?: string | null;
 };
 
+type StepId =
+  | "welcome"
+  | "work_type"
+  | "title"
+  | "category"
+  | "priority"
+  | "project"
+  | "description"
+  | "attachments"
+  | "review";
+
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 
 const priorities = [
-  { value: "low", label: "낮음" },
-  { value: "medium", label: "보통" },
-  { value: "high", label: "높음" },
-  { value: "urgent", label: "긴급" },
+  { value: "low", label: "낮음", description: "시급하지 않은 일반적인 요청", color: "info" },
+  { value: "medium", label: "보통", description: "일반적인 처리 우선순위", color: "primary" },
+  { value: "high", label: "높음", description: "빠른 처리가 필요한 요청", color: "warning" },
+  { value: "urgent", label: "긴급", description: "즉시 처리가 필요한 긴급 요청", color: "danger" },
 ];
 
 const workTypeOptions = [
-  { value: "incident", label: "장애", description: "시스템이 정상적으로 동작하지 않는 경우" },
-  { value: "request", label: "요청", description: "새로운 작업이나 지원을 요청하는 경우" },
-  { value: "change", label: "변경", description: "기존 설정이나 기능을 수정하는 경우" },
-  { value: "other", label: "기타", description: "위 항목에 명확히 해당하지 않는 경우" },
+  {
+    value: "incident",
+    label: "장애",
+    description: "시스템이 정상적으로 동작하지 않는 경우",
+    icon: AlertTriangle,
+    color: "danger",
+  },
+  {
+    value: "request",
+    label: "요청",
+    description: "새로운 작업이나 지원을 요청하는 경우",
+    icon: HelpCircle,
+    color: "info",
+  },
+  {
+    value: "change",
+    label: "변경",
+    description: "기존 설정이나 기능을 수정하는 경우",
+    icon: Settings,
+    color: "warning",
+  },
+  {
+    value: "other",
+    label: "기타",
+    description: "위 항목에 명확히 해당하지 않는 경우",
+    icon: FileText,
+    color: "default",
+  },
 ];
 
 function formatBytes(bytes: number) {
@@ -71,25 +117,41 @@ function formatBytes(bytes: number) {
 export default function NewTicketPage() {
   const router = useRouter();
   const { categories, loading: categoryLoading, error: categoryError } = useTicketCategories();
-  const [categoryTouched, setCategoryTouched] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [currentStep, setCurrentStep] = useState<StepId>("welcome");
   const [projectModalOpen, setProjectModalOpen] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
   const [isDirty, setIsDirty] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [dragActive, setDragActive] = useState(false);
 
   const [form, setForm] = useState<TicketFormState>({
     title: "",
     description: EMPTY_DOC,
-    priority: "low",
+    priority: "medium",
     category_id: "",
-    work_type: "",
+    work_type: null,
     project_id: null,
   });
   const [error, setError] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<File[]>([]);
 
   useUnsavedChangesWarning(isDirty);
+
+  const steps: StepId[] = [
+    "welcome",
+    "work_type",
+    "title",
+    "category",
+    "priority",
+    "project",
+    "description",
+    "attachments",
+    "review",
+  ];
+
+  const currentStepIndex = steps.indexOf(currentStep);
+  const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
   const createTicket = useMutation({
     mutationFn: async ({ form: payload, files }: { form: TicketCreateIn; files: File[] }) => {
@@ -131,31 +193,6 @@ export default function NewTicketPage() {
     },
   });
 
-  const saveDraft = useMutation({
-    mutationFn: async () => {
-      const payload = {
-        title: form.title.trim() || null,
-        description: isEmptyDoc(form.description) ? null : form.description,
-        priority: form.priority || null,
-        category_id: categoryTouched && form.category_id ? Number(form.category_id) : null,
-        work_type: form.work_type?.trim() || null,
-        project_id: form.project_id ?? null,
-      };
-
-      return await api<{ id: number }>("/draft-tickets", {
-        method: "POST",
-        body: payload,
-      });
-    },
-    onSuccess: () => {
-      setIsDirty(false);
-      router.push("/tickets/drafts");
-    },
-    onError: (err: any) => {
-      setError(err?.message ?? "임시저장에 실패했습니다.");
-    },
-  });
-
   function handleChange<K extends keyof TicketFormState>(key: K, value: TicketFormState[K]) {
     setIsDirty(true);
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -184,58 +221,6 @@ export default function NewTicketPage() {
     setAttachments((prev) => prev.filter((_, i) => i !== idx));
   }
 
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-
-    if (!isDirty) {
-      setError("작성 내용이 없습니다.");
-      return;
-    }
-
-    const title = form.title.trim();
-    if (!title) {
-      setError("제목을 입력하세요.");
-      return;
-    }
-    if (isEmptyDoc(form.description)) {
-      setError("내용을 입력하세요.");
-      return;
-    }
-    if (!form.category_id) {
-      setError("카테고리를 선택하세요.");
-      return;
-    }
-    if (!form.work_type) {
-      setError("작업 구분을 선택하세요.");
-      return;
-    }
-
-    if (!confirm("등록하시겠습니까?")) return;
-
-    createTicket.mutate({
-      form: {
-        title,
-        description: form.description,
-        priority: form.priority,
-        category_id: Number(form.category_id),
-        work_type: form.work_type?.trim() || null,
-        project_id: form.project_id ?? null,
-      },
-      files: attachments,
-    });
-  }
-
-  function onSaveDraft() {
-    setError(null);
-    if (!isDirty) {
-      setError("작성 내용이 없습니다.");
-      return;
-    }
-    if (!confirm("임시저장하시겠습니까?")) return;
-    saveDraft.mutate();
-  }
-
   function handleProjectSelect(selected: Project) {
     setProject(selected);
     setIsDirty(true);
@@ -249,275 +234,773 @@ export default function NewTicketPage() {
     setForm((prev) => ({ ...prev, project_id: null }));
   }
 
+  function nextStep() {
+    setError(null);
+    const nextIndex = currentStepIndex + 1;
+    if (nextIndex < steps.length) {
+      setCurrentStep(steps[nextIndex]);
+    }
+  }
+
+  function prevStep() {
+    setError(null);
+    const prevIndex = currentStepIndex - 1;
+    if (prevIndex >= 0) {
+      setCurrentStep(steps[prevIndex]);
+    }
+  }
+
+  function canProceed(): boolean {
+    switch (currentStep) {
+      case "welcome":
+        return true;
+      case "work_type":
+        return !!form.work_type;
+      case "title":
+        return form.title.trim().length >= 3;
+      case "category":
+        return !!form.category_id;
+      case "priority":
+        return !!form.priority;
+      case "project":
+        return true; // Optional
+      case "description":
+        return !isEmptyDoc(form.description);
+      case "attachments":
+        return true; // Optional
+      case "review":
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  function handleSubmit() {
+    setError(null);
+
+    if (!form.work_type) {
+      setError("작업 구분을 선택하세요.");
+      return;
+    }
+    if (!form.title.trim()) {
+      setError("제목을 입력하세요.");
+      return;
+    }
+    if (!form.category_id) {
+      setError("카테고리를 선택하세요.");
+      return;
+    }
+    if (isEmptyDoc(form.description)) {
+      setError("내용을 입력하세요.");
+      return;
+    }
+
+    createTicket.mutate({
+      form: {
+        title: form.title.trim(),
+        description: form.description,
+        priority: form.priority,
+        category_id: Number(form.category_id),
+        work_type: form.work_type?.trim() || null,
+        project_id: form.project_id ?? null,
+      },
+      files: attachments,
+    });
+  }
+
+  // Auto-focus title input when step changes to title
+  useEffect(() => {
+    if (currentStep === "title" && titleInputRef.current) {
+      setTimeout(() => titleInputRef.current?.focus(), 100);
+    }
+  }, [currentStep]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter" && e.metaKey && currentStep === "review") {
+        handleSubmit();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [currentStep, form, attachments]);
+
   return (
-    <div className="p-5 space-y-5">
-      <PageHeader title="요청 생성" />
+    <div
+      className="min-h-screen flex flex-col"
+      style={{
+        backgroundColor: "var(--bg-page)",
+      }}
+    >
+      {/* Progress Bar */}
+      <div
+        className="fixed top-0 left-0 right-0 h-1 z-50 transition-all duration-300"
+        style={{
+          background: "linear-gradient(90deg, var(--color-primary-500) 0%, var(--color-accent-500) 100%)",
+          width: `${progress}%`,
+        }}
+      />
 
-      <form onSubmit={onSubmit} className="space-y-4">
-        <div className="flex items-center gap-2">
-          <button
-            type="submit"
-            className="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-60"
-            disabled={createTicket.isPending}
-          >
-            {createTicket.isPending ? "등록 중..." : "등록"}
-          </button>
-          <button
-            type="button"
-            className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-            onClick={onSaveDraft}
-            disabled={saveDraft.isPending}
-          >
-            {saveDraft.isPending ? "임시저장 중..." : "임시저장"}
-          </button>
-        </div>
-
-        <div className="border border-slate-200/70 rounded-2xl overflow-hidden bg-white shadow-sm">
-          <div className="grid grid-cols-12 border-b border-slate-200/70">
-            <div className="col-span-3 bg-slate-50 text-sm font-medium text-slate-700 px-3 py-2 border-r border-slate-200/70">
-              제목
-            </div>
-            <div className="col-span-9 px-3 py-2">
-              <div className="flex items-center gap-3">
-                <input
-                  className="flex-1 border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm"
-                  value={form.title}
-                  onChange={(e) => handleChange("title", e.target.value)}
-                  placeholder="요청 제목을 입력하세요."
-                  required
-                  maxLength={200}
-                  minLength={3}
-                />
-                <span className="text-[11px] text-slate-500 whitespace-nowrap">{form.title.length}/200</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-12 border-b border-slate-200/70">
-            <div className="col-span-3 bg-slate-50 text-sm font-medium text-slate-700 px-3 py-2 border-r border-slate-200/70">
-              프로젝트
-            </div>
-            <div className="col-span-9 px-3 py-2">
-              <div className="flex items-center gap-2 flex-wrap">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+        <div className="w-full max-w-3xl">
+          {/* Step Content */}
+          <div className="min-h-[400px] animate-fadeIn">
+            {currentStep === "welcome" && (
+              <div className="space-y-8 text-center">
+                <div className="space-y-4">
+                  <div
+                    className="inline-flex items-center justify-center w-20 h-20 rounded-2xl mb-4"
+                    style={{
+                      background: "linear-gradient(135deg, var(--color-primary-500) 0%, var(--color-accent-500) 100%)",
+                    }}
+                  >
+                    <FileText className="w-10 h-10 text-white" />
+                  </div>
+                  <h1 className="text-5xl font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>
+                    새 요청 생성
+                  </h1>
+                  <p className="text-xl" style={{ color: "var(--text-secondary)" }}>
+                    IT 서비스 요청을 간편하게 작성하세요
+                  </p>
+                </div>
                 <button
-                  type="button"
-                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white text-slate-700 hover:bg-slate-50"
-                  onClick={() => setProjectModalOpen(true)}
+                  onClick={nextStep}
+                  className="inline-flex items-center gap-2 px-8 py-4 rounded-xl text-lg font-semibold text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+                  style={{
+                    background: "linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%)",
+                  }}
                 >
-                  {project ? "프로젝트 변경" : "프로젝트 선택"}
+                  시작하기
+                  <ArrowRight className="w-5 h-5" />
                 </button>
-                {project && (
-                  <button type="button" className="text-sm text-slate-600 hover:underline" onClick={clearProject}>
-                    해제
-                  </button>
-                )}
-                {project && (
-                  <div className="text-sm text-slate-700">
-                    {project.name}
-                    {project.start_date || project.end_date ? (
-                      <span className="ml-2 text-sm text-slate-500">
-                        {project.start_date ?? "-"} ~ {project.end_date ?? "-"}
-                      </span>
-                    ) : null}
+              </div>
+            )}
+
+            {currentStep === "work_type" && (
+              <div className="space-y-8">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
+                    1단계 / 8단계
+                  </p>
+                  <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
+                    어떤 종류의 요청인가요?
+                  </h2>
+                  <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
+                    요청 유형을 선택해주세요
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {workTypeOptions.map((option) => {
+                    const Icon = option.icon;
+                    const isSelected = form.work_type === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        onClick={() => {
+                          handleChange("work_type", option.value);
+                          setTimeout(nextStep, 300);
+                        }}
+                        className="group relative p-6 rounded-2xl border-2 transition-all text-left"
+                        style={{
+                          borderColor: isSelected ? "var(--color-primary-500)" : "var(--border-default)",
+                          backgroundColor: isSelected ? "var(--color-primary-50)" : "var(--bg-card)",
+                          transform: isSelected ? "scale(1.02)" : "scale(1)",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) {
+                            e.currentTarget.style.borderColor = "var(--color-primary-300)";
+                            e.currentTarget.style.transform = "scale(1.02)";
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) {
+                            e.currentTarget.style.borderColor = "var(--border-default)";
+                            e.currentTarget.style.transform = "scale(1)";
+                          }
+                        }}
+                      >
+                        {isSelected && (
+                          <div
+                            className="absolute top-4 right-4"
+                            style={{ color: "var(--color-primary-600)" }}
+                          >
+                            <CheckCircle2 className="w-6 h-6" />
+                          </div>
+                        )}
+                        <div className="flex items-start gap-4">
+                          <div
+                            className="flex items-center justify-center w-12 h-12 rounded-xl flex-shrink-0"
+                            style={{
+                              backgroundColor: isSelected
+                                ? "var(--color-primary-100)"
+                                : "var(--bg-subtle)",
+                              color: isSelected ? "var(--color-primary-700)" : "var(--text-secondary)",
+                            }}
+                          >
+                            <Icon className="w-6 h-6" />
+                          </div>
+                          <div className="flex-1">
+                            <h3
+                              className="text-xl font-semibold mb-1"
+                              style={{ color: "var(--text-primary)" }}
+                            >
+                              {option.label}
+                            </h3>
+                            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                              {option.description}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {currentStep === "title" && (
+              <div className="space-y-8">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
+                    2단계 / 8단계
+                  </p>
+                  <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
+                    요청 제목을 입력하세요
+                  </h2>
+                  <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
+                    간단하고 명확하게 작성해주세요
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <input
+                    ref={titleInputRef}
+                    type="text"
+                    className="w-full text-2xl font-medium px-0 py-4 border-0 border-b-2 focus:outline-none focus:ring-0 transition-colors bg-transparent"
+                    style={{
+                      borderColor: form.title.trim() ? "var(--color-primary-500)" : "var(--border-default)",
+                      color: "var(--text-primary)",
+                    }}
+                    placeholder="예: 프린터 연결이 안 됩니다"
+                    value={form.title}
+                    onChange={(e) => handleChange("title", e.target.value)}
+                    maxLength={200}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && canProceed()) {
+                        nextStep();
+                      }
+                    }}
+                  />
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+                      Enter를 눌러 다음 단계로 이동
+                    </p>
+                    <span className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+                      {form.title.length}/200
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentStep === "category" && (
+              <div className="space-y-8">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
+                    3단계 / 8단계
+                  </p>
+                  <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
+                    카테고리를 선택하세요
+                  </h2>
+                  <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
+                    요청 유형에 맞는 카테고리를 선택해주세요
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  {categories.map((category) => {
+                    const isSelected = form.category_id === String(category.id);
+                    return (
+                      <button
+                        key={category.id}
+                        onClick={() => {
+                          handleChange("category_id", String(category.id));
+                          setTimeout(nextStep, 300);
+                        }}
+                        className="group p-4 rounded-xl border-2 transition-all text-left flex items-center justify-between"
+                        style={{
+                          borderColor: isSelected ? "var(--color-primary-500)" : "var(--border-default)",
+                          backgroundColor: isSelected ? "var(--color-primary-50)" : "var(--bg-card)",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) {
+                            e.currentTarget.style.borderColor = "var(--color-primary-300)";
+                            e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) {
+                            e.currentTarget.style.borderColor = "var(--border-default)";
+                            e.currentTarget.style.backgroundColor = "var(--bg-card)";
+                          }
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          {isSelected && (
+                            <CheckCircle2 className="w-5 h-5" style={{ color: "var(--color-primary-600)" }} />
+                          )}
+                          <span className="text-lg font-medium" style={{ color: "var(--text-primary)" }}>
+                            {category.name}
+                          </span>
+                        </div>
+                        <ChevronRight className="w-5 h-5" style={{ color: "var(--text-tertiary)" }} />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {currentStep === "priority" && (
+              <div className="space-y-8">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
+                    4단계 / 8단계
+                  </p>
+                  <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
+                    우선순위를 선택하세요
+                  </h2>
+                  <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
+                    요청의 긴급도를 선택해주세요
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {priorities.map((priority) => {
+                    const isSelected = form.priority === priority.value;
+                    return (
+                      <button
+                        key={priority.value}
+                        onClick={() => {
+                          handleChange("priority", priority.value);
+                          setTimeout(nextStep, 300);
+                        }}
+                        className="group p-6 rounded-2xl border-2 transition-all text-left"
+                        style={{
+                          borderColor: isSelected ? "var(--color-primary-500)" : "var(--border-default)",
+                          backgroundColor: isSelected ? "var(--color-primary-50)" : "var(--bg-card)",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) {
+                            e.currentTarget.style.borderColor = "var(--color-primary-300)";
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) {
+                            e.currentTarget.style.borderColor = "var(--border-default)";
+                          }
+                        }}
+                      >
+                        {isSelected && (
+                          <div
+                            className="absolute top-4 right-4"
+                            style={{ color: "var(--color-primary-600)" }}
+                          >
+                            <CheckCircle2 className="w-6 h-6" />
+                          </div>
+                        )}
+                        <h3 className="text-xl font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
+                          {priority.label}
+                        </h3>
+                        <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                          {priority.description}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {currentStep === "project" && (
+              <div className="space-y-8">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
+                    5단계 / 8단계 (선택사항)
+                  </p>
+                  <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
+                    프로젝트를 선택하시겠습니까?
+                  </h2>
+                  <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
+                    특정 프로젝트와 연관이 있다면 선택해주세요
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  {project ? (
+                    <div
+                      className="p-6 rounded-2xl border-2"
+                      style={{
+                        borderColor: "var(--color-primary-500)",
+                        backgroundColor: "var(--color-primary-50)",
+                      }}
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <h3 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
+                            {project.name}
+                          </h3>
+                          {(project.start_date || project.end_date) && (
+                            <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
+                              {project.start_date ?? "-"} ~ {project.end_date ?? "-"}
+                            </p>
+                          )}
+                        </div>
+                        <CheckCircle2 className="w-6 h-6" style={{ color: "var(--color-primary-600)" }} />
+                      </div>
+                      <button
+                        onClick={() => setProjectModalOpen(true)}
+                        className="text-sm font-medium"
+                        style={{ color: "var(--color-primary-600)" }}
+                      >
+                        다른 프로젝트 선택
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setProjectModalOpen(true)}
+                      className="w-full p-6 rounded-2xl border-2 border-dashed transition-all text-center"
+                      style={{
+                        borderColor: "var(--border-default)",
+                        backgroundColor: "var(--bg-card)",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "var(--color-primary-300)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "var(--border-default)";
+                      }}
+                    >
+                      <p className="text-lg font-medium" style={{ color: "var(--text-primary)" }}>
+                        + 프로젝트 선택
+                      </p>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {currentStep === "description" && (
+              <div className="space-y-8">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
+                    6단계 / 8단계
+                  </p>
+                  <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
+                    요청 내용을 상세히 작성하세요
+                  </h2>
+                  <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
+                    문제 상황이나 요청 사항을 자세히 설명해주세요
+                  </p>
+                </div>
+
+                <div>
+                  <RichTextEditor
+                    value={form.description}
+                    onChange={(doc) => handleChange("description", doc)}
+                    onError={setError}
+                    placeholder="예: 3층 사무실에 있는 HP 프린터가 네트워크에 연결되지 않습니다. 어제까지는 정상 작동했는데..."
+                  />
+                  <p className="mt-2 text-sm" style={{ color: "var(--text-tertiary)" }}>
+                    이미지는 드래그/붙여넣기로 추가할 수 있습니다.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {currentStep === "attachments" && (
+              <div className="space-y-8">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
+                    7단계 / 8단계 (선택사항)
+                  </p>
+                  <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
+                    파일을 첨부하시겠습니까?
+                  </h2>
+                  <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
+                    스크린샷이나 관련 문서를 첨부해주세요 (최대 25MB)
+                  </p>
+                </div>
+
+                <input
+                  id="attachment-input"
+                  type="file"
+                  multiple
+                  className="sr-only"
+                  ref={fileInputRef}
+                  onChange={(e) => {
+                    addFiles(e.currentTarget.files);
+                    e.currentTarget.value = "";
+                  }}
+                />
+
+                <div
+                  className="rounded-2xl border-2 border-dashed p-12 transition-all text-center cursor-pointer"
+                  style={{
+                    borderColor: dragActive ? "var(--color-primary-400)" : "var(--border-default)",
+                    backgroundColor: dragActive ? "var(--color-primary-50)" : "var(--bg-card)",
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDragActive(true);
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    setDragActive(false);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragActive(false);
+                    addFiles(e.dataTransfer.files);
+                  }}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Paperclip
+                    className="w-12 h-12 mx-auto mb-4"
+                    style={{ color: "var(--text-tertiary)" }}
+                  />
+                  <p className="text-lg font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                    파일을 드래그하거나 클릭하여 선택
+                  </p>
+                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                    파일당 최대 25MB
+                  </p>
+                </div>
+
+                {attachments.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+                      첨부된 파일 ({attachments.length})
+                    </p>
+                    {attachments.map((file, idx) => (
+                      <div
+                        key={`${file.name}-${idx}`}
+                        className="flex items-center justify-between p-4 rounded-xl border"
+                        style={{
+                          backgroundColor: "var(--bg-card)",
+                          borderColor: "var(--border-default)",
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Paperclip className="w-5 h-5" style={{ color: "var(--text-tertiary)" }} />
+                          <div>
+                            <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                              {file.name}
+                            </p>
+                            <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+                              {formatBytes(file.size)}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeFile(idx);
+                          }}
+                          className="p-2 rounded-lg transition-colors"
+                          style={{ color: "var(--text-tertiary)" }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                            e.currentTarget.style.color = "var(--color-danger-600)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = "transparent";
+                            e.currentTarget.style.color = "var(--text-tertiary)";
+                          }}
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
-                {!project && <span className="text-sm text-slate-500">미선택 가능</span>}
               </div>
-            </div>
-          </div>
+            )}
 
-          <div className="grid grid-cols-12 border-b border-slate-200/70">
-            <div className="col-span-3 bg-slate-50 text-sm font-medium text-slate-700 px-3 py-2 border-r border-slate-200/70">
-              우선순위
-            </div>
-            <div className="col-span-9 px-3 py-2">
-              <select
-                className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm"
-                value={form.priority}
-                onChange={(e) => handleChange("priority", e.target.value)}
-              >
-                {priorities.map((p) => (
-                  <option key={p.value} value={p.value}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-12 border-b border-slate-200/70">
-            <div className="col-span-3 bg-slate-50 text-sm font-medium text-slate-700 px-3 py-2 border-r border-slate-200/70">
-              카테고리
-            </div>
-            <div className="col-span-9 px-3 py-2 space-y-1.5">
-              {categories.length > 0 ? (
-                <select
-                  className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm"
-                  value={form.category_id}
-                  onChange={(e) => {
-                    setCategoryTouched(true);
-                    handleChange("category_id", e.target.value);
-                  }}
-                  required
-                >
-                  <option value="" disabled>
-                    카테고리를 선택하세요
-                  </option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={String(c.id)}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm"
-                  value={form.category_id}
-                  onChange={(e) => {
-                    setCategoryTouched(true);
-                    handleChange("category_id", e.target.value);
-                  }}
-                  placeholder="카테고리 코드(예: it_service)"
-                />
-              )}
-              {categoryError && <div className="text-xs text-red-600">{categoryError}</div>}
-              {!categoryLoading && categories.length === 0 && (
-                <div className="text-sm text-slate-500">
-                  카테고리가 비어 있습니다. 관리자에서 먼저 등록하세요.
+            {currentStep === "review" && (
+              <div className="space-y-8">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
+                    8단계 / 8단계
+                  </p>
+                  <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
+                    입력 내용을 확인하세요
+                  </h2>
+                  <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
+                    모든 정보가 정확한지 확인 후 제출해주세요
+                  </p>
                 </div>
-              )}
-            </div>
-          </div>
 
-          <div className="grid grid-cols-12 border-b border-slate-200/70">
-            <div className="col-span-3 bg-slate-50 text-sm font-medium text-slate-700 px-3 py-2 border-r border-slate-200/70">
-              작업 구분
-            </div>
-            <div className="col-span-9 px-3 py-2">
-              <div className="flex flex-wrap gap-4 text-sm">
-                {workTypeOptions.map((w) => (
-                  <label key={w.value} className="inline-flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="work_type"
-                      value={w.value}
-                      checked={form.work_type === w.value}
-                      onChange={(e) => handleChange("work_type", e.target.value)}
-                      required
-                    />
-                    <span>{w.label}</span>
-                  </label>
-                ))}
+                <div
+                  className="rounded-2xl border p-6 space-y-6"
+                  style={{
+                    backgroundColor: "var(--bg-card)",
+                    borderColor: "var(--border-default)",
+                  }}
+                >
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm font-medium mb-2" style={{ color: "var(--text-tertiary)" }}>
+                        작업 구분
+                      </p>
+                      <p className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                        {workTypeOptions.find((w) => w.value === form.work_type)?.label}
+                      </p>
+                    </div>
+
+                    <div className="h-px" style={{ backgroundColor: "var(--border-subtle)" }} />
+
+                    <div>
+                      <p className="text-sm font-medium mb-2" style={{ color: "var(--text-tertiary)" }}>
+                        제목
+                      </p>
+                      <p className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                        {form.title}
+                      </p>
+                    </div>
+
+                    <div className="h-px" style={{ backgroundColor: "var(--border-subtle)" }} />
+
+                    <div>
+                      <p className="text-sm font-medium mb-2" style={{ color: "var(--text-tertiary)" }}>
+                        카테고리
+                      </p>
+                      <p className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                        {categories.find((c) => String(c.id) === form.category_id)?.name}
+                      </p>
+                    </div>
+
+                    <div className="h-px" style={{ backgroundColor: "var(--border-subtle)" }} />
+
+                    <div>
+                      <p className="text-sm font-medium mb-2" style={{ color: "var(--text-tertiary)" }}>
+                        우선순위
+                      </p>
+                      <p className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                        {priorities.find((p) => p.value === form.priority)?.label}
+                      </p>
+                    </div>
+
+                    {project && (
+                      <>
+                        <div className="h-px" style={{ backgroundColor: "var(--border-subtle)" }} />
+                        <div>
+                          <p className="text-sm font-medium mb-2" style={{ color: "var(--text-tertiary)" }}>
+                            프로젝트
+                          </p>
+                          <p className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                            {project.name}
+                          </p>
+                        </div>
+                      </>
+                    )}
+
+                    {attachments.length > 0 && (
+                      <>
+                        <div className="h-px" style={{ backgroundColor: "var(--border-subtle)" }} />
+                        <div>
+                          <p className="text-sm font-medium mb-2" style={{ color: "var(--text-tertiary)" }}>
+                            첨부파일
+                          </p>
+                          <p className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                            {attachments.length}개 파일
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {error && (
+                  <div
+                    className="rounded-xl border px-4 py-3 text-sm"
+                    style={{
+                      backgroundColor: "var(--color-danger-50)",
+                      borderColor: "var(--color-danger-200)",
+                      color: "var(--color-danger-700)",
+                    }}
+                  >
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  onClick={handleSubmit}
+                  disabled={createTicket.isPending}
+                  className="w-full py-4 rounded-xl text-lg font-semibold text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    background: "linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%)",
+                  }}
+                >
+                  {createTicket.isPending ? "제출 중..." : "요청 제출하기"}
+                </button>
+
+                <p className="text-center text-sm" style={{ color: "var(--text-tertiary)" }}>
+                  Cmd/Ctrl + Enter로 빠르게 제출할 수 있습니다
+                </p>
               </div>
-              <ul className="mt-3 space-y-1 text-sm text-slate-600">
-                {workTypeOptions.map((w) => (
-                  <li key={`${w.value}-desc`}>
-                    <span className="font-semibold text-slate-700">{w.label}</span>: {w.description}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            )}
           </div>
-        </div>
 
-        <div className="space-y-2">
-          <div className="text-sm text-slate-600">파일당 최대 25MB</div>
-          <input
-            id="attachment-input"
-            type="file"
-            multiple
-            className="sr-only"
-            ref={fileInputRef}
-            onChange={(e) => {
-              addFiles(e.currentTarget.files);
-              e.currentTarget.value = "";
-            }}
-          />
-          <div
-            className={`rounded-2xl border-2 border-dashed px-4 py-3 transition ${
-              dragActive ? "border-emerald-400 bg-emerald-50" : "border-slate-200 bg-white"
-            }`}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragActive(true);
-            }}
-            onDragLeave={(e) => {
-              e.preventDefault();
-              setDragActive(false);
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragActive(false);
-              addFiles(e.dataTransfer.files);
-            }}
-          >
-            <div className="flex items-center gap-2 flex-wrap">
+          {/* Navigation Buttons */}
+          {currentStep !== "welcome" && (
+            <div className="flex items-center justify-between mt-12 gap-4">
               <button
-                type="button"
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white text-slate-700 hover:bg-slate-50 cursor-pointer"
-                onClick={() => {
-                  const input = fileInputRef.current;
-                  if (!input) return;
-                  input.value = "";
-                  const showPicker = (input as HTMLInputElement & { showPicker?: () => void }).showPicker;
-                  if (showPicker) {
-                    showPicker.call(input);
-                  } else {
-                    input.click();
-                  }
+                onClick={prevStep}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all"
+                style={{
+                  backgroundColor: "var(--bg-card)",
+                  borderColor: "var(--border-default)",
+                  color: "var(--text-secondary)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "var(--bg-card)";
                 }}
               >
-                파일 선택
+                <ArrowLeft className="w-5 h-5" />
+                이전
               </button>
-              <span className="text-sm text-slate-500">드래그/붙여넣기로 추가할 수 있습니다.</span>
-              {attachments.length > 0 && (
+
+              {currentStep !== "review" && (
                 <button
-                  type="button"
-                  className="text-sm text-slate-600 hover:underline"
-                  onClick={() => setAttachments([])}
-                  disabled={createTicket.isPending}
+                  onClick={nextStep}
+                  disabled={!canProceed()}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    background: "linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%)",
+                  }}
                 >
-                  모두 제거
+                  다음
+                  <ArrowRight className="w-5 h-5" />
                 </button>
               )}
             </div>
-            <div className="mt-2 space-y-1.5">
-              {attachments.length === 0 && <p className="text-sm text-slate-500">선택된 파일이 없습니다.</p>}
-              {attachments.map((file, idx) => (
-                <div
-                  key={`${file.name}-${idx}`}
-                  className="flex items-center justify-between rounded-lg border border-slate-200 px-2 py-1 bg-slate-50"
-                >
-                  <div>
-                    <div className="text-xs text-slate-900">{file.name}</div>
-                    <div className="text-sm text-slate-600">{formatBytes(file.size)}</div>
-                  </div>
-                  <button
-                    type="button"
-                    className="text-sm text-red-600 hover:underline"
-                    onClick={() => removeFile(idx)}
-                    disabled={createTicket.isPending}
-                  >
-                    제거
-                  </button>
-                </div>
-              ))}
-            </div>
+          )}
+
+          {/* Progress Indicator */}
+          <div className="mt-8 text-center">
+            <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+              {currentStepIndex + 1} / {steps.length}
+            </p>
           </div>
         </div>
-
-        <div className="space-y-2">
-          <RichTextEditor
-            value={form.description}
-            onChange={(doc) => handleChange("description", doc)}
-            onError={setError}
-            placeholder="요청 내용을 입력하세요."
-          />
-          <p className="text-xs text-slate-500">이미지는 드래그/붙여넣기로 추가할 수 있습니다.</p>
-        </div>
-
-        {error && <div className="text-sm text-red-600">{error}</div>}
-      </form>
+      </div>
 
       <ProjectPickerModal
         open={projectModalOpen}

@@ -164,7 +164,7 @@ export default function FaqPage() {
           </div>
         </Card>
       ) : filteredFaqs.length === 0 ? (
-        <Card padding="lg">
+        <Card padding="xl">
           <div className="text-center">
             <div className="mb-3" style={{ color: "var(--text-tertiary)" }}>
               <HelpCircle className="mx-auto h-12 w-12" strokeWidth={1.5} />
