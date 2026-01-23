@@ -43,15 +43,24 @@ function AppShell({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div
+      className="min-h-screen transition-colors duration-200"
+      style={{ backgroundColor: "var(--bg-page)" }}
+    >
       <Sidebar />
-      <div className="lg:ml-72 flex flex-col min-h-screen">
-        <header className="sticky top-0 z-10 bg-white border-b border-neutral-200">
+      <div className="lg:ml-[280px] flex flex-col min-h-screen transition-all duration-300">
+        <header
+          className="sticky top-0 z-10 border-b"
+          style={{
+            backgroundColor: "var(--topbar-bg)",
+            borderColor: "var(--topbar-border)",
+          }}
+        >
           <div className="px-6 py-3.5">
             <div className="mx-auto w-full max-w-[1400px] flex justify-end">
-            <TopBar />
+              <TopBar />
+            </div>
           </div>
-        </div>
         </header>
         <main className="flex-1 px-6 py-6 app-content">
           <div className="mx-auto w-full max-w-[1400px]">{children}</div>

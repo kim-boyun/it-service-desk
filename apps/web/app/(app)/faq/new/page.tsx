@@ -83,16 +83,16 @@ export default function NewFaqPage() {
   if (!canEdit) return null;
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-5 space-y-5">
       <PageHeader title="FAQ 등록" />
-      <form onSubmit={handleSubmit} className="max-w-3xl space-y-4 border rounded-lg bg-white p-4 shadow-sm">
+      <form onSubmit={handleSubmit} className="space-y-5 border border-slate-200/70 rounded-2xl bg-white p-5 shadow-sm">
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <label className="text-sm text-gray-700">질문</label>
-            <span className="text-xs text-gray-500">{question.length}/255</span>
+            <label className="text-sm text-slate-700">질문</label>
+            <span className="text-xs text-slate-500">{question.length}/255</span>
           </div>
           <input
-            className="w-full border rounded px-3 py-2 text-sm"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
             value={question}
             onChange={(e) => {
               setQuestion(e.target.value);
@@ -103,7 +103,7 @@ export default function NewFaqPage() {
           />
         </div>
         <div className="space-y-1">
-          <label className="text-sm text-gray-700">답변</label>
+          <label className="text-sm text-slate-700">답변</label>
           <RichTextEditor
             value={answer}
             onChange={(next) => {
@@ -116,9 +116,9 @@ export default function NewFaqPage() {
         </div>
 
         <div className="space-y-1">
-          <label className="text-sm text-gray-700">카테고리 선택</label>
+          <label className="text-sm text-slate-700">카테고리 선택</label>
           <select
-            className="w-full border rounded px-3 py-2 text-sm"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
             value={categoryId}
             onChange={(e) => {
               setCategoryId(e.target.value);
@@ -138,7 +138,7 @@ export default function NewFaqPage() {
         <div className="flex items-center justify-end gap-2">
           <button
             type="button"
-            className="px-4 py-2 text-sm rounded border bg-white text-black hover:bg-gray-100 transition"
+            className="px-4 py-2 text-sm rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition"
             onClick={() => {
               if (isDirty && !confirm(UNSAVED_MESSAGE)) return;
               router.back();
@@ -149,7 +149,7 @@ export default function NewFaqPage() {
           </button>
           <button
             type="submit"
-            className="px-4 py-2 text-sm rounded border bg-white text-black hover:bg-gray-100 transition"
+            className="px-4 py-2 text-sm rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition"
             disabled={saving}
           >
             등록

@@ -411,14 +411,12 @@ export default function NoticeDetailPage() {
       )}
 
       <div className="flex items-center justify-end gap-2">
-        {!editing && (
-          <button
-            className="px-4 py-2 text-sm rounded border bg-white text-gray-800 hover:bg-gray-100"
-            onClick={() => router.push("/notices")}
-          >
-            목록
-          </button>
-        )}
+        <button
+          className="px-4 py-2 text-sm rounded border bg-white text-gray-800 hover:bg-gray-100"
+          onClick={() => router.push("/notices")}
+        >
+          목록
+        </button>
         {canEdit && (
           <>
             {editing ? (
@@ -431,16 +429,12 @@ export default function NoticeDetailPage() {
                     setEditing(false);
                   }}
                   disabled={saving}
-                >
-                  취소
-                </button>
+                >취소</button>
                 <button
                   className="px-4 py-2 text-sm rounded border bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
                   onClick={handleSave}
                   disabled={saving}
-                >
-                  저장
-                </button>
+                >저장</button>
               </>
             ) : (
               <>
@@ -450,16 +444,12 @@ export default function NoticeDetailPage() {
                     setEditing(true);
                     setNewAttachments([]);
                   }}
-                >
-                  수정
-                </button>
+                >수정</button>
                 <button
                   className="px-4 py-2 text-sm rounded border bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
                   onClick={handleDelete}
                   disabled={deleting}
-                >
-                  삭제
-                </button>
+                >삭제</button>
               </>
             )}
           </>

@@ -5,229 +5,368 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMe } from "@/lib/auth-context";
+import {
+  Home,
+  Ticket,
+  Bell,
+  HelpCircle,
+  Settings,
+  FileText,
+  CheckCircle,
+  Eye,
+  FolderOpen,
+  BarChart3,
+  Users,
+  FolderCog,
+  List,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 
-function Item({
+interface NavItem {
+  href: string;
+  label: string;
+  icon: any;
+  badge?: number;
+}
+
+interface NavItemWithSub extends NavItem {
+  subItems?: NavItem[];
+}
+
+function NavLink({
   href,
   label,
+  icon: Icon,
   active,
-  small = false,
+  collapsed,
+  badge,
+  onClick,
 }: {
-  href?: string;
+  href: string;
   label: string;
+  icon: any;
   active?: boolean;
-  small?: boolean;
+  collapsed?: boolean;
+  badge?: number;
+  onClick?: () => void;
 }) {
-  const base = small ? "text-sm" : "text-sm";
-  const padding = small ? "px-3 py-2" : "px-3.5 py-2.5";
+  const content = (
+    <>
+      <Icon className="w-5 h-5 flex-shrink-0" />
+      {!collapsed && (
+        <>
+          <span className="flex-1 font-medium">{label}</span>
+          {badge !== undefined && badge > 0 && (
+            <span
+              className="px-2 py-0.5 text-xs font-semibold rounded-full"
+              style={{
+                backgroundColor: active ? "var(--color-primary-200)" : "var(--bg-active)",
+                color: active ? "var(--color-primary-800)" : "var(--text-secondary)",
+              }}
+            >
+              {badge}
+            </span>
+          )}
+        </>
+      )}
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 w-full"
+        style={{
+          backgroundColor: active ? "var(--sidebar-item-active)" : "transparent",
+          color: active ? "var(--sidebar-text-active)" : "var(--sidebar-text)",
+        }}
+        onMouseEnter={(e) => {
+          if (!active) {
+            e.currentTarget.style.backgroundColor = "var(--sidebar-item-hover)";
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!active) {
+            e.currentTarget.style.backgroundColor = "transparent";
+          }
+        }}
+      >
+        {content}
+      </button>
+    );
+  }
+
   return (
     <Link
-      href={href || "#"}
-      className={`block ${padding} rounded-lg transition-all font-medium ${
-        active 
-          ? "text-primary-700 bg-primary-50 shadow-sm" 
-          : "text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900"
-      } ${base}`}
+      href={href}
+      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200"
+      style={{
+        backgroundColor: active ? "var(--sidebar-item-active)" : "transparent",
+        color: active ? "var(--sidebar-text-active)" : "var(--sidebar-text)",
+      }}
+      onMouseEnter={(e) => {
+        if (!active) {
+          e.currentTarget.style.backgroundColor = "var(--sidebar-item-hover)";
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!active) {
+          e.currentTarget.style.backgroundColor = "transparent";
+        }
+      }}
     >
-      {label}
+      {content}
     </Link>
   );
 }
 
-function AccordionButton({
-  label,
+function ExpandableNavItem({
+  item,
   active,
+  collapsed,
   expanded,
-  onClick,
+  onToggle,
+  subItems,
 }: {
-  label: string;
-  active?: boolean;
-  expanded?: boolean;
-  onClick: () => void;
+  item: NavItem;
+  active: boolean;
+  collapsed: boolean;
+  expanded: boolean;
+  onToggle: () => void;
+  subItems: NavItem[];
 }) {
+  const Icon = item.icon;
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex w-full items-center justify-between px-3.5 py-2.5 rounded-lg transition-all text-sm font-medium ${
-        active 
-          ? "text-primary-700 bg-primary-50 shadow-sm" 
-          : "text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900"
-      }`}
-    >
-      <span>{label}</span>
-      <svg
-        className={`h-4 w-4 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
-        viewBox="0 0 20 20"
-        fill="currentColor"
-        aria-hidden="true"
+    <div>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 w-full"
+        style={{
+          backgroundColor: active ? "var(--sidebar-item-active)" : "transparent",
+          color: active ? "var(--sidebar-text-active)" : "var(--sidebar-text)",
+        }}
+        onMouseEnter={(e) => {
+          if (!active) {
+            e.currentTarget.style.backgroundColor = "var(--sidebar-item-hover)";
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!active) {
+            e.currentTarget.style.backgroundColor = "transparent";
+          }
+        }}
       >
-        <path
-          fillRule="evenodd"
-          d="M5.23 7.21a.75.75 0 011.06.02L10 11.114l3.71-3.884a.75.75 0 011.08 1.04l-4.24 4.44a.75.75 0 01-1.08 0l-4.24-4.44a.75.75 0 01.02-1.06z"
-          clipRule="evenodd"
-        />
-      </svg>
-    </button>
+        <Icon className="w-5 h-5 flex-shrink-0" />
+        {!collapsed && (
+          <>
+            <span className="flex-1 font-medium text-left">{item.label}</span>
+            {expanded ? (
+              <ChevronRight className="w-4 h-4 transform rotate-90 transition-transform duration-200" />
+            ) : (
+              <ChevronRight className="w-4 h-4 transition-transform duration-200" />
+            )}
+          </>
+        )}
+      </button>
+
+      {expanded && !collapsed && (
+        <div className="mt-1 ml-8 space-y-0.5">
+          {subItems.map((sub) => {
+            const SubIcon = sub.icon;
+            return (
+              <Link
+                key={sub.href}
+                href={sub.href}
+                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200"
+                style={{
+                  backgroundColor: "transparent",
+                  color: "var(--sidebar-text)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "var(--sidebar-item-hover)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                }}
+              >
+                <SubIcon className="w-4 h-4" />
+                <span className="font-medium">{sub.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
 export default function Sidebar() {
   const me = useMe();
   const pathname = usePathname();
-  const [ticketsOpen, setTicketsOpen] = useState(false);
-  const [adminOpen, setAdminOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [ticketsExpanded, setTicketsExpanded] = useState(false);
+  const [adminExpanded, setAdminExpanded] = useState(false);
 
   useEffect(() => {
     if (pathname.startsWith("/tickets")) {
-      setTicketsOpen(true);
-      setAdminOpen(false);
-      return;
+      setTicketsExpanded(true);
+    } else if (pathname.startsWith("/admin")) {
+      setAdminExpanded(true);
     }
-    if (pathname.startsWith("/admin")) {
-      setAdminOpen(true);
-      setTicketsOpen(false);
-      return;
-    }
-    setTicketsOpen(false);
-    setAdminOpen(false);
   }, [pathname]);
 
-  const mainNav = [
-    { href: "/home", label: "HOME" },
-    { href: "/tickets", label: "고객 요청" },
-    { href: "/notices", label: "공지사항" },
-    { href: "/faq", label: "FAQ" },
-    ...(me.role === "admin" ? [{ href: "/admin", label: "관리자" }] : []),
+  const mainNav: NavItem[] = [
+    { href: "/home", label: "홈", icon: Home },
+    { href: "/notices", label: "공지사항", icon: Bell },
+    { href: "/faq", label: "FAQ", icon: HelpCircle },
   ];
 
-  const ticketSubNav = [
-    { href: "/tickets/new", label: "작성" },
-    { href: "/tickets", label: "처리 현황" },
-    { href: "/tickets/resolved", label: "처리 완료" },
-    { href: "/tickets/review", label: "사업 검토" },
-    { href: "/tickets/drafts", label: "임시 보관함" },
+  const ticketSubNav: NavItem[] = [
+    { href: "/tickets/new", label: "작성", icon: FileText },
+    { href: "/tickets", label: "처리 현황", icon: List },
+    { href: "/tickets/resolved", label: "처리 완료", icon: CheckCircle },
+    { href: "/tickets/review", label: "사업 검토", icon: Eye },
+    { href: "/tickets/drafts", label: "임시 보관함", icon: FolderOpen },
   ];
 
-  const adminSubNav = [
-    { href: "/admin", label: "대시보드" },
-    { href: "/admin/users", label: "사용자 관리" },
-    { href: "/admin/manager", label: "카테고리 관리" },
-    { href: "/admin/tickets", label: "요청관리" },
-    { href: "/admin/tickets/all", label: "모든 요청 관리" },
+  const adminSubNav: NavItem[] = [
+    { href: "/admin", label: "대시보드", icon: BarChart3 },
+    { href: "/admin/users", label: "사용자 관리", icon: Users },
+    { href: "/admin/manager", label: "카테고리 관리", icon: FolderCog },
+    { href: "/admin/tickets", label: "요청관리", icon: Settings },
+    { href: "/admin/tickets/all", label: "모든 요청", icon: List },
   ];
 
-  const isSubActive = (href: string) => {
-    if (href === "/tickets") {
-      return pathname === "/tickets" || /^\/tickets\/\d+(\/edit)?$/.test(pathname);
-    }
-    if (href === "/tickets/new") return pathname === "/tickets/new";
-    if (href.startsWith("/tickets/drafts")) return pathname.startsWith("/tickets/drafts");
-    if (href.startsWith("/tickets/resolved")) return pathname.startsWith("/tickets/resolved");
-    if (href.startsWith("/tickets/review")) return pathname.startsWith("/tickets/review");
-    if (href === "/admin") return pathname === "/admin";
-    if (href === "/admin/users") return pathname.startsWith("/admin/users");
-    if (href === "/admin/tickets") {
-      return pathname === "/admin/tickets" || (pathname.startsWith("/admin/tickets/") && !pathname.startsWith("/admin/tickets/all"));
-    }
-    if (href === "/admin/tickets/all") return pathname.startsWith("/admin/tickets/all");
-    if (href === "/admin/manager") return pathname.startsWith("/admin/manager");
-    return pathname === href || pathname.startsWith(`${href}/`);
-  };
-
-  const handleTicketsToggle = () => {
-    setTicketsOpen((prev) => !prev);
-  };
-
-  const handleAdminToggle = () => {
-    setAdminOpen((prev) => !prev);
-  };
+  const isTicketsActive = pathname.startsWith("/tickets");
+  const isAdminActive = pathname.startsWith("/admin");
 
   return (
-    <aside className="relative lg:fixed lg:inset-y-0 lg:left-0 w-full lg:w-72 bg-white text-neutral-900 lg:border-r border-neutral-200 z-20">
-      <div className="p-3 space-y-10 flex flex-col h-full">
-        <Link href="/home" className="pt-1 block no-underline">
-          <div className="flex items-center justify-center w-full px-4">
-            <h1 
-              className="flex items-center gap-x-3 text-3xl font-black text-black uppercase tracking-tighter"
-              style={{ WebkitTextStroke: '1.5px black' }}
+    <aside
+      className="relative lg:fixed lg:inset-y-0 lg:left-0 flex flex-col border-r z-20 transition-all duration-300"
+      style={{
+        width: collapsed ? "80px" : "280px",
+        backgroundColor: "var(--sidebar-bg)",
+        borderColor: "var(--sidebar-border)",
+      }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: "var(--sidebar-border)" }}>
+        {!collapsed ? (
+          <Link href="/home" className="flex items-center gap-2">
+            <div
+              className="text-2xl font-black tracking-tight"
+              style={{
+                color: "var(--text-primary)",
+              }}
             >
-              <span>I T</span>
-              <span>D E S K</span>
-            </h1>
-          </div>
-        </Link>
+              IT DESK
+            </div>
+          </Link>
+        ) : (
+          <Link href="/home" className="flex items-center justify-center w-full">
+            <div
+              className="text-xl font-black"
+              style={{
+                color: "var(--text-primary)",
+              }}
+            >
+              IT
+            </div>
+          </Link>
+        )}
 
-        <nav className="flex-1 overflow-y-auto">
-          <div className="rounded-lg bg-neutral-50/50 p-2 space-y-0.5 border border-neutral-100">
-            {mainNav.map((item, idx) => {
-              const isLast = idx === mainNav.length - 1;
-              const divider = !isLast ? <div className="h-px bg-neutral-200 my-1" /> : null;
-            if (item.href === "/tickets") {
-              return (
-                <div key={item.label} className="space-y-1">
-                  <AccordionButton
-                    label={item.label}
-                    active={pathname.startsWith("/tickets")}
-                    expanded={ticketsOpen}
-                    onClick={handleTicketsToggle}
-                  />
-                  {ticketsOpen && (
-                    <div className="pl-3 space-y-0.5 mt-1">
-                      {ticketSubNav.map((sub) => (
-                        <Item key={sub.label} href={sub.href} label={sub.label} active={isSubActive(sub.href)} small />
-                      ))}
-                    </div>
-                  )}
-                  {divider}
-                </div>
-              );
-            }
+        {!collapsed && (
+          <button
+            type="button"
+            onClick={() => setCollapsed(true)}
+            className="p-1.5 rounded-lg transition-colors"
+            style={{
+              color: "var(--text-secondary)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "var(--sidebar-item-hover)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "transparent";
+            }}
+            aria-label="Collapse sidebar"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+        )}
+      </div>
 
-            if (item.href === "/admin") {
-              return (
-                <div key={item.label} className="space-y-1">
-                  <AccordionButton
-                    label={item.label}
-                    active={pathname.startsWith("/admin")}
-                    expanded={adminOpen}
-                    onClick={handleAdminToggle}
-                  />
-                  {adminOpen && (
-                    <div className="pl-3 space-y-0.5 mt-1">
-                      {adminSubNav.map((sub) => (
-                        <Item key={sub.label} href={sub.href} label={sub.label} active={isSubActive(sub.href)} small />
-                      ))}
-                    </div>
-                  )}
-                  {divider}
-                </div>
-              );
-            }
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+        {/* Main Navigation */}
+        {mainNav.map((item) => (
+          <NavLink
+            key={item.href}
+            {...item}
+            active={pathname === item.href || pathname.startsWith(item.href + "/")}
+            collapsed={collapsed}
+          />
+        ))}
 
-            return (
-              <div key={item.label} className="space-y-1">
-                <Item
-                  href={item.href}
-                  label={item.label}
-                  active={pathname === item.href || pathname.startsWith(item.href + "/")}
-                />
-                {divider}
-              </div>
-            );
-            })}
-          </div>
-        </nav>
-        <div className="pt-1">
-          <div className="flex items-center justify-center w-full">
-            <Image
-              src="/kdi-school-logo.png"
-              alt="KDI SCHOOL"
-              width={200}
-              height={52}
-              className="w-40 h-auto opacity-90"
+        {/* Divider */}
+        <div className="my-3 border-t" style={{ borderColor: "var(--sidebar-border)" }} />
+
+        {/* Tickets Section */}
+        <ExpandableNavItem
+          item={{ href: "/tickets", label: "고객 요청", icon: Ticket }}
+          active={isTicketsActive}
+          collapsed={collapsed}
+          expanded={ticketsExpanded}
+          onToggle={() => setTicketsExpanded(!ticketsExpanded)}
+          subItems={ticketSubNav}
+        />
+
+        {/* Admin Section */}
+        {me.role === "admin" && (
+          <>
+            <div className="my-3 border-t" style={{ borderColor: "var(--sidebar-border)" }} />
+            <ExpandableNavItem
+              item={{ href: "/admin", label: "관리자", icon: Settings }}
+              active={isAdminActive}
+              collapsed={collapsed}
+              expanded={adminExpanded}
+              onToggle={() => setAdminExpanded(!adminExpanded)}
+              subItems={adminSubNav}
             />
+          </>
+        )}
+      </nav>
+
+      {/* Footer */}
+      <div className="p-3 border-t" style={{ borderColor: "var(--sidebar-border)" }}>
+        {collapsed ? (
+          <button
+            type="button"
+            onClick={() => setCollapsed(false)}
+            className="flex items-center justify-center w-full p-2.5 rounded-lg transition-colors"
+            style={{
+              color: "var(--text-secondary)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "var(--sidebar-item-hover)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "transparent";
+            }}
+            aria-label="Expand sidebar"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        ) : (
+          <div className="flex items-center justify-center">
+            <Image src="/kdi-school-logo.png" alt="KDI SCHOOL" width={160} height={42} className="opacity-70" />
           </div>
-        </div>
+        )}
       </div>
     </aside>
   );

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -8,8 +8,10 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { TiptapDoc } from "@/lib/tiptap";
 import ErrorDialog from "@/components/ErrorDialog";
+import { StatCard, Card, CardHeader, CardBody, Badge } from "@/components/ui";
+import { Ticket, Clock, CheckCircle, AlertCircle, Plus, ArrowRight } from "lucide-react";
 
-type Ticket = {
+type TicketType = {
   id: number;
   title: string;
   status: string;
@@ -75,70 +77,6 @@ type ContactGroup = {
   people: ContactPerson[];
 };
 
-function HomeCard({
-  title,
-  children,
-  right,
-  icon,
-  className = "",
-}: {
-  title: React.ReactNode;
-  children: React.ReactNode;
-  right?: React.ReactNode;
-  icon?: string;
-  className?: string;
-}) {
-  return (
-    <div
-      className={
-        "rounded-2xl border border-slate-200 bg-white shadow-[0_1px_0_rgba(15,23,42,0.04)] transition-shadow hover:shadow-[0_8px_24px_rgba(15,23,42,0.08)] " +
-        className
-      }
-    >
-      <div className="px-6 py-4 flex items-center justify-between border-b border-slate-100 bg-slate-50/60">
-        <div className="flex items-center gap-3">
-          {icon && (
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-lg">
-              {icon}
-            </div>
-          )}
-          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-        </div>
-        {right}
-      </div>
-      <div className="px-6 py-5">{children}</div>
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  accentColor,
-  bgColor,
-  loading,
-}: {
-  label: string;
-  value: number;
-  accentColor: string;
-  bgColor: string;
-  loading?: boolean;
-}) {
-  return (
-    <div
-      className="rounded-2xl border border-slate-200 shadow-[0_6px_16px_rgba(15,23,42,0.06)] px-5 py-4"
-      style={{ backgroundColor: bgColor }}
-    >
-      <div className="text-sm font-semibold uppercase tracking-wide" style={{ color: accentColor }}>
-        {label}
-      </div>
-      <div className="mt-2 text-3xl font-bold" style={{ color: accentColor }}>
-        {loading ? "..." : value}
-      </div>
-    </div>
-  );
-}
-
 function classifyStatus(status: string) {
   const s = (status || "").toLowerCase();
   const waiting = new Set(["open", "new", "pending", "todo", "requested"]);
@@ -159,10 +97,13 @@ function priorityRank(priority?: string) {
 
 function statusBadge(status: string) {
   const cls = classifyStatus(status);
-  if (cls === "waiting") return { label: "대기", className: "bg-blue-50 text-blue-700 border-blue-200" };
-  if (cls === "doing") return { label: "진행", className: "bg-amber-50 text-amber-700 border-amber-200" };
-  if (cls === "review") return { label: "사업 검토", className: "bg-slate-100 text-slate-700 border-slate-200" };
-  return { label: "완료", className: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+  if (cls === "waiting")
+    return { label: "대기", variant: "info" as const };
+  if (cls === "doing")
+    return { label: "진행", variant: "warning" as const };
+  if (cls === "review")
+    return { label: "검토", variant: "neutral" as const };
+  return { label: "완료", variant: "success" as const };
 }
 
 function formatUser(user?: UserSummary | null, fallbackEmpNo?: string | null, emptyLabel = "-") {
@@ -177,7 +118,6 @@ function formatDate(v?: string | null) {
   const d = new Date(v);
   return Number.isNaN(d.getTime()) ? "-" : d.toLocaleString();
 }
-
 
 export default function HomePage() {
   const me = useMe();
@@ -213,7 +153,7 @@ export default function HomePage() {
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ["homeTickets", limit],
     queryFn: async () => {
-      return await api<Ticket[]>(`/tickets?limit=${limit}&offset=0`, { method: "GET" });
+      return await api<TicketType[]>(`/tickets?limit=${limit}&offset=0`, { method: "GET" });
     },
     staleTime: 10_000,
   });
@@ -300,236 +240,402 @@ export default function HomePage() {
   );
 
   return (
-    <div className="relative">
-      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-100" />
-
-      <div className="p-4">
-        <div className="max-w-[1600px] mx-auto space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-white px-6 py-5 shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <div className="text-sm font-semibold text-slate-500">IT DESK</div>
-                <div className="mt-2 text-2xl font-bold text-slate-900">
-                  안녕하세요, {me.kor_name || me.emp_no || "사용자"}님
-                </div>
-                <div className="mt-1 text-sm text-slate-500">접수/처리 현황을 빠르게 확인하세요.</div>
-              </div>
-              <div className="flex items-center gap-2">
-                {me.role === "admin" && (
-                  <Link
-                    href="/admin"
-                    className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
-                  >
-                    관리자 메뉴
-                  </Link>
-                )}
-                <Link
-                  href="/tickets/new"
-                  className="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-neutral-800 transition-colors"
-                >
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                  </svg>
-                  작성
-                </Link>
-              </div>
+    <div className="space-y-6 animate-fadeIn">
+      {/* Hero Section */}
+      <div
+        className="rounded-2xl border p-8"
+        style={{
+          backgroundColor: "var(--bg-card)",
+          borderColor: "var(--border-default)",
+          boxShadow: "var(--shadow-md)",
+        }}
+      >
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div className="text-sm font-semibold uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>
+              IT DESK
+            </div>
+            <div className="mt-2 text-3xl font-bold" style={{ color: "var(--text-primary)" }}>
+              안녕하세요, {me.kor_name || me.emp_no || "사용자"}님
+            </div>
+            <div className="mt-2 text-base" style={{ color: "var(--text-secondary)" }}>
+              접수/처리 현황을 빠르게 확인하세요.
             </div>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <StatCard
-              label="대기 중인 요청"
-              value={waitingCount}
-              accentColor="#00c68a"
-              bgColor="#00c68a1A"
-            />
-            <StatCard
-              label="진행 중인 요청"
-              value={doingCount}
-              accentColor="#3ea6f3"
-              bgColor="#3ea6f31A"
-            />
-            <StatCard
-              label="완료된 요청"
-              value={doneCount}
-              accentColor="#f2536e"
-              bgColor="#f2536e1A"
-            />
-            <StatCard
-              label="사업 검토"
-              value={reviewCount}
-              accentColor="#fda005"
-              bgColor="#fda0051A"
-            />
-          </div>
-
-          <ErrorDialog
-            message={pageError ?? infoError}
-            onClose={() => {
-              setPageError(null);
-              setInfoError(null);
-            }}
-          />
-
-          <HomeCard
-            title="처리 현황"
-            right={
-              <button className="text-sm text-gray-600 hover:underline" onClick={() => refetch()} title="새로고침">
-                {isFetching ? "갱신 중..." : "새로고침"}
-              </button>
-            }
-            className="w-full"
-          >
-            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-              <table className="w-full text-base text-center">
-                <thead className="bg-gray-50">
-                  <tr className="border-b">
-                    <th className="text-left p-2 w-[60%]">제목</th>
-                    <th className="text-center p-2 w-[20%]">상태</th>
-                    <th className="text-center p-2 w-[20%] whitespace-nowrap">최근 업데이트</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(recent ?? []).length === 0 ? (
-                    <tr>
-                      <td className="p-3 text-gray-500" colSpan={3}>
-                        최근 요청이 없습니다.
-                      </td>
-                    </tr>
-                  ) : (
-                    recent.map((t) => {
-                      const b = statusBadge(t.status);
-                      return (
-                        <tr key={t.id} className="border-b hover:bg-gray-50">
-                          <td className="p-2 text-left">
-                            <Link className="hover:underline" href={`/tickets/${t.id}`}>
-                              {t.title}
-                            </Link>
-                          </td>
-                          <td className="p-2 text-center">
-                            <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-sm font-medium ${b.className}`}>
-                              {b.label}
-                            </span>
-                          </td>
-                          <td className="p-2 text-center text-gray-600 whitespace-nowrap">
-                            {formatDate(t.updated_at || t.created_at)}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="mt-2 text-right">
-              <Link href="/tickets" className="text-base text-blue-700 hover:underline">
-                더보기
+          <div className="flex items-center gap-3">
+            {me.role === "admin" && (
+              <Link
+                href="/admin"
+                className="inline-flex items-center justify-center rounded-xl border px-5 py-2.5 text-sm font-semibold transition-all hover:scale-105"
+                style={{
+                  backgroundColor: "var(--bg-elevated)",
+                  borderColor: "var(--border-default)",
+                  color: "var(--text-primary)",
+                }}
+              >
+                관리자 메뉴
               </Link>
-            </div>
-          </HomeCard>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            <HomeCard
-              title="공지사항"
-              right={
-                <Link href="/notices" className="text-sm text-gray-600 hover:underline">
-                  더보기
-                </Link>
-              }
+            )}
+            <Link
+              href="/tickets/new"
+              className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+              style={{
+                background: "linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%)",
+              }}
             >
-              <ul className="text-base text-gray-700 space-y-2 leading-7">
-                {topNotices.length === 0 ? (
-                  <li className="text-gray-500 text-sm">등록된 공지사항이 없습니다.</li>
-                ) : (
-                  topNotices.map((n) => (
-                    <li key={n.id} className="flex items-center justify-between gap-2">
-                      <Link className="hover:underline truncate" href={`/notices/${n.id}`}>
-                        {n.title}
-                      </Link>
-                      <span className="text-sm text-gray-500">{formatDate(n.created_at)}</span>
-                    </li>
-                  ))
-                )}
-              </ul>
-            </HomeCard>
-
-            <HomeCard
-              title="FAQ"
-              right={
-                <Link href="/faq" className="text-sm text-gray-600 hover:underline">
-                  더보기
-                </Link>
-              }
-            >
-              <ul className="text-base text-gray-700 space-y-2 leading-7">
-                {topFaqs.length === 0 ? (
-                  <li className="text-gray-500 text-sm">등록된 FAQ가 없습니다.</li>
-                ) : (
-                  topFaqs.map((f) => (
-                    <li key={f.id} className="flex items-center justify-between gap-2">
-                      <Link className="hover:underline truncate" href={`/faq`}>
-                        {f.question}
-                      </Link>
-                      <span className="text-sm text-gray-500">{formatDate(f.created_at)}</span>
-                    </li>
-                  ))
-                )}
-              </ul>
-            </HomeCard>
+              <Plus className="w-4 h-4" />
+              요청 작성
+            </Link>
           </div>
-
-          <HomeCard
-            title={
-              <div className="flex items-center gap-2">
-                <span>카테고리별 담당자</span>
-                {me.role === "admin" ? (
-                  <Link
-                    href="/admin/manager"
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                    aria-label="카테고리별 담당자 수정"
-                  >
-                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35.641-.155 1.157-.652 1.065-2.573-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.573-1.065z"
-                      />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  </Link>
-                ) : null}
-              </div>
-            }
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {contactGroups.map((group) => (
-                <div key={group.category_id} className="rounded-xl border border-slate-200 bg-white p-4">
-                  <div className="text-sm font-semibold text-slate-700 mb-3">
-                    {categoryMap[group.category_id] ?? `카테고리 ${group.category_id}`}
-                  </div>
-
-                  <div className="flex flex-col gap-2 rounded-lg border border-slate-200/70 p-3">
-                    {group.people.length === 0 ? (
-                      <div className="text-sm text-slate-500">등록된 담당자가 없습니다.</div>
-                    ) : (
-                      group.people.map((person, idx) => (
-                        <div
-                          key={`${group.category_id}-${person.emp_no ?? idx}`}
-                          className="text-sm font-medium text-slate-900"
-                        >
-                          {person.kor_name || "-"} / {person.title || "-"} / {person.department || "-"}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </HomeCard>
         </div>
       </div>
 
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="대기 중"
+          value={waitingCount}
+          icon={<Clock className="w-6 h-6" />}
+          variant="info"
+          loading={isLoading}
+        />
+        <StatCard
+          title="진행 중"
+          value={doingCount}
+          icon={<AlertCircle className="w-6 h-6" />}
+          variant="warning"
+          loading={isLoading}
+        />
+        <StatCard
+          title="완료"
+          value={doneCount}
+          icon={<CheckCircle className="w-6 h-6" />}
+          variant="success"
+          loading={isLoading}
+        />
+        <StatCard
+          title="사업 검토"
+          value={reviewCount}
+          icon={<Ticket className="w-6 h-6" />}
+          variant="accent"
+          loading={isLoading}
+        />
+      </div>
+
+      <ErrorDialog
+        message={pageError ?? infoError}
+        onClose={() => {
+          setPageError(null);
+          setInfoError(null);
+        }}
+      />
+
+      {/* Recent Tickets */}
+      <Card padding="none">
+        <CardHeader>
+          <div className="flex items-center justify-between w-full px-6 py-4">
+            <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+              최근 처리 현황
+            </h2>
+            <button
+              onClick={() => refetch()}
+              className="text-sm font-medium transition-colors"
+              style={{ color: "var(--text-secondary)" }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "var(--text-primary)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--text-secondary)";
+              }}
+            >
+              {isFetching ? "갱신 중..." : "새로고침"}
+            </button>
+          </div>
+        </CardHeader>
+        <CardBody>
+          <div className="overflow-hidden">
+            <table className="w-full">
+              <thead style={{ backgroundColor: "var(--bg-subtle)" }}>
+                <tr style={{ borderBottomColor: "var(--border-default)" }} className="border-b">
+                  <th
+                    className="text-left px-6 py-3 text-sm font-semibold"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    제목
+                  </th>
+                  <th
+                    className="text-center px-6 py-3 text-sm font-semibold w-32"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    상태
+                  </th>
+                  <th
+                    className="text-center px-6 py-3 text-sm font-semibold whitespace-nowrap"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    최근 업데이트
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {(recent ?? []).length === 0 ? (
+                  <tr>
+                    <td className="p-8 text-center" colSpan={3} style={{ color: "var(--text-tertiary)" }}>
+                      최근 요청이 없습니다.
+                    </td>
+                  </tr>
+                ) : (
+                  recent.map((t) => {
+                    const b = statusBadge(t.status);
+                    return (
+                      <tr
+                        key={t.id}
+                        className="border-b transition-colors"
+                        style={{ borderColor: "var(--border-default)" }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = "transparent";
+                        }}
+                      >
+                        <td className="px-6 py-4">
+                          <Link
+                            href={`/tickets/${t.id}`}
+                            className="font-medium transition-colors"
+                            style={{ color: "var(--text-primary)" }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.color = "var(--color-primary-600)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.color = "var(--text-primary)";
+                            }}
+                          >
+                            {t.title}
+                          </Link>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <Badge variant={b.variant} size="md">
+                            {b.label}
+                          </Badge>
+                        </td>
+                        <td
+                          className="px-6 py-4 text-center text-sm whitespace-nowrap"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          {formatDate(t.updated_at || t.created_at)}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="px-6 py-4 border-t" style={{ borderColor: "var(--border-default)" }}>
+            <Link
+              href="/tickets"
+              className="inline-flex items-center gap-2 text-sm font-semibold transition-colors"
+              style={{ color: "var(--color-primary-600)" }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "var(--color-primary-700)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--color-primary-600)";
+              }}
+            >
+              모든 요청 보기
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </CardBody>
+      </Card>
+
+      {/* Info Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card padding="none">
+          <CardHeader>
+            <div className="flex items-center justify-between w-full px-6 py-4">
+              <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                공지사항
+              </h2>
+              <Link
+                href="/notices"
+                className="text-sm font-medium transition-colors"
+                style={{ color: "var(--text-secondary)" }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "var(--text-primary)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--text-secondary)";
+                }}
+              >
+                더보기
+              </Link>
+            </div>
+          </CardHeader>
+          <CardBody padding="md">
+            <ul className="space-y-3">
+              {topNotices.length === 0 ? (
+                <li className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+                  등록된 공지사항이 없습니다.
+                </li>
+              ) : (
+                topNotices.map((n) => (
+                  <li key={n.id} className="flex items-start justify-between gap-3">
+                    <Link
+                      href={`/notices/${n.id}`}
+                      className="flex-1 text-sm font-medium truncate transition-colors"
+                      style={{ color: "var(--text-primary)" }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = "var(--color-primary-600)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = "var(--text-primary)";
+                      }}
+                    >
+                      {n.title}
+                    </Link>
+                    <span className="text-xs whitespace-nowrap" style={{ color: "var(--text-tertiary)" }}>
+                      {formatDate(n.created_at)}
+                    </span>
+                  </li>
+                ))
+              )}
+            </ul>
+          </CardBody>
+        </Card>
+
+        <Card padding="none">
+          <CardHeader>
+            <div className="flex items-center justify-between w-full px-6 py-4">
+              <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                FAQ
+              </h2>
+              <Link
+                href="/faq"
+                className="text-sm font-medium transition-colors"
+                style={{ color: "var(--text-secondary)" }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "var(--text-primary)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--text-secondary)";
+                }}
+              >
+                더보기
+              </Link>
+            </div>
+          </CardHeader>
+          <CardBody padding="md">
+            <ul className="space-y-3">
+              {topFaqs.length === 0 ? (
+                <li className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+                  등록된 FAQ가 없습니다.
+                </li>
+              ) : (
+                topFaqs.map((f) => (
+                  <li key={f.id} className="flex items-start justify-between gap-3">
+                    <Link
+                      href={`/faq`}
+                      className="flex-1 text-sm font-medium truncate transition-colors"
+                      style={{ color: "var(--text-primary)" }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = "var(--color-primary-600)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = "var(--text-primary)";
+                      }}
+                    >
+                      {f.question}
+                    </Link>
+                    <span className="text-xs whitespace-nowrap" style={{ color: "var(--text-tertiary)" }}>
+                      {formatDate(f.created_at)}
+                    </span>
+                  </li>
+                ))
+              )}
+            </ul>
+          </CardBody>
+        </Card>
+      </div>
+
+      {/* Contact Groups */}
+      <Card padding="none">
+        <CardHeader>
+          <div className="flex items-center justify-between w-full px-6 py-4">
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                카테고리별 담당자
+              </h2>
+              {me.role === "admin" && (
+                <Link
+                  href="/admin/manager"
+                  className="flex items-center justify-center w-8 h-8 rounded-lg border transition-all hover:scale-105"
+                  style={{
+                    backgroundColor: "var(--bg-elevated)",
+                    borderColor: "var(--border-default)",
+                    color: "var(--text-secondary)",
+                  }}
+                  aria-label="카테고리별 담당자 수정"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35.641-.155 1.157-.652 1.065-2.573-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.573-1.065z"
+                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </Link>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardBody padding="md">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {contactGroups.map((group) => (
+              <div
+                key={group.category_id}
+                className="rounded-xl border p-4 transition-all hover:shadow-md"
+                style={{
+                  backgroundColor: "var(--bg-subtle)",
+                  borderColor: "var(--border-default)",
+                }}
+              >
+                <div className="text-sm font-semibold mb-3" style={{ color: "var(--text-primary)" }}>
+                  {categoryMap[group.category_id] ?? `카테고리 ${group.category_id}`}
+                </div>
+
+                <div
+                  className="flex flex-col gap-2 rounded-lg border p-3"
+                  style={{
+                    backgroundColor: "var(--bg-card)",
+                    borderColor: "var(--border-default)",
+                  }}
+                >
+                  {group.people.length === 0 ? (
+                    <div className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+                      등록된 담당자가 없습니다.
+                    </div>
+                  ) : (
+                    group.people.map((person, idx) => (
+                      <div
+                        key={`${group.category_id}-${person.emp_no ?? idx}`}
+                        className="text-sm font-medium"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        {person.kor_name || "-"} / {person.title || "-"} / {person.department || "-"}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardBody>
+      </Card>
     </div>
   );
 }

@@ -31,7 +31,7 @@ function KPICard({
   value: string | number;
   subtitle?: string;
   icon: string;
-  trend?: { value: number; label: string; unit?: string };
+  trend?: { value: number; label: string };
   accent?: string;
   loading?: boolean;
 }) {
@@ -47,9 +47,7 @@ function KPICard({
           {trend && (
             <div className="mt-3 flex items-center gap-2">
               <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-800">
-                {trend.value >= 0 ? "+" : "-"}
-                {Math.abs(trend.value)}
-                {trend.unit ?? ""}
+                {trend.value >= 0 ? "↑" : "↓"} {Math.abs(trend.value).toFixed(1)}%
               </span>
               <span className="text-xs text-slate-600">{trend.label}</span>
             </div>
@@ -103,8 +101,8 @@ function ChartCard({
 
 function RadialChart({
   data,
-  size = 260,
-  thickness = 36,
+  size = 180,
+  thickness = 24,
 }: {
   data: { label: string; value: number }[];
   size?: number;
@@ -112,10 +110,6 @@ function RadialChart({
 }) {
   const total = data.reduce((acc, cur) => acc + cur.value, 0);
   const palette = ["#2563eb", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#14b8a6", "#64748b", "#f97316"];
-  const [hovered, setHovered] = useState<number | null>(null);
-  const radius = (size - thickness) / 2;
-  const circumference = 2 * Math.PI * radius;
-
   let acc = 0;
   const segments = data.map((d, i) => {
     const pct = total > 0 ? (d.value / total) * 100 : 0;
@@ -123,53 +117,32 @@ function RadialChart({
     acc += pct;
     return { ...d, pct, start, end: acc, color: palette[i % palette.length] };
   });
+  const gradient =
+    total > 0
+      ? `conic-gradient(${segments
+          .map((s) => `${s.color} ${s.start.toFixed(2)}% ${s.end.toFixed(2)}%`)
+          .join(", ")})`
+      : "conic-gradient(#e5e7eb 0% 100%)";
 
   return (
     <div className="flex flex-wrap items-center gap-6">
       <div className="relative" style={{ width: size, height: size }}>
-        <svg viewBox={`0 0 ${size} ${size}`} className="h-full w-full -rotate-90">
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke="#e5e7eb"
-            strokeWidth={thickness}
-          />
-          {segments.map((s, i) => {
-            const dash = (s.pct / 100) * circumference;
-            const offset = (s.start / 100) * circumference;
-            return (
-              <circle
-                key={s.label}
-                cx={size / 2}
-                cy={size / 2}
-                r={radius}
-                fill="none"
-                stroke={s.color}
-                strokeWidth={thickness}
-                strokeDasharray={`${dash} ${circumference - dash}`}
-                strokeDashoffset={-offset}
-                strokeLinecap="butt"
-                onMouseEnter={() => setHovered(i)}
-                onMouseLeave={() => setHovered(null)}
-                className="transition-opacity"
-                opacity={hovered === null || hovered === i ? 1 : 0.4}
-              />
-            );
-          })}
-        </svg>
-        {hovered !== null && segments[hovered] && (
-          <div className="absolute inset-x-0 bottom-2 mx-auto w-fit rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-800 shadow">
-            {segments[hovered].label} · {segments[hovered].value}건
-          </div>
-        )}
+        <div className="h-full w-full rounded-full" style={{ background: gradient }} />
+        <div
+          className="absolute inset-0 m-auto rounded-full bg-white flex items-center justify-center text-sm font-semibold text-slate-800"
+          style={{ width: size - thickness * 2, height: size - thickness * 2 }}
+        >
+          {total}건
+        </div>
       </div>
-      <div className="min-w-[160px] flex-1 space-y-1.5 max-h-[240px] overflow-auto">
+      <div className="min-w-[180px] flex-1 space-y-2 max-h-[220px] overflow-auto">
         {segments.map((s) => (
-          <div key={s.label} className="flex items-center gap-2 text-xs text-slate-700">
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
-            <span>{s.label}</span>
+          <div key={s.label} className="flex items-center justify-between gap-3 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+              <span className="text-slate-700">{s.label}</span>
+            </div>
+            <span className="font-semibold text-slate-900">{s.value}</span>
           </div>
         ))}
       </div>
@@ -335,7 +308,6 @@ export default function AdminDashboard() {
   const router = useRouter();
   const { categories, map: categoryMap } = useTicketCategories();
   const [range, setRange] = useState<"daily" | "weekly" | "monthly">("weekly");
-  const [donutRange, setDonutRange] = useState<"month" | "year">("month");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (me.role !== "admin") {
@@ -404,8 +376,9 @@ export default function AdminDashboard() {
       else byWorkType.other += 1;
     });
 
-    const newTrend = todayNew - yesterdayNew;
-    const doneTrend = todayDone - yesterdayDone;
+    const newTrend = yesterdayNew === 0 ? (todayNew === 0 ? 0 : 100) : ((todayNew - yesterdayNew) / yesterdayNew) * 100;
+    const doneTrend =
+      yesterdayDone === 0 ? (todayDone === 0 ? 0 : 100) : ((todayDone - yesterdayDone) / yesterdayDone) * 100;
 
     return {
       todayNew,
@@ -421,68 +394,32 @@ export default function AdminDashboard() {
     };
   }, [data]);
 
-  const donutStats = useMemo(() => {
-    const tickets = data ?? [];
-    const now = new Date();
-    const days = donutRange === "year" ? 365 : 30;
-    const cutoff = kstMidnightTs(now) - days * DAY_MS;
-
-    const byCategory: Record<number, number> = {};
-    let unknownCategory = 0;
-    const byStatus = { open: 0, in_progress: 0, resolved: 0, closed: 0 };
-    const byWorkType = { incident: 0, request: 0, change: 0, other: 0 };
-
-    tickets.forEach((t) => {
-      if (!t.created_at) return;
-      const createdTs = new Date(t.created_at).getTime();
-      if (createdTs < cutoff) return;
-
-      if (t.category_id == null) {
-        unknownCategory += 1;
-      } else {
-        byCategory[t.category_id] = (byCategory[t.category_id] || 0) + 1;
-      }
-
-      const status = (t.status || "").toLowerCase();
-      if (status === "open") byStatus.open++;
-      else if (status === "in_progress") byStatus.in_progress++;
-      else if (status === "resolved") byStatus.resolved++;
-      else if (status === "closed") byStatus.closed++;
-
-      const wt = (t.work_type ?? "other") as keyof typeof byWorkType;
-      if (wt in byWorkType) byWorkType[wt] += 1;
-      else byWorkType.other += 1;
-    });
-
-    return { byCategory, unknownCategory, byStatus, byWorkType };
-  }, [data, donutRange]);
-
   const categoryChartData = useMemo(() => {
     if (categories.length) {
       return categories.map((category) => {
-        const base = donutStats.byCategory[category.id] ?? 0;
-        const value = category.code === "etc" ? base + (donutStats.unknownCategory ?? 0) : base;
+        const base = stats.byCategory[category.id] ?? 0;
+        const value = category.code === "etc" ? base + (stats.unknownCategory ?? 0) : base;
         return { label: category.name, value };
       });
     }
-    return Object.entries(donutStats.byCategory).map(([key, value]) => ({
+    return Object.entries(stats.byCategory).map(([key, value]) => ({
       label: categoryMap[Number(key)] ?? key,
       value,
     }));
-  }, [donutStats.byCategory, donutStats.unknownCategory, categoryMap, categories]);
+  }, [stats.byCategory, stats.unknownCategory, categoryMap, categories]);
 
   const statusChartData = [
-    { label: "대기", value: donutStats.byStatus.open },
-    { label: "진행", value: donutStats.byStatus.in_progress },
-    { label: "완료", value: donutStats.byStatus.resolved },
-    { label: "사업 검토", value: donutStats.byStatus.closed },
+    { label: "대기", value: stats.byStatus.open },
+    { label: "진행", value: stats.byStatus.in_progress },
+    { label: "완료", value: stats.byStatus.resolved },
+    { label: "사업 검토", value: stats.byStatus.closed },
   ];
 
   const workTypeChartData = [
-    { label: "장애", value: donutStats.byWorkType.incident },
-    { label: "요청", value: donutStats.byWorkType.request },
-    { label: "변경", value: donutStats.byWorkType.change },
-    { label: "기타", value: donutStats.byWorkType.other },
+    { label: "장애", value: stats.byWorkType.incident },
+    { label: "요청", value: stats.byWorkType.request },
+    { label: "변경", value: stats.byWorkType.change },
+    { label: "기타", value: stats.byWorkType.other },
   ];
 
   const timeSeriesData = useMemo(() => {
@@ -559,7 +496,7 @@ export default function AdminDashboard() {
           value={isLoading ? "-" : stats.todayNew}
           subtitle="오늘 들어온 새 요청"
           icon="📝"
-          trend={{ value: stats.newTrend, label: "전일 대비", unit: "건" }}
+          trend={{ value: stats.newTrend, label: "전일 대비" }}
           accent="#2563eb"
           loading={isLoading}
         />
@@ -568,7 +505,7 @@ export default function AdminDashboard() {
           value={isLoading ? "-" : stats.todayDone}
           subtitle="오늘 완료된 요청"
           icon="✅"
-          trend={{ value: stats.doneTrend, label: "전일 대비", unit: "건" }}
+          trend={{ value: stats.doneTrend, label: "전일 대비" }}
           accent="#10b981"
           loading={isLoading}
         />
@@ -613,38 +550,22 @@ export default function AdminDashboard() {
         <AreaChart labels={timeSeriesData.labels} values={timeSeriesData.values} color="#006334" />
       </ChartCard>
 
-      <div className="flex items-center justify-end">
-        <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
-          {(["month", "year"] as const).map((r) => (
-            <button
-              key={r}
-              onClick={() => setDonutRange(r)}
-              className={`rounded-md px-4 py-2 text-sm font-semibold transition-all ${
-                donutRange === r ? "bg-slate-900 text-white shadow-sm" : "text-slate-700 hover:bg-white hover:text-slate-900"
-              }`}
-            >
-              {r === "month" ? "최근 1개월" : "최근 1년"}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <ChartCard title="작업 유형" subtitle="요청 유형별 분류" icon="🧰" className="min-h-[360px]">
+        <ChartCard title="작업 유형" subtitle="요청 유형별 분류" icon="🧰" className="min-h-[320px]">
           <RadialChart data={workTypeChartData} />
         </ChartCard>
 
-        <ChartCard title="상태별 분포" subtitle="현재 요청 진행 상태" icon="🧾" className="min-h-[360px]">
+        <ChartCard title="상태별 분포" subtitle="현재 요청 진행 상태" icon="🧾" className="min-h-[320px]">
           <RadialChart data={statusChartData} />
         </ChartCard>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <ChartCard title="카테고리별 분포" subtitle="서비스 유형별 요청 현황" icon="📊" className="min-h-[360px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+        <ChartCard title="카테고리별 분포" subtitle="서비스 유형별 요청 현황" icon="📊" className="lg:col-span-3 min-h-[320px]">
           <RadialChart data={categoryChartData} />
         </ChartCard>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex h-full flex-col">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex h-full flex-col lg:col-span-1">
           <div className="mb-1 flex items-center gap-2">
             <span className="text-xl">⚡</span>
             <h3 className="text-lg font-bold text-slate-900">빠른 이동</h3>

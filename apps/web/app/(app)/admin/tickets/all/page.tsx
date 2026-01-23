@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useMe } from "@/lib/auth-context";
 import { useTicketCategories } from "@/lib/use-ticket-categories";
@@ -30,6 +30,14 @@ type TicketListResponse =
   | { data: Ticket[]; total?: number }
   | Ticket[];
 
+const STATUS_OPTIONS = [
+  { value: "all", label: "전체" },
+  { value: "open", label: "대기" },
+  { value: "in_progress", label: "진행" },
+  { value: "resolved", label: "완료" },
+  { value: "closed", label: "사업 검토" },
+];
+
 const STATUS_SORT: Record<string, number> = {
   open: 0,
   in_progress: 1,
@@ -49,7 +57,6 @@ type UserSummary = {
   kor_name?: string | null;
   title?: string | null;
   department?: string | null;
-  role?: string | null;
 };
 
 function statusMeta(status: string) {
@@ -136,9 +143,8 @@ function workTypeLabel(value?: string | null) {
 export default function AdminAllTicketsPage() {
   const me = useMe();
   const router = useRouter();
-  const qc = useQueryClient();
   const { map: categoryMap } = useTicketCategories();
-  const [statusFilters, setStatusFilters] = useState<string[]>(["open", "in_progress"]);
+  const [status, setStatus] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 10;
@@ -153,8 +159,11 @@ export default function AdminAllTicketsPage() {
   const offset = 0;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["admin-tickets-all", { limit, offset }],
-    queryFn: () => api<TicketListResponse>(`/tickets?scope=all&limit=${limit}&offset=${offset}`),
+    queryKey: ["admin-tickets-all", { limit, offset, status }],
+    queryFn: () =>
+      api<TicketListResponse>(
+        `/tickets?scope=all&limit=${limit}&offset=${offset}${status !== "all" ? `&status=${status}` : ""}`
+      ),
     staleTime: 5_000,
   });
 
@@ -163,35 +172,9 @@ export default function AdminAllTicketsPage() {
     setErrorMessage((error as any)?.message ?? "요청 목록을 불러오지 못했습니다.");
   }, [error]);
 
-  const { data: adminUsers = [] } = useQuery({
-    queryKey: ["admin-users"],
-    queryFn: () => api<UserSummary[]>("/admin/users"),
-    staleTime: 30_000,
-  });
-
-  const staffOptions = useMemo(() => adminUsers.filter((u) => u.role === "admin"), [adminUsers]);
-
-  const assignM = useMutation({
-    mutationFn: ({
-      ticketId,
-      assigneeEmpNo,
-    }: {
-      ticketId: number;
-      assigneeEmpNo: string | null;
-    }) =>
-      api(`/tickets/${ticketId}/assign`, {
-        method: "PATCH",
-        body: { assignee_emp_no: assigneeEmpNo },
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin-tickets-all"] });
-      qc.invalidateQueries({ queryKey: ["admin-ticket-detail"] });
-    },
-  });
-
   useEffect(() => {
     setPage(1);
-  }, [search, statusFilters]);
+  }, [search, status]);
 
   const norm = normalize(data ?? []);
 
@@ -205,9 +188,6 @@ export default function AdminAllTicketsPage() {
           String(t.id).includes(term) ||
           String(t.category_id ?? "").includes(term)
       );
-    }
-    if (statusFilters.length) {
-      list = list.filter((t) => statusFilters.includes(t.status));
     }
     list.sort((a, b) => {
       const sa = STATUS_SORT[a.status] ?? 9;
@@ -241,29 +221,32 @@ export default function AdminAllTicketsPage() {
           </span>
         }
         actions={
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2">
-              {[
-                { value: "open", label: "대기" },
-                { value: "in_progress", label: "진행" },
-                { value: "resolved", label: "완료" },
-                { value: "closed", label: "사업 검토" },
-              ].map((o) => (
-                <label key={o.value} className="flex items-center gap-2 text-xs text-slate-700">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4"
-                    checked={statusFilters.includes(o.value)}
-                    onChange={(e) => {
-                      setStatusFilters((prev) =>
-                        e.target.checked ? [...prev, o.value] : prev.filter((v) => v !== o.value)
-                      );
-                    }}
-                  />
+          <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1">
+              {STATUS_OPTIONS.map((o) => (
+                <button
+                  key={o.value}
+                  className={`px-2 py-1 text-xs rounded ${
+                    status === o.value ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-slate-100"
+                  }`}
+                  onClick={() => setStatus(o.value)}
+                  type="button"
+                >
                   {o.label}
-                </label>
+                </button>
               ))}
             </div>
+            <select
+              className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 md:hidden"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              {STATUS_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
             <input
               className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-52 focus:outline-none focus:ring-2 focus:ring-slate-300"
               placeholder="제목/ID/카테고리 검색"
@@ -306,31 +289,7 @@ export default function AdminAllTicketsPage() {
                 <td className="p-3 text-center">
                   <PriorityBadge priority={t.priority} />
                 </td>
-                <td className="p-3 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                  <select
-                    className="w-full min-w-[240px] border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-center bg-white"
-                    value={t.assignee_emp_no ?? ""}
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      const assigneeEmpNo = value || null;
-                      const target = staffOptions.find((u) => u.emp_no === assigneeEmpNo);
-                      const label = assigneeEmpNo ? formatUser(target, assigneeEmpNo, assigneeEmpNo) : "미배정";
-                      if (!confirm(`${label}으로 변경하시겠습니까?`)) {
-                        e.currentTarget.value = t.assignee_emp_no ?? "";
-                        return;
-                      }
-                      assignM.mutate({ ticketId: t.id, assigneeEmpNo });
-                    }}
-                  >
-                    <option value="">미배정</option>
-                    {staffOptions.map((u) => (
-                      <option key={u.emp_no} value={u.emp_no}>
-                        {formatUser(u, u.emp_no, u.emp_no)}
-                      </option>
-                    ))}
-                  </select>
-                </td>
+                <td className="p-3 text-center whitespace-nowrap">{formatUser(t.assignee, t.assignee_emp_no, "미배정")}</td>
                 <td className="p-3 text-center">{workTypeLabel(t.work_type)}</td>
                 <td className="p-3 text-center">{categoryLabel(t.category_id)}</td>
                 <td className="p-3 text-center text-slate-600 whitespace-nowrap">{formatDate(t.updated_at)}</td>

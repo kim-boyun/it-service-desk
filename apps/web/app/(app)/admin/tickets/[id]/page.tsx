@@ -388,7 +388,6 @@ export default function AdminTicketDetailPage() {
       setCommentFiles([]);
       setCommentNotifyEmail(false);
       setCommentError(null);
-      setCommentModalOpen(false);
       qc.invalidateQueries({ queryKey: ["admin-ticket-detail", ticketId] });
     },
     onError: (err: any) => {
@@ -474,17 +473,9 @@ export default function AdminTicketDetailPage() {
                     className="w-full border rounded px-2 py-1 text-sm"
                     value={assigneeEmpNo}
                     onChange={(e) => {
-                      const prev = assigneeEmpNo;
-                      const next = e.target.value || "";
-                      const target = staffOptions.find((u) => u.emp_no === next);
-                      const label = next ? formatUser(target, next, next) : "미배정";
-                      if (!confirm(`${label}으로 변경하시겠습니까?`)) {
-                        setAssigneeEmpNo(prev);
-                        e.currentTarget.value = prev;
-                        return;
-                      }
-                      setAssigneeEmpNo(next);
-                      assignM.mutate(next || null);
+                      const next = e.target.value || null;
+                      setAssigneeEmpNo(e.target.value);
+                      assignM.mutate(next);
                     }}
                   >
                     <option value="">미배정</option>
@@ -503,16 +494,7 @@ export default function AdminTicketDetailPage() {
                     className="w-full border rounded px-2 py-1 text-sm"
                     value={categoryId}
                     onChange={(e) => {
-                      const prev = categoryId;
                       const next = e.target.value ? Number(e.target.value) : null;
-                      const label = next
-                        ? categories.find((c) => c.id === next)?.name ?? String(next)
-                        : "선택 안 함";
-                      if (!confirm(`${label}으로 변경하시겠습니까?`)) {
-                        setCategoryId(prev);
-                        e.currentTarget.value = prev === "" ? "" : String(prev);
-                        return;
-                      }
                       setCategoryId(next ?? "");
                       updateMetaM.mutate({
                         category_id: next,
@@ -536,16 +518,7 @@ export default function AdminTicketDetailPage() {
                     className="w-full border rounded px-2 py-1 text-sm"
                     value={workType}
                     onChange={(e) => {
-                      const prev = workType;
                       const next = e.target.value || null;
-                      const label = next
-                        ? WORK_TYPE_OPTIONS.find((o) => o.value === next)?.label ?? String(next)
-                        : "선택 안 함";
-                      if (!confirm(`${label}으로 변경하시겠습니까?`)) {
-                        setWorkType(prev);
-                        e.currentTarget.value = prev;
-                        return;
-                      }
                       setWorkType(e.target.value);
                       updateMetaM.mutate({
                         category_id: categoryId === "" ? null : Number(categoryId),

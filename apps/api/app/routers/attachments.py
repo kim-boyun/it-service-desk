@@ -201,10 +201,7 @@ def get_download_url(
                 raise HTTPException(status_code=403, detail="Forbidden")
 
     if is_object_storage():
-        return {
-            "url": get_presigned_get_url(key=att.key, expires_in=600, filename=att.filename),
-            "expires_in": 600,
-        }
+        return {"url": get_presigned_get_url(key=att.key, expires_in=600), "expires_in": 600}
 
     return {"url": f"/attachments/{attachment_id}/download", "expires_in": 0}
 
@@ -264,7 +261,7 @@ def download_attachment(
                 raise HTTPException(status_code=403, detail="Forbidden")
 
     if is_object_storage():
-        return RedirectResponse(get_presigned_get_url(key=att.key, expires_in=600, filename=att.filename))
+        return RedirectResponse(get_presigned_get_url(key=att.key, expires_in=600))
 
     rel = att.key.replace("uploads/", "", 1)
     path = UPLOAD_ROOT / rel
@@ -276,5 +273,4 @@ def download_attachment(
         path=str(path),
         media_type=att.content_type or "application/octet-stream",
         filename=att.filename,
-        headers={"Content-Disposition": f'attachment; filename="{att.filename}"'},
     )

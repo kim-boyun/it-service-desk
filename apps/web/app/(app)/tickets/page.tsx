@@ -9,6 +9,8 @@ import { useTicketCategories } from "@/lib/use-ticket-categories";
 import PageHeader from "@/components/PageHeader";
 import Pagination from "@/components/Pagination";
 import ErrorDialog from "@/components/ErrorDialog";
+import { Badge, Card, CardHeader, CardBody } from "@/components/ui";
+import { Plus, Search, Filter } from "lucide-react";
 
 type Ticket = {
   id: number;
@@ -79,53 +81,32 @@ function formatDate(v?: string | null) {
   return Number.isNaN(d.getTime()) ? "-" : d.toLocaleString();
 }
 
-function statusMeta(status: string) {
+function statusMeta(status: string): { label: string; variant: any } {
   const s = status.toLowerCase();
   if (["open", "new", "pending"].includes(s)) {
-    return { label: "대기", cls: "bg-blue-50 text-blue-700 border-blue-200" };
+    return { label: "대기", variant: "info" };
   }
   if (["in_progress", "processing", "assigned"].includes(s)) {
-    return { label: "진행", cls: "bg-amber-50 text-amber-700 border-amber-200" };
+    return { label: "진행", variant: "warning" };
   }
   if (s === "resolved") {
-    return { label: "완료", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+    return { label: "완료", variant: "success" };
   }
   if (s === "closed") {
-    return { label: "사업 검토", cls: "bg-slate-100 text-slate-700 border-slate-200" };
+    return { label: "사업 검토", variant: "neutral" };
   }
-  return { label: status, cls: "bg-gray-100 text-gray-700 border-gray-200" };
+  return { label: status, variant: "default" };
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const { label, cls } = statusMeta(status);
-  return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${cls}`}>
-      {label}
-    </span>
-  );
-}
-
-function PriorityBadge({ priority }: { priority?: string }) {
+function priorityMeta(priority?: string): { label: string; variant: any } {
   const p = (priority || "medium").toLowerCase();
-  const map: Record<string, { label: string; cls: string }> = {
-    low: { label: "낮음", cls: "bg-gray-100 text-gray-700 border-gray-200" },
-    medium: { label: "보통", cls: "bg-blue-50 text-blue-700 border-blue-200" },
-    high: { label: "높음", cls: "bg-amber-50 text-amber-800 border-amber-200" },
-    urgent: { label: "긴급", cls: "bg-red-50 text-red-700 border-red-200" },
+  const map: Record<string, { label: string; variant: any }> = {
+    low: { label: "낮음", variant: "neutral" },
+    medium: { label: "보통", variant: "info" },
+    high: { label: "높음", variant: "warning" },
+    urgent: { label: "긴급", variant: "danger" },
   };
-  const v = map[p] ?? map.medium;
-  return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${v.cls}`}>
-      {v.label}
-    </span>
-  );
-}
-
-function formatUser(user?: UserSummary | null, fallbackEmpNo?: string | null, emptyLabel = "-") {
-  if (!user) return fallbackEmpNo || emptyLabel;
-  const parts = [user.kor_name, user.title, user.department].filter(Boolean);
-  if (parts.length) return parts.join(" / ");
-  return user.emp_no || fallbackEmpNo || emptyLabel;
+  return map[p] ?? map.medium;
 }
 
 function getUpdatedAt(ticket: Ticket) {
@@ -279,22 +260,24 @@ export default function TicketsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fadeIn">
       <PageHeader
         title="처리 현황"
+        subtitle="모든 요청을 한눈에 확인하고 관리하세요"
         meta={
-          <span className="text-neutral-600">
-            총 <span className="text-primary-600 font-semibold">{base.length}</span>건
+          <span style={{ color: "var(--text-secondary)" }}>
+            총 <span style={{ color: "var(--color-primary-600)", fontWeight: 600 }}>{base.length}</span>건
           </span>
         }
         actions={
           <Link
             href="/tickets/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-neutral-800 transition-colors"
+            className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+            style={{
+              background: "linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%)",
+            }}
           >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
+            <Plus className="w-4 h-4" />
             작성
           </Link>
         }
@@ -304,168 +287,343 @@ export default function TicketsPage() {
 
       {isLoading && (
         <div className="flex items-center justify-center py-12">
-          <div className="text-sm text-neutral-500">목록을 불러오는 중...</div>
+          <div className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+            목록을 불러오는 중...
+          </div>
         </div>
       )}
 
       {!isLoading && (
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-neutral-900">읽지 않은 요청</h2>
-            <span className="inline-flex items-center rounded-full bg-danger-100 text-danger-700 px-2.5 py-1 text-xs font-semibold">
-              {unreadTickets.length}건
-            </span>
-          </div>
-          <div className="border border-neutral-200 rounded-xl overflow-hidden bg-white shadow-sm">
-            <table className="w-full text-sm">
-              <thead className="bg-neutral-50 border-b border-neutral-200">
-              <tr>
-                  <th className="text-left px-4 py-3 font-semibold text-neutral-700">제목</th>
-                  <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-28">상태</th>
-                  <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-28">우선순위</th>
-                  <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-28">작업 구분</th>
-                  <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-40 whitespace-nowrap">카테고리</th>
-                  <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-44 whitespace-nowrap">최근 업데이트</th>
-              </tr>
-            </thead>
-            <tbody>
-              {unreadTickets.map((t) => (
-                <tr
-                  key={t.id}
-                    className="border-b border-neutral-100 last:border-b-0 cursor-pointer hover:bg-neutral-50 transition-colors"
-                  onClick={() => {
-                    markRead(t);
-                    router.push(`/tickets/${t.id}`);
-                  }}
-                >
-                    <td className="px-4 py-3.5">
-                      <div className="min-h-[40px] flex items-center font-medium text-neutral-900">{t.title}</div>
-                  </td>
-                    <td className="px-4 py-3.5 text-center">
-                    <StatusBadge status={t.status} />
-                  </td>
-                    <td className="px-4 py-3.5 text-center">
-                    <PriorityBadge priority={t.priority} />
-                  </td>
-                    <td className="px-4 py-3.5 text-center text-neutral-700">{workTypeLabel(t.work_type)}</td>
-                    <td className="px-4 py-3.5 text-center text-neutral-700 whitespace-nowrap">{categoryLabel(t.category_id)}</td>
-                    <td className="px-4 py-3.5 text-center text-neutral-600 whitespace-nowrap">{formatDate(t.updated_at)}</td>
-                </tr>
-              ))}
-                {!unreadTickets.length && (
-                  <tr>
-                    <td className="px-4 py-8 text-neutral-500 text-center" colSpan={6}>
-                    읽지 않은 요청이 없습니다.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+        <>
+          {/* Unread Tickets */}
+          <Card padding="none">
+            <CardHeader>
+              <div className="flex items-center justify-between w-full px-6 py-4">
+                <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                  읽지 않은 요청
+                </h2>
+                <Badge variant="danger" size="md" dot>
+                  {unreadTickets.length}건
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardBody padding="none">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead style={{ backgroundColor: "var(--bg-subtle)" }}>
+                    <tr style={{ borderBottom: "1px solid var(--border-default)" }}>
+                      <th
+                        className="text-left px-6 py-3 font-semibold"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        제목
+                      </th>
+                      <th
+                        className="text-center px-6 py-3 font-semibold w-28"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        상태
+                      </th>
+                      <th
+                        className="text-center px-6 py-3 font-semibold w-28"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        우선순위
+                      </th>
+                      <th
+                        className="text-center px-6 py-3 font-semibold w-28"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        작업 구분
+                      </th>
+                      <th
+                        className="text-center px-6 py-3 font-semibold w-40 whitespace-nowrap"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        카테고리
+                      </th>
+                      <th
+                        className="text-center px-6 py-3 font-semibold w-44 whitespace-nowrap"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        최근 업데이트
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {unreadTickets.map((t) => {
+                      const statusInfo = statusMeta(t.status);
+                      const priorityInfo = priorityMeta(t.priority);
+                      return (
+                        <tr
+                          key={t.id}
+                          className="border-b cursor-pointer transition-colors"
+                          style={{ borderColor: "var(--border-default)" }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = "transparent";
+                          }}
+                          onClick={() => {
+                            markRead(t);
+                            router.push(`/tickets/${t.id}`);
+                          }}
+                        >
+                          <td className="px-6 py-4">
+                            <div
+                              className="min-h-[40px] flex items-center font-medium"
+                              style={{ color: "var(--text-primary)" }}
+                            >
+                              {t.title}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <Badge variant={statusInfo.variant} size="md">
+                              {statusInfo.label}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <Badge variant={priorityInfo.variant} size="md">
+                              {priorityInfo.label}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 text-center" style={{ color: "var(--text-secondary)" }}>
+                            {workTypeLabel(t.work_type)}
+                          </td>
+                          <td
+                            className="px-6 py-4 text-center whitespace-nowrap"
+                            style={{ color: "var(--text-secondary)" }}
+                          >
+                            {categoryLabel(t.category_id)}
+                          </td>
+                          <td
+                            className="px-6 py-4 text-center whitespace-nowrap"
+                            style={{ color: "var(--text-tertiary)" }}
+                          >
+                            {formatDate(t.updated_at)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {!unreadTickets.length && (
+                      <tr>
+                        <td className="px-6 py-12 text-center" colSpan={6} style={{ color: "var(--text-tertiary)" }}>
+                          읽지 않은 요청이 없습니다.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardBody>
+          </Card>
+
+          {/* All Tickets */}
+          <Card padding="none">
+            <CardHeader>
+              <div className="flex items-center justify-between flex-wrap gap-4 w-full px-6 py-4">
+                <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                  모든 요청
+                </h2>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Status Filter */}
+                  <div
+                    className="hidden md:flex items-center gap-1 rounded-lg border px-1.5 py-1.5"
+                    style={{
+                      backgroundColor: "var(--bg-elevated)",
+                      borderColor: "var(--border-default)",
+                      boxShadow: "var(--shadow-sm)",
+                    }}
+                  >
+                    {STATUS_OPTIONS.map((o) => (
+                      <button
+                        key={o.value}
+                        className="px-3 py-1.5 text-xs font-medium rounded-md transition-all"
+                        style={{
+                          backgroundColor:
+                            status === o.value ? "var(--color-primary-600)" : "transparent",
+                          color: status === o.value ? "#ffffff" : "var(--text-secondary)",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (status !== o.value) {
+                            e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (status !== o.value) {
+                            e.currentTarget.style.backgroundColor = "transparent";
+                          }
+                        }}
+                        onClick={() => setStatus(o.value)}
+                        type="button"
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Project Filter */}
+                  <select
+                    className="border rounded-lg px-3 py-2 text-sm transition-colors"
+                    style={{
+                      backgroundColor: "var(--bg-input)",
+                      borderColor: "var(--border-default)",
+                      color: "var(--text-primary)",
+                    }}
+                    value={projectFilter}
+                    onChange={(e) => setProjectFilter(e.target.value)}
+                  >
+                    <option value="all">전체 프로젝트</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={String(p.id)}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Search */}
+                  <div className="relative">
+                    <Search
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+                      style={{ color: "var(--text-tertiary)" }}
+                    />
+                    <input
+                      className="border rounded-lg pl-10 pr-3 py-2 text-sm w-52 transition-colors"
+                      style={{
+                        backgroundColor: "var(--bg-input)",
+                        borderColor: "var(--border-default)",
+                        color: "var(--text-primary)",
+                      }}
+                      placeholder="제목/ID 검색"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardBody padding="none">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead style={{ backgroundColor: "var(--bg-subtle)" }}>
+                    <tr style={{ borderBottom: "1px solid var(--border-default)" }}>
+                      <th
+                        className="text-left px-6 py-3 font-semibold"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        제목
+                      </th>
+                      <th
+                        className="text-center px-6 py-3 font-semibold w-28"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        상태
+                      </th>
+                      <th
+                        className="text-center px-6 py-3 font-semibold w-28"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        우선순위
+                      </th>
+                      <th
+                        className="text-center px-6 py-3 font-semibold w-28"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        작업 구분
+                      </th>
+                      <th
+                        className="text-center px-6 py-3 font-semibold w-40 whitespace-nowrap"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        카테고리
+                      </th>
+                      <th
+                        className="text-center px-6 py-3 font-semibold w-44 whitespace-nowrap"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        최근 업데이트
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pageItems.map((t) => {
+                      const statusInfo = statusMeta(t.status);
+                      const priorityInfo = priorityMeta(t.priority);
+                      return (
+                        <tr
+                          key={t.id}
+                          className="border-b cursor-pointer transition-colors"
+                          style={{ borderColor: "var(--border-default)" }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = "transparent";
+                          }}
+                          onClick={() => {
+                            markRead(t);
+                            router.push(`/tickets/${t.id}`);
+                          }}
+                        >
+                          <td className="px-6 py-4">
+                            <div
+                              className="min-h-[40px] flex items-center font-medium"
+                              style={{ color: "var(--text-primary)" }}
+                            >
+                              {t.title}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <Badge variant={statusInfo.variant} size="md">
+                              {statusInfo.label}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <Badge variant={priorityInfo.variant} size="md">
+                              {priorityInfo.label}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 text-center" style={{ color: "var(--text-secondary)" }}>
+                            {workTypeLabel(t.work_type)}
+                          </td>
+                          <td
+                            className="px-6 py-4 text-center whitespace-nowrap"
+                            style={{ color: "var(--text-secondary)" }}
+                          >
+                            {categoryLabel(t.category_id)}
+                          </td>
+                          <td
+                            className="px-6 py-4 text-center whitespace-nowrap"
+                            style={{ color: "var(--text-tertiary)" }}
+                          >
+                            {formatDate(t.updated_at)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {!pageItems.length && (
+                      <tr>
+                        <td className="px-6 py-12 text-center" colSpan={6} style={{ color: "var(--text-tertiary)" }}>
+                          조건에 맞는 요청이 없습니다.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <div className="px-6 py-4 border-t" style={{ borderColor: "var(--border-default)" }}>
+                <Pagination page={page} total={filteredAll.length} pageSize={pageSize} onChange={setPage} />
+              </div>
+            </CardBody>
+          </Card>
+        </>
       )}
 
-      {!isLoading && (
-        <section className="space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-            <h2 className="text-base font-semibold text-neutral-900">모든 요청</h2>
-          <div className="flex items-center gap-2 flex-wrap">
-              <div className="hidden md:flex items-center gap-1 rounded-lg border border-neutral-200 bg-white px-1.5 py-1.5 shadow-sm">
-              {STATUS_OPTIONS.map((o) => (
-                <button
-                  key={o.value}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                      status === o.value ? "bg-neutral-900 text-white shadow-sm" : "text-neutral-700 hover:bg-neutral-100"
-                  }`}
-                  onClick={() => setStatus(o.value)}
-                  type="button"
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-            <select
-                className="border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent md:hidden bg-white"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              {STATUS_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-            <select
-                className="border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
-              value={projectFilter}
-              onChange={(e) => setProjectFilter(e.target.value)}
-            >
-              <option value="all">전체 프로젝트</option>
-              {projects.map((p) => (
-                <option key={p.id} value={String(p.id)}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-            <input
-                className="border border-neutral-300 rounded-lg px-3 py-2 text-sm w-52 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white placeholder:text-neutral-400"
-              placeholder="제목/ID 검색"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-        </div>
-          <div className="border border-neutral-200 rounded-xl overflow-hidden bg-white shadow-sm">
-            <table className="w-full text-sm">
-              <thead className="bg-neutral-50 border-b border-neutral-200">
-              <tr>
-                  <th className="text-left px-4 py-3 font-semibold text-neutral-700">제목</th>
-                  <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-28">상태</th>
-                  <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-28">우선순위</th>
-                  <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-28">작업 구분</th>
-                  <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-40 whitespace-nowrap">카테고리</th>
-                  <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-44 whitespace-nowrap">최근 업데이트</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pageItems.map((t) => (
-                <tr
-                  key={t.id}
-                    className="border-b border-neutral-100 last:border-b-0 cursor-pointer hover:bg-neutral-50 transition-colors"
-                  onClick={() => {
-                    markRead(t);
-                    router.push(`/tickets/${t.id}`);
-                  }}
-                >
-                    <td className="px-4 py-3.5">
-                      <div className="min-h-[40px] flex items-center font-medium text-neutral-900">{t.title}</div>
-                  </td>
-                    <td className="px-4 py-3.5 text-center">
-                    <StatusBadge status={t.status} />
-                  </td>
-                    <td className="px-4 py-3.5 text-center">
-                    <PriorityBadge priority={t.priority} />
-                  </td>
-                    <td className="px-4 py-3.5 text-center text-neutral-700">{workTypeLabel(t.work_type)}</td>
-                    <td className="px-4 py-3.5 text-center text-neutral-700 whitespace-nowrap">{categoryLabel(t.category_id)}</td>
-                    <td className="px-4 py-3.5 text-center text-neutral-600 whitespace-nowrap">{formatDate(t.updated_at)}</td>
-                </tr>
-              ))}
-                {!pageItems.length && (
-                  <tr>
-                    <td className="px-4 py-8 text-neutral-500 text-center" colSpan={6}>
-                    조건에 맞는 요청이 없습니다.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        <Pagination page={page} total={filteredAll.length} pageSize={pageSize} onChange={setPage} />
-      </section>
-      )}
-
-      <p className="text-xs text-neutral-500">읽음 상태는 현재 기기 기준으로만 저장됩니다.</p>
+      <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+        읽음 상태는 현재 기기 기준으로만 저장됩니다.
+      </p>
     </div>
   );
 }

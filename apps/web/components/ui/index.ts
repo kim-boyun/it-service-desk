@@ -5,8 +5,9 @@
 
 export { Button } from "./Button";
 export { Badge } from "./Badge";
-export { Card, CardHeader, CardBody } from "./Card";
+export { Card, CardHeader, CardBody, CardFooter } from "./Card";
 export { Input } from "./Input";
 export { Select } from "./Select";
 export { EmptyState } from "./EmptyState";
 export { LoadingSpinner } from "./LoadingSpinner";
+export { default as StatCard } from "./StatCard";
