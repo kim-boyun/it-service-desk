@@ -87,6 +87,20 @@ def upgrade() -> None:
         conn.execute(
             sa.text(
                 "delete from contact_assignment_members "
+                "where id in ("
+                "  select id from contact_assignment_members "
+                "  where category_id in :old_ids "
+                "  and id not in ("
+                "    select min(id) from contact_assignment_members "
+                "    where category_id in :old_ids group by emp_no"
+                "  )"
+                ")"
+            ).bindparams(sa.bindparam("old_ids", expanding=True)),
+            {"old_ids": old_ids},
+        )
+        conn.execute(
+            sa.text(
+                "delete from contact_assignment_members "
                 "where category_id in :old_ids "
                 "and emp_no in (select emp_no from contact_assignment_members where category_id = :infra_id)"
             ).bindparams(sa.bindparam("old_ids", expanding=True)),
