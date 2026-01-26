@@ -46,12 +46,6 @@ const STATUS_SORT: Record<string, number> = {
   closed: 3,
 };
 
-const PRIORITY_SORT: Record<string, number> = {
-  urgent: 0,
-  high: 1,
-  medium: 2,
-  low: 3,
-};
 
 function formatDate(v?: string | null) {
   if (!v) return "-";
@@ -74,9 +68,6 @@ function toTime(v?: string | null) {
   return Number.isNaN(d.getTime()) ? 0 : d.getTime();
 }
 
-function priorityRank(priority?: string) {
-  return PRIORITY_SORT[(priority || "medium").toLowerCase()] ?? 9;
-}
 
 function workTypeLabel(value?: string | null) {
   if (!value) return "-";
@@ -94,44 +85,29 @@ function workTypeLabel(value?: string | null) {
 function statusMeta(status: string) {
   const s = status.toLowerCase();
   if (["open", "new", "pending"].includes(s)) {
-    return { label: "대기", cls: "bg-blue-50 text-blue-700 border-blue-200" };
+    return { label: "대기", variant: "info" };
   }
   if (["in_progress", "processing", "assigned"].includes(s)) {
-    return { label: "진행", cls: "bg-amber-50 text-amber-700 border-amber-200" };
+    return { label: "진행", variant: "warning" };
   }
   if (s === "resolved") {
-    return { label: "완료", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+    return { label: "완료", variant: "success" };
   }
   if (s === "closed") {
-    return { label: "사업 검토", cls: "bg-slate-100 text-slate-700 border-slate-200" };
+    return { label: "사업 검토", variant: "neutral" };
   }
-  return { label: status, cls: "bg-gray-100 text-gray-700 border-gray-200" };
+  return { label: status, variant: "default" };
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const { label, cls } = statusMeta(status);
+  const { label, variant } = statusMeta(status);
   return (
-    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${cls}`}>
+    <Badge variant={variant} size="md">
       {label}
-    </span>
+    </Badge>
   );
 }
 
-function PriorityBadge({ priority }: { priority?: string }) {
-  const p = (priority || "medium").toLowerCase();
-  const map: Record<string, { label: string; cls: string }> = {
-    low: { label: "낮음", cls: "bg-gray-100 text-gray-700 border-gray-200" },
-    medium: { label: "보통", cls: "bg-blue-50 text-blue-700 border-blue-200" },
-    high: { label: "높음", cls: "bg-amber-50 text-amber-800 border-amber-200" },
-    urgent: { label: "긴급", cls: "bg-red-50 text-red-700 border-red-200" },
-  };
-  const v = map[p] ?? map.medium;
-  return (
-    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${v.cls}`}>
-      {v.label}
-    </span>
-  );
-}
 
 export default function ReviewTicketsPage() {
   const router = useRouter();
@@ -140,46 +116,6 @@ export default function ReviewTicketsPage() {
   const [search, setSearch] = useState("");
   const [projectFilter, setProjectFilter] = useState("all");
   const [page, setPage] = useState(1);
-  const pageSize = 10;
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["tickets", { status, page: "review" }],
-    queryFn: () => api<Ticket[]>(`/tickets?status=${status}&limit=100&offset=0`),
-    staleTime: 5_000,
-  });
-
-  const { data: projects = [] } = useQuery({
-    queryKey: ["projects", "mine"],
-    queryFn: () => api<Project[]>("/projects?mine=false"),
-    staleTime: 60_000,
-  });
-
-  useEffect(() => {
-    if (!error) return;
-    setErrorMessage((error as any)?.message ?? "사업 검토 요청을 불러오지 못했습니다.");
-  }, [error]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [search, projectFilter, data?.length]);
-
-  const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    let list = (data ?? []).slice();
-    if (projectFilter !== "all") {
-      list = list.filter((t) => String(t.project_id ?? "") === projectFilter);
-    }
-    if (term) {
-      list = list.filter((t) => t.title.toLowerCase().includes(term) || String(t.id).includes(term));
-    }
-    list.sort((a, b) => {
-      const sa = STATUS_SORT[a.status] ?? 9;
-      const sb = STATUS_SORT[b.status] ?? 9;
-      if (sa !== sb) return sa - sb;
-      const pa = priorityRank(a.priority);
-      const pb = priorityRank(b.priority);
-      if (pa !== pb) return pa - pb;
       return toTime(b.updated_at) - toTime(a.updated_at);
     });
     return list;
@@ -265,9 +201,7 @@ export default function ReviewTicketsPage() {
                     <th className="text-center px-6 py-3 font-semibold w-28" style={{ color: "var(--text-secondary)" }}>
                       상태
                     </th>
-                    <th className="text-center px-6 py-3 font-semibold w-28" style={{ color: "var(--text-secondary)" }}>
-                      우선순위
-                    </th>
+                    
                     <th className="text-center px-6 py-3 font-semibold w-28" style={{ color: "var(--text-secondary)" }}>
                       작업 구분
                     </th>
@@ -307,9 +241,6 @@ export default function ReviewTicketsPage() {
                       <td className="px-6 py-4 text-center">
                         <StatusBadge status={t.status} />
                       </td>
-                      <td className="px-6 py-4 text-center">
-                        <PriorityBadge priority={t.priority} />
-                      </td>
                       <td className="px-6 py-4 text-center" style={{ color: "var(--text-secondary)" }}>
                         {workTypeLabel(t.work_type)}
                       </td>
@@ -323,7 +254,7 @@ export default function ReviewTicketsPage() {
                   ))}
                   {!pageItems.length && !isLoading && (
                     <tr>
-                      <td className="px-6 py-12 text-center" colSpan={6} style={{ color: "var(--text-tertiary)" }}>
+                      <td className="px-6 py-12 text-center" colSpan={5} style={{ color: "var(--text-tertiary)" }}>
                         사업 검토 요청이 없습니다.
                       </td>
                     </tr>

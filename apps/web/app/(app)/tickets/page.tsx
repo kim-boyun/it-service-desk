@@ -50,12 +50,6 @@ const STATUS_SORT: Record<string, number> = {
   closed: 3,
 };
 
-const PRIORITY_SORT: Record<string, number> = {
-  urgent: 0,
-  high: 1,
-  medium: 2,
-  low: 3,
-};
 
 type UserSummary = {
   emp_no: string;
@@ -103,16 +97,6 @@ function statusMeta(status: string): { label: string; variant: any } {
   return { label: status, variant: "default" };
 }
 
-function priorityMeta(priority?: string): { label: string; variant: any } {
-  const p = (priority || "medium").toLowerCase();
-  const map: Record<string, { label: string; variant: any }> = {
-    low: { label: "낮음", variant: "neutral" },
-    medium: { label: "보통", variant: "info" },
-    high: { label: "높음", variant: "warning" },
-    urgent: { label: "긴급", variant: "danger" },
-  };
-  return map[p] ?? map.medium;
-}
 
 function getUpdatedAt(ticket: Ticket) {
   return ticket.updated_at || ticket.created_at;
@@ -124,9 +108,6 @@ function toTime(value?: string | null) {
   return Number.isNaN(d.getTime()) ? 0 : d.getTime();
 }
 
-function priorityRank(priority?: string) {
-  return PRIORITY_SORT[(priority || "medium").toLowerCase()] ?? 9;
-}
 
 function workTypeLabel(value?: string | null) {
   if (!value) return "-";
@@ -152,52 +133,6 @@ export default function TicketsPage() {
   const [search, setSearch] = useState("");
   const [projectFilter, setProjectFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
-  const pageSize = 10;
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["tickets", { limit, offset }],
-    queryFn: () => api<TicketListResponse>(`/tickets?limit=${limit}&offset=${offset}`),
-    staleTime: 5_000,
-    refetchOnMount: "always",
-  });
-
-  const { data: projects = [] } = useQuery({
-    queryKey: ["projects", "mine"],
-    queryFn: () => api<Project[]>("/projects?mine=false"),
-    staleTime: 60_000,
-  });
-
-  useEffect(() => {
-    if (!error) return;
-    setErrorMessage((error as any)?.message ?? "요청 목록을 불러오지 못했습니다.");
-  }, [error]);
-
-  const norm = normalize(data ?? []);
-  const base = norm.items.filter((t) => {
-    const s = (t.status || "").toLowerCase();
-    return s !== "resolved" && s !== "closed";
-  });
-
-  const filteredAll = useMemo(() => {
-    let list = base.slice();
-    if (status !== "all") {
-      list = list.filter((t) => t.status === status);
-    }
-    if (projectFilter !== "all") {
-      list = list.filter((t) => String(t.project_id ?? "") === projectFilter);
-    }
-    const term = search.trim().toLowerCase();
-    if (term) {
-      list = list.filter((t) => t.title.toLowerCase().includes(term) || String(t.id).includes(term));
-    }
-    list.sort((a, b) => {
-      const sa = STATUS_SORT[a.status] ?? 9;
-      const sb = STATUS_SORT[b.status] ?? 9;
-      if (sa !== sb) return sa - sb;
-      const pa = priorityRank(a.priority);
-      const pb = priorityRank(b.priority);
-      if (pa !== pb) return pa - pb;
       return toTime(getUpdatedAt(b)) - toTime(getUpdatedAt(a));
     });
     return list;
@@ -321,9 +256,7 @@ export default function TicketsPage() {
                     <th className="text-center px-6 py-3 font-semibold w-28" style={{ color: "var(--text-secondary)" }}>
                       상태
                     </th>
-                    <th className="text-center px-6 py-3 font-semibold w-28" style={{ color: "var(--text-secondary)" }}>
-                      우선순위
-                    </th>
+                    
                     <th className="text-center px-6 py-3 font-semibold w-28" style={{ color: "var(--text-secondary)" }}>
                       작업 구분
                     </th>
@@ -344,7 +277,6 @@ export default function TicketsPage() {
                 <tbody>
                   {pageItems.map((t) => {
                     const statusInfo = statusMeta(t.status);
-                    const priorityInfo = priorityMeta(t.priority);
                     return (
                       <tr
                         key={t.id}
@@ -363,14 +295,9 @@ export default function TicketsPage() {
                             {t.title}
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-center">
-                          <Badge variant={statusInfo.variant} size="md">
+                        <td className=\"px-6 py-4 text-center\">
+                          <Badge variant={statusInfo.variant} size=\"md\">
                             {statusInfo.label}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <Badge variant={priorityInfo.variant} size="md">
-                            {priorityInfo.label}
                           </Badge>
                         </td>
                         <td className="px-6 py-4 text-center" style={{ color: "var(--text-secondary)" }}>
@@ -387,7 +314,7 @@ export default function TicketsPage() {
                   })}
                   {!pageItems.length && (
                     <tr>
-                      <td className="px-6 py-12 text-center" colSpan={6} style={{ color: "var(--text-tertiary)" }}>
+                      <td className="px-6 py-12 text-center" colSpan={5} style={{ color: "var(--text-tertiary)" }}>
                         조건에 맞는 요청이 없습니다.
                       </td>
                     </tr>
