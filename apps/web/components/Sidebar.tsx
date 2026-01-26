@@ -228,6 +228,7 @@ export default function Sidebar() {
     { href: "/admin", label: "대시보드", icon: BarChart3 },
     { href: "/admin/users", label: "사용자 관리", icon: Users },
     { href: "/admin/manager", label: "카테고리 관리", icon: FolderCog },
+    { href: "/admin/project", label: "프로젝트 관리", icon: FolderCog },
     { href: "/admin/tickets", label: "요청관리", icon: Settings },
     { href: "/admin/tickets/all", label: "모든 요청", icon: List },
   ];
@@ -298,7 +299,7 @@ export default function Sidebar() {
               active={
                 pathname === item.href ||
                 (item.href !== "/tickets" && pathname.startsWith(item.href + "/")) ||
-                (item.href === "/tickets" && /^\/tickets\/\d+$/.test(pathname))
+                (item.href === "/tickets" && /^\\/tickets\\/\\d+$/.test(pathname))
               }
               collapsed={collapsed}
             />

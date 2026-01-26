@@ -6,7 +6,6 @@ class ProjectCreateIn(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     start_date: date | None = None
     end_date: date | None = None
-    member_emp_nos: list[str] = Field(default_factory=list)
 
 
 class ProjectOut(BaseModel):

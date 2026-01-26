@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, desc
 
 from ..db import get_session
-from ..models.ticket import Ticket
+from ..models.ticket import Ticket, TicketAssignee, TicketCategoryLink
 from ..models.project import Project
 from ..models.project_member import ProjectMember
 from ..models.ticket_category import TicketCategory
@@ -55,6 +55,26 @@ def build_project_map(session: Session, ids: set[int]) -> dict[int, Project]:
     projects = session.scalars(stmt).all()
     return {p.id: p for p in projects}
 
+def load_ticket_category_map(session: Session, ticket_ids: list[int]) -> dict[int, list[int]]:
+    if not ticket_ids:
+        return {}
+    stmt = select(TicketCategoryLink).where(TicketCategoryLink.ticket_id.in_(ticket_ids))
+    rows = session.scalars(stmt).all()
+    category_map: dict[int, list[int]] = {}
+    for row in rows:
+        category_map.setdefault(row.ticket_id, []).append(row.category_id)
+    return category_map
+
+def load_ticket_assignee_map(session: Session, ticket_ids: list[int]) -> dict[int, list[str]]:
+    if not ticket_ids:
+        return {}
+    stmt = select(TicketAssignee).where(TicketAssignee.ticket_id.in_(ticket_ids))
+    rows = session.scalars(stmt).all()
+    assignee_map: dict[int, list[str]] = {}
+    for row in rows:
+        assignee_map.setdefault(row.ticket_id, []).append(row.emp_no)
+    return assignee_map
+
 def get_category_label(session: Session, category_id: int | None) -> str:
     if not category_id:
         return "-"
@@ -64,8 +84,27 @@ def get_category_label(session: Session, category_id: int | None) -> str:
     return category.name or str(category_id)
 
 
-def serialize_ticket(t: Ticket, users: dict[str, User], projects: dict[int, Project] | None = None) -> dict:
+def serialize_ticket(
+    t: Ticket,
+    users: dict[str, User],
+    projects: dict[int, Project] | None = None,
+    category_map: dict[int, list[int]] | None = None,
+    assignee_map: dict[int, list[str]] | None = None,
+) -> dict:
     project = projects.get(t.project_id) if projects and t.project_id else None
+    category_ids = []
+    if category_map and t.id in category_map:
+        category_ids = category_map[t.id]
+    elif t.category_id:
+        category_ids = [t.category_id]
+
+    assignee_emp_nos = []
+    if assignee_map and t.id in assignee_map:
+        assignee_emp_nos = assignee_map[t.id]
+    elif t.assignee_emp_no:
+        assignee_emp_nos = [t.assignee_emp_no]
+
+    assignees = [users.get(emp_no) for emp_no in assignee_emp_nos if emp_no in users]
     return {
         "id": t.id,
         "title": t.title,
@@ -73,15 +112,18 @@ def serialize_ticket(t: Ticket, users: dict[str, User], projects: dict[int, Proj
         "status": t.status,
         "priority": t.priority,
         "category_id": t.category_id,
+        "category_ids": category_ids,
         "work_type": t.work_type,
         "project_id": t.project_id,
         "project_name": project.name if project else None,
         "requester_emp_no": t.requester_emp_no,
         "assignee_emp_no": t.assignee_emp_no,
+        "assignee_emp_nos": assignee_emp_nos,
         "created_at": t.created_at,
         "updated_at": t.updated_at,
         "requester": users.get(t.requester_emp_no),
         "assignee": users.get(t.assignee_emp_no) if t.assignee_emp_no else None,
+        "assignees": assignees,
     }
 
 
@@ -99,30 +141,31 @@ def create_ticket(
         project = session.get(Project, project_id)
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
-        member_stmt = select(ProjectMember).where(
-            ProjectMember.project_id == project_id,
-            ProjectMember.user_emp_no == user.emp_no,
-        )
-        if session.execute(member_stmt).first() is None:
-            raise HTTPException(status_code=403, detail="Forbidden")
 
-    if payload.category_id is None:
+    category_ids = payload.category_ids or []
+    if not category_ids and payload.category_id is not None:
+        category_ids = [payload.category_id]
+    category_ids = list(dict.fromkeys(category_ids))
+    if not category_ids:
         raise HTTPException(status_code=422, detail="Category is required")
-    category = session.get(TicketCategory, payload.category_id)
-    if not category:
+    categories = session.scalars(select(TicketCategory).where(TicketCategory.id.in_(category_ids))).all()
+    if len(categories) != len(category_ids):
         raise HTTPException(status_code=404, detail="Category not found")
 
     t = Ticket(
         title=payload.title,
         description=dump_tiptap(payload.description),
         priority=payload.priority,
-        category_id=payload.category_id,
+        category_id=category_ids[0],
         work_type=payload.work_type,
         project_id=project_id,
         requester_emp_no=user.emp_no,
         updated_at=now,
     )
     session.add(t)
+    session.flush()
+    for category_id in category_ids:
+        session.add(TicketCategoryLink(ticket_id=t.id, category_id=category_id))
     session.commit()
     session.refresh(t)
     ev = TicketEvent(
@@ -141,7 +184,7 @@ def create_ticket(
     projects = build_project_map(session, project_ids)
 
     try:
-        category_label = category.name
+        category_label = categories[0].name
         notify_requester_ticket_created(t, user, category_label=category_label)
         if t.category_id:
             admins = get_category_admins(session, t.category_id)
@@ -150,7 +193,7 @@ def create_ticket(
         logger = logging.getLogger(__name__)
         logger.exception("티켓 접수 메일 발송 처리 실패 (ticket_id=%s)", t.id)
 
-    return serialize_ticket(t, users, projects)
+    return serialize_ticket(t, users, projects, {t.id: category_ids}, {})
 
 
 @router.get("/{ticket_id}", response_model=TicketOut)
@@ -169,13 +212,17 @@ def get_ticket(
     else:
         if t.requester_emp_no != user.emp_no:
             raise HTTPException(status_code=403, detail="Forbidden")
+    category_map = load_ticket_category_map(session, [t.id])
+    assignee_map = load_ticket_assignee_map(session, [t.id])
     user_ids: set[str] = {t.requester_emp_no}
     if t.assignee_emp_no:
         user_ids.add(t.assignee_emp_no)
+    for emp_no in assignee_map.get(t.id, []):
+        user_ids.add(emp_no)
     users = build_user_map(session, user_ids)
     project_ids: set[int] = {t.project_id} if t.project_id else set()
     projects = build_project_map(session, project_ids)
-    return serialize_ticket(t, users, projects)
+    return serialize_ticket(t, users, projects, category_map, assignee_map)
 
 
 @router.patch("/{ticket_id}", response_model=TicketOut)
@@ -204,6 +251,14 @@ def update_ticket(
         "work_type": t.work_type,
         "project_id": t.project_id,
     }
+    old_category_ids = [
+        row.category_id
+        for row in session.scalars(
+            select(TicketCategoryLink).where(TicketCategoryLink.ticket_id == ticket_id)
+        ).all()
+    ]
+    if not old_category_ids and t.category_id:
+        old_category_ids = [t.category_id]
     old_project = session.get(Project, t.project_id) if t.project_id else None
 
     fields = set(payload.__fields_set__)
@@ -224,13 +279,20 @@ def update_ticket(
             raise HTTPException(status_code=422, detail=f"Invalid priority: {payload.priority}")
         t.priority = payload.priority
 
-    if "category_id" in fields:
-        if payload.category_id is None:
+    if "category_ids" in fields or "category_id" in fields:
+        next_category_ids = payload.category_ids or []
+        if not next_category_ids and payload.category_id is not None:
+            next_category_ids = [payload.category_id]
+        next_category_ids = list(dict.fromkeys(next_category_ids))
+        if not next_category_ids:
             raise HTTPException(status_code=422, detail="Category is required")
-        category = session.get(TicketCategory, payload.category_id)
-        if not category:
+        categories = session.scalars(select(TicketCategory).where(TicketCategory.id.in_(next_category_ids))).all()
+        if len(categories) != len(next_category_ids):
             raise HTTPException(status_code=404, detail="Category not found")
-        t.category_id = payload.category_id
+        session.query(TicketCategoryLink).filter(TicketCategoryLink.ticket_id == ticket_id).delete()
+        for category_id in next_category_ids:
+            session.add(TicketCategoryLink(ticket_id=ticket_id, category_id=category_id))
+        t.category_id = next_category_ids[0]
 
     if "work_type" in fields:
         t.work_type = payload.work_type
@@ -240,12 +302,6 @@ def update_ticket(
             project = session.get(Project, payload.project_id)
             if not project:
                 raise HTTPException(status_code=404, detail="Project not found")
-            member_stmt = select(ProjectMember).where(
-                ProjectMember.project_id == payload.project_id,
-                ProjectMember.user_emp_no == user.emp_no,
-            )
-            if session.execute(member_stmt).first() is None:
-                raise HTTPException(status_code=403, detail="Forbidden")
         t.project_id = payload.project_id
 
     t.updated_at = datetime.utcnow()
@@ -257,7 +313,7 @@ def update_ticket(
         changed_fields.append("내용")
     if "priority" in fields and t.priority != old["priority"]:
         changed_fields.append("우선순위")
-    if "category_id" in fields and t.category_id != old["category_id"]:
+    if ("category_ids" in fields or "category_id" in fields) and t.category_id != old["category_id"]:
         changed_fields.append("카테고리")
     if "work_type" in fields and t.work_type != old["work_type"]:
         changed_fields.append("작업 구분")
@@ -271,6 +327,7 @@ def update_ticket(
                 "title": old["title"],
                 "priority": old["priority"],
                 "category_id": old["category_id"],
+                "category_ids": old_category_ids,
                 "work_type": old["work_type"],
                 "project_id": old["project_id"],
                 "project_name": old_project.name if old_project else None,
@@ -291,11 +348,15 @@ def update_ticket(
 
     session.commit()
     session.refresh(t)
+    category_map = load_ticket_category_map(session, [t.id])
+    assignee_map = load_ticket_assignee_map(session, [t.id])
     user_ids: set[str] = {t.requester_emp_no}
+    for emp_no in assignee_map.get(t.id, []):
+        user_ids.add(emp_no)
     users = build_user_map(session, user_ids)
     project_ids: set[int] = {t.project_id} if t.project_id else set()
     projects = build_project_map(session, project_ids)
-    return serialize_ticket(t, users, projects)
+    return serialize_ticket(t, users, projects, category_map, assignee_map)
 
 
 @router.delete("/{ticket_id}")
@@ -501,6 +562,9 @@ def assign_ticket(
 
     ticket.assignee_emp_no = assignee_emp_no
     ticket.updated_at = datetime.utcnow()
+    session.query(TicketAssignee).filter(TicketAssignee.ticket_id == ticket_id).delete()
+    if assignee_emp_no is not None:
+        session.add(TicketAssignee(ticket_id=ticket_id, emp_no=assignee_emp_no))
 
     ev = TicketEvent(
         ticket_id=ticket_id,
@@ -524,6 +588,43 @@ def assign_ticket(
     return {"ok": True, "from": old, "to": assignee_emp_no}
 
 
+@router.patch("/{ticket_id}/assignees")
+def update_assignees(
+    ticket_id: int,
+    payload: dict,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    if not is_staff(user):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    ticket = session.get(Ticket, ticket_id)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    assignee_emp_nos = payload.get("assignee_emp_nos") or []
+    if not isinstance(assignee_emp_nos, list):
+        raise HTTPException(status_code=422, detail="assignee_emp_nos must be a list")
+
+    assignee_emp_nos = list(dict.fromkeys([v for v in assignee_emp_nos if v]))
+    if assignee_emp_nos:
+        users = session.scalars(select(User).where(User.emp_no.in_(assignee_emp_nos))).all()
+        if len(users) != len(assignee_emp_nos):
+            raise HTTPException(status_code=404, detail="Assignee user not found")
+        for u in users:
+            if u.role != "admin":
+                raise HTTPException(status_code=422, detail="Assignee must be admin")
+
+    session.query(TicketAssignee).filter(TicketAssignee.ticket_id == ticket_id).delete()
+    for emp_no in assignee_emp_nos:
+        session.add(TicketAssignee(ticket_id=ticket_id, emp_no=emp_no))
+    ticket.assignee_emp_no = assignee_emp_nos[0] if assignee_emp_nos else None
+    ticket.updated_at = datetime.utcnow()
+    session.commit()
+
+    return {"ok": True}
+
+
 @router.patch("/{ticket_id}/admin-meta")
 def update_admin_meta(
     ticket_id: int,
@@ -540,22 +641,33 @@ def update_admin_meta(
 
     changed: list[TicketEvent] = []
 
-    if payload.category_id is not None and payload.category_id != ticket.category_id:
-        old_category_id = ticket.category_id
-        category = session.get(TicketCategory, payload.category_id)
-        if not category:
+    if payload.category_ids is not None or payload.category_id is not None:
+        next_category_ids = payload.category_ids or []
+        if not next_category_ids and payload.category_id is not None:
+            next_category_ids = [payload.category_id]
+        next_category_ids = list(dict.fromkeys(next_category_ids))
+        if not next_category_ids:
+            raise HTTPException(status_code=422, detail="Category is required")
+        categories = session.scalars(select(TicketCategory).where(TicketCategory.id.in_(next_category_ids))).all()
+        if len(categories) != len(next_category_ids):
             raise HTTPException(status_code=404, detail="Category not found")
+
+        old_category_id = ticket.category_id
         category_map = {c.id: c.name for c in session.scalars(select(TicketCategory)).all()}
         old_label = category_map.get(old_category_id, "-")
-        new_label = category.name
-        ticket.category_id = payload.category_id
+        new_label = category_map.get(next_category_ids[0], "-")
+
+        session.query(TicketCategoryLink).filter(TicketCategoryLink.ticket_id == ticket_id).delete()
+        for category_id in next_category_ids:
+            session.add(TicketCategoryLink(ticket_id=ticket_id, category_id=category_id))
+        ticket.category_id = next_category_ids[0]
         changed.append(
             TicketEvent(
                 ticket_id=ticket_id,
                 actor_emp_no=user.emp_no,
                 type="category_changed",
                 from_value=str(old_category_id) if old_category_id else None,
-                to_value=str(payload.category_id),
+                to_value=str(next_category_ids[0]),
                 note=f"{old_label} -> {new_label}",
             )
         )
@@ -621,23 +733,32 @@ def list_tickets(
         stmt = stmt.where(Ticket.priority == priority)
 
     if category_id is not None:
-        stmt = stmt.where(Ticket.category_id == category_id)
+        stmt = stmt.join(TicketCategoryLink, TicketCategoryLink.ticket_id == Ticket.id).where(
+            TicketCategoryLink.category_id == category_id
+        )
 
     if assignee_emp_no is not None:
-        stmt = stmt.where(Ticket.assignee_emp_no == assignee_emp_no)
+        stmt = stmt.join(TicketAssignee, TicketAssignee.ticket_id == Ticket.id).where(
+            TicketAssignee.emp_no == assignee_emp_no
+        )
 
     stmt = stmt.order_by(desc(Ticket.id)).limit(limit).offset(offset)
 
     tickets = list(session.scalars(stmt).all())
+    ticket_ids = [t.id for t in tickets]
+    category_map = load_ticket_category_map(session, ticket_ids)
+    assignee_map = load_ticket_assignee_map(session, ticket_ids)
     user_ids: set[str] = set()
     for t in tickets:
         user_ids.add(t.requester_emp_no)
         if t.assignee_emp_no:
             user_ids.add(t.assignee_emp_no)
+        for emp_no in assignee_map.get(t.id, []):
+            user_ids.add(emp_no)
     project_ids: set[int] = {t.project_id for t in tickets if t.project_id}
     users = build_user_map(session, user_ids)
     projects = build_project_map(session, project_ids)
-    return [serialize_ticket(t, users, projects) for t in tickets]
+    return [serialize_ticket(t, users, projects, category_map, assignee_map) for t in tickets]
 
 
 @router.get("/{ticket_id}/detail", response_model=TicketDetailOut)
@@ -680,6 +801,9 @@ def get_ticket_detail(
     user_ids: set[str] = {ticket.requester_emp_no}
     if ticket.assignee_emp_no:
         user_ids.add(ticket.assignee_emp_no)
+    assignee_map = load_ticket_assignee_map(session, [ticket.id])
+    for emp_no in assignee_map.get(ticket.id, []):
+        user_ids.add(emp_no)
     for c in comments:
         user_ids.add(c.author_emp_no)
     project_ids: set[int] = {ticket.project_id} if ticket.project_id else set()
@@ -699,8 +823,9 @@ def get_ticket_detail(
         for c in comments
     ]
 
+    category_map = load_ticket_category_map(session, [ticket.id])
     return {
-        "ticket": serialize_ticket(ticket, users, projects),
+        "ticket": serialize_ticket(ticket, users, projects, category_map, assignee_map),
         "comments": comment_payload,
         "events": events,
         "attachments": attachments,

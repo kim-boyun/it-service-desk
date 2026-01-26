@@ -53,6 +53,7 @@ type Ticket = {
   status: string;
   priority: string;
   category_id: number | null;
+  category_ids?: number[] | null;
   work_type?: string | null;
   project_id?: number | null;
   project_name?: string | null;
@@ -60,6 +61,8 @@ type Ticket = {
   requester_emp_no: string;
   assignee?: UserSummary | null;
   assignee_emp_no: string | null;
+  assignee_emp_nos?: string[] | null;
+  assignees?: UserSummary[];
   created_at: string;
   updated_at?: string | null;
 };
@@ -159,6 +162,21 @@ function formatUser(user?: UserSummary | null, fallbackEmpNo?: string | null, em
   return user.emp_no || fallbackEmpNo || emptyLabel;
 }
 
+function formatAssignees(list?: UserSummary[] | null, fallback?: string[] | null) {
+  if (list && list.length > 0) {
+    return list.map((u) => formatUser(u, u.emp_no)).join(", ");
+  }
+  if (fallback && fallback.length > 0) {
+    return fallback.join(", ");
+  }
+  return "미배정";
+}
+
+function formatCategoryList(ids: number[] | null | undefined, map: Record<number, string>) {
+  if (!ids || ids.length === 0) return "-";
+  return ids.map((id) => map[id] ?? String(id)).join(", ");
+}
+
 function Badge({ label, cls }: { label: string; cls: string }) {
   return (
     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${cls}`}>
@@ -224,8 +242,8 @@ export default function AdminTicketDetailPage() {
   const [note, setNote] = useState("");
   const [openEventId, setOpenEventId] = useState<number | null>(null);
   const [openCommentId, setOpenCommentId] = useState<number | null>(null);
-  const [assigneeEmpNo, setAssigneeEmpNo] = useState<string>("");
-  const [categoryId, setCategoryId] = useState<number | "">("");
+  const [assigneeEmpNos, setAssigneeEmpNos] = useState<string[]>([]);
+  const [categoryIds, setCategoryIds] = useState<number[]>([]);
   const [workType, setWorkType] = useState<string>("");
   const [commentModalOpen, setCommentModalOpen] = useState(false);
   const [commentTitle, setCommentTitle] = useState("");
@@ -262,8 +280,20 @@ export default function AdminTicketDetailPage() {
     if (!data?.ticket) return;
     const t = data.ticket;
     setStatus(t.status);
-    setAssigneeEmpNo(t.assignee_emp_no ?? "");
-    setCategoryId(t.category_id ?? "");
+    const nextAssignees =
+      t.assignee_emp_nos && t.assignee_emp_nos.length > 0
+        ? t.assignee_emp_nos
+        : t.assignee_emp_no
+          ? [t.assignee_emp_no]
+          : [];
+    const nextCategories =
+      t.category_ids && t.category_ids.length > 0
+        ? t.category_ids
+        : t.category_id
+          ? [t.category_id]
+          : [];
+    setAssigneeEmpNos(nextAssignees);
+    setCategoryIds(nextCategories);
     setWorkType(t.work_type ?? "");
   }, [data?.ticket]);
 
@@ -325,11 +355,11 @@ export default function AdminTicketDetailPage() {
   });
 
 
-  const assignM = useMutation({
-    mutationFn: (nextEmpNo: string | null) =>
-      api(`/tickets/${ticketId}/assign`, {
+  const updateAssigneesM = useMutation({
+    mutationFn: (nextEmpNos: string[]) =>
+      api(`/tickets/${ticketId}/assignees`, {
         method: "PATCH",
-        body: { assignee_emp_no: nextEmpNo },
+        body: { assignee_emp_nos: nextEmpNos },
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-ticket-detail", ticketId] });
@@ -338,7 +368,7 @@ export default function AdminTicketDetailPage() {
   });
 
   const updateMetaM = useMutation({
-    mutationFn: (payload: { category_id?: number | null; work_type?: string | null }) =>
+    mutationFn: (payload: { category_ids?: number[] | null; work_type?: string | null }) =>
       api(`/tickets/${ticketId}/admin-meta`, {
         method: "PATCH",
         body: payload,
@@ -388,6 +418,7 @@ export default function AdminTicketDetailPage() {
       setCommentFiles([]);
       setCommentNotifyEmail(false);
       setCommentError(null);
+      setCommentModalOpen(false);
       qc.invalidateQueries({ queryKey: ["admin-ticket-detail", ticketId] });
     },
     onError: (err: any) => {
@@ -469,46 +500,71 @@ export default function AdminTicketDetailPage() {
               <FieldRow
                 label="담당자"
                 value={
-                  <select
-                    className="w-full border rounded px-2 py-1 text-sm"
-                    value={assigneeEmpNo}
-                    onChange={(e) => {
-                      const next = e.target.value || null;
-                      setAssigneeEmpNo(e.target.value);
-                      assignM.mutate(next);
-                    }}
-                  >
-                    <option value="">미배정</option>
-                    {staffOptions.map((u) => (
-                      <option key={u.emp_no} value={u.emp_no}>
-                        {formatUser(u, u.emp_no)}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {staffOptions.length === 0 && (
+                        <span className="text-xs text-slate-500">관리자 계정이 없습니다.</span>
+                      )}
+                      {staffOptions.map((u) => {
+                        const checked = assigneeEmpNos.includes(u.emp_no);
+                        return (
+                          <label key={u.emp_no} className="inline-flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-slate-300"
+                              checked={checked}
+                              onChange={() => {
+                                const next = checked
+                                  ? assigneeEmpNos.filter((empNo) => empNo !== u.emp_no)
+                                  : [...assigneeEmpNos, u.emp_no];
+                                setAssigneeEmpNos(next);
+                                updateAssigneesM.mutate(next);
+                              }}
+                            />
+                            <span>{formatUser(u, u.emp_no)}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {updateAssigneesM.isError && (
+                      <div className="text-xs text-red-600">담당자 변경에 실패했습니다.</div>
+                    )}
+                  </div>
                 }
               />
               <FieldRow
                 label="카테고리"
                 value={
-                  <select
-                    className="w-full border rounded px-2 py-1 text-sm"
-                    value={categoryId}
-                    onChange={(e) => {
-                      const next = e.target.value ? Number(e.target.value) : null;
-                      setCategoryId(next ?? "");
-                      updateMetaM.mutate({
-                        category_id: next,
-                        work_type: workType || null,
-                      });
-                    }}
-                  >
-                    <option value="">선택 안 함</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {categories.length === 0 && (
+                        <span className="text-xs text-slate-500">카테고리가 없습니다.</span>
+                      )}
+                      {categories.map((c) => {
+                        const checked = categoryIds.includes(c.id);
+                        return (
+                          <label key={c.id} className="inline-flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-slate-300"
+                              checked={checked}
+                              onChange={() => {
+                                const next = checked
+                                  ? categoryIds.filter((id) => id !== c.id)
+                                  : [...categoryIds, c.id];
+                                setCategoryIds(next);
+                                updateMetaM.mutate({
+                                  category_ids: next,
+                                  work_type: workType || null,
+                                });
+                              }}
+                            />
+                            <span>{c.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
                 }
               />
               <FieldRow
@@ -521,7 +577,7 @@ export default function AdminTicketDetailPage() {
                       const next = e.target.value || null;
                       setWorkType(e.target.value);
                       updateMetaM.mutate({
-                        category_id: categoryId === "" ? null : Number(categoryId),
+                        category_ids: categoryIds,
                         work_type: next,
                       });
                     }}
@@ -709,7 +765,11 @@ export default function AdminTicketDetailPage() {
                                     <div className="grid grid-cols-12 border-b">
                                       <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">카테고리</div>
                                       <div className="col-span-9 px-2 py-2">
-                                        {categoryLabel(before.category_id ?? null, categoryMap)}
+                                        {formatCategoryList(
+                                          before.category_ids ??
+                                            (before.category_id ? [before.category_id] : []),
+                                          categoryMap,
+                                        )}
                                       </div>
                                     </div>
                                     <div className="grid grid-cols-12 border-b">

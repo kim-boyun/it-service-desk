@@ -36,16 +36,11 @@ def create_project(
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
 ):
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Forbidden")
+
     if payload.start_date and payload.end_date and payload.start_date > payload.end_date:
         raise HTTPException(status_code=422, detail="Invalid project period")
-
-    member_emp_nos = set(payload.member_emp_nos or [])
-    member_emp_nos.add(user.emp_no)
-
-    if member_emp_nos:
-        users = session.scalars(select(User).where(User.emp_no.in_(member_emp_nos))).all()
-        if len(users) != len(member_emp_nos):
-            raise HTTPException(status_code=404, detail="User not found")
 
     project = Project(
         name=payload.name.strip(),
@@ -57,8 +52,21 @@ def create_project(
     session.commit()
     session.refresh(project)
 
-    for emp_no in member_emp_nos:
-        session.add(ProjectMember(project_id=project.id, user_emp_no=emp_no))
-    session.commit()
-
     return project
+
+
+@router.delete("/{project_id}")
+def delete_project(
+    project_id: int,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Forbidden")
+    project = session.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    session.query(ProjectMember).filter(ProjectMember.project_id == project_id).delete()
+    session.delete(project)
+    session.commit()
+    return {"ok": True}

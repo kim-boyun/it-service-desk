@@ -20,3 +20,19 @@ class Ticket(Base):
 
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class TicketCategoryLink(Base):
+    __tablename__ = "ticket_category_links"
+
+    ticket_id: Mapped[int] = mapped_column(Integer, ForeignKey("tickets.id", ondelete="CASCADE"), primary_key=True)
+    category_id: Mapped[int] = mapped_column(Integer, ForeignKey("ticket_categories.id"), primary_key=True)
+    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class TicketAssignee(Base):
+    __tablename__ = "ticket_assignees"
+
+    ticket_id: Mapped[int] = mapped_column(Integer, ForeignKey("tickets.id", ondelete="CASCADE"), primary_key=True)
+    emp_no: Mapped[str] = mapped_column(String(50), ForeignKey("users.emp_no"), primary_key=True)
+    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())

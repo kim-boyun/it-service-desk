@@ -1,11 +1,11 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, apiForm } from "@/lib/api";
 import { getToken } from "@/lib/auth";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMe } from "@/lib/auth-context";
 import { useTicketCategories } from "@/lib/use-ticket-categories";
 import { EMPTY_DOC, isEmptyDoc, TiptapDoc } from "@/lib/tiptap";
@@ -53,6 +53,7 @@ type Ticket = {
   status: string;
   priority: string;
   category_id: number | null;
+  category_ids?: number[] | null;
   work_type?: string | null;
   project_id?: number | null;
   project_name?: string | null;
@@ -60,6 +61,8 @@ type Ticket = {
   requester_emp_no: string;
   assignee?: UserSummary | null;
   assignee_emp_no: string | null;
+  assignee_emp_nos?: string[] | null;
+  assignees?: UserSummary[];
   created_at: string;
   updated_at?: string | null;
 };
@@ -79,17 +82,7 @@ type TicketDetail = {
   attachments: Attachment[];
 };
 
-const READ_KEY = "it_service_desk_ticket_reads";
-const UNSAVED_MESSAGE =
-  "페이지를 나가면 변경사항이 저장되지 않습니다.\n그래도 이동하시겠습니까?";
 const MAX_COMMENT_FILE_BYTES = 25 * 1024 * 1024;
-
-const STATUS_OPTIONS = [
-  { value: "open", label: "대기" },
-  { value: "in_progress", label: "진행" },
-  { value: "resolved", label: "완료" },
-  { value: "closed", label: "사업 검토" },
-];
 
 function statusMeta(status: string) {
   const s = status.toLowerCase();
@@ -99,10 +92,10 @@ function statusMeta(status: string) {
   if (["in_progress", "processing", "assigned"].includes(s)) {
     return { label: "진행", cls: "bg-amber-50 text-amber-700 border-amber-200" };
   }
-  if (s == "resolved") {
+  if (s === "resolved") {
     return { label: "완료", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" };
   }
-  if (s == "closed") {
+  if (s === "closed") {
     return { label: "사업 검토", cls: "bg-slate-100 text-slate-700 border-slate-200" };
   }
   return { label: status, cls: "bg-gray-100 text-gray-700 border-gray-200" };
@@ -116,11 +109,6 @@ function priorityMeta(priority: string) {
     urgent: { label: "긴급", cls: "bg-red-50 text-red-700 border-red-200" },
   };
   return map[priority] ?? map.medium;
-}
-
-function categoryLabel(c: number | null | undefined, map: Record<number, string>) {
-  if (!c) return "-";
-  return map[c] ?? String(c);
 }
 
 function workTypeLabel(value?: string | null) {
@@ -152,6 +140,21 @@ function formatUser(user?: UserSummary | null, fallbackEmpNo?: string | null, em
   return user.emp_no || fallbackEmpNo || emptyLabel;
 }
 
+function formatAssignees(list?: UserSummary[] | null, fallback?: string[] | null) {
+  if (list && list.length > 0) {
+    return list.map((u) => formatUser(u, u.emp_no)).join(", ");
+  }
+  if (fallback && fallback.length > 0) {
+    return fallback.join(", ");
+  }
+  return "미배정";
+}
+
+function formatCategoryList(ids: number[] | null | undefined, map: Record<number, string>) {
+  if (!ids || ids.length === 0) return "-";
+  return ids.map((id) => map[id] ?? String(id)).join(", ");
+}
+
 function Badge({ label, cls }: { label: string; cls: string }) {
   return (
     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${cls}`}>
@@ -175,84 +178,28 @@ function formatDate(v?: string | null) {
   return Number.isNaN(d.getTime()) ? "-" : d.toLocaleString();
 }
 
-function markLocalRead(ticketId: number, updatedAt?: string | null) {
-  if (typeof window === "undefined") return;
-  const value = updatedAt ?? new Date().toISOString();
-  try {
-    const raw = localStorage.getItem(READ_KEY);
-    const prev = raw ? JSON.parse(raw) : {};
-    const next = { ...(prev ?? {}), [String(ticketId)]: value };
-    localStorage.setItem(READ_KEY, JSON.stringify(next));
-  } catch {
-    localStorage.setItem(READ_KEY, JSON.stringify({ [String(ticketId)]: value }));
-  }
-}
-
-function eventLabel(type: string) {
-  const map: Record<string, string> = {
-    ticket_created: "요청 접수",
-    status_changed: "상태 변경",
-    assignee_assigned: "담당자 배정",
-    assignee_changed: "담당자 변경",
-    requester_updated: "요청 수정",
-    category_changed: "카테고리 변경",
-    work_type_changed: "작업 구분 변경",
-  };
-  return map[type] ?? type;
-}
-
-function parseEditNote(note?: string | null): { summary: string; before?: any } | null {
-  if (!note) return null;
-  try {
-    const parsed = JSON.parse(note);
-    if (parsed && typeof parsed === "object") {
-      return {
-        summary: typeof parsed.summary === "string" ? parsed.summary : "-",
-        before: parsed.before,
-      };
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
-
 export default function TicketDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const qc = useQueryClient();
   const me = useMe();
   const { map: categoryMap } = useTicketCategories();
   const ticketId = Number(params.id);
-  const scopeParam = searchParams?.get("scope");
-  const scopeQuery = scopeParam === "all" ? "?scope=all" : "";
-  const isStaffScope = scopeParam === "all" && me.role === "admin";
 
-  const [status, setStatus] = useState("open");
-  const [note, setNote] = useState("");
-  const [openEventId, setOpenEventId] = useState<number | null>(null);
   const [openCommentId, setOpenCommentId] = useState<number | null>(null);
   const [commentModalOpen, setCommentModalOpen] = useState(false);
   const [commentTitle, setCommentTitle] = useState("");
   const [commentBody, setCommentBody] = useState<TiptapDoc>(EMPTY_DOC);
   const [commentFiles, setCommentFiles] = useState<File[]>([]);
   const [commentError, setCommentError] = useState<string | null>(null);
-  const commentFileInputRef = useRef<HTMLInputElement | null>(null);
   const [commentNotifyEmail, setCommentNotifyEmail] = useState(false);
-  const hasUnsavedComment = false;
+  const commentFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["ticketDetail", ticketId, scopeParam],
-    queryFn: () => api<TicketDetail>(`/tickets/${ticketId}/detail${scopeQuery}`),
+    queryKey: ["ticketDetail", ticketId],
+    queryFn: () => api<TicketDetail>(`/tickets/${ticketId}/detail`),
+    enabled: Number.isFinite(ticketId),
   });
-
-  useEffect(() => {
-    if (data?.ticket.status) {
-      setStatus(data.ticket.status);
-      markLocalRead(ticketId, data.ticket.updated_at ?? data.ticket.created_at);
-    }
-  }, [data?.ticket, ticketId]);
 
   const downloadAttachmentM = useMutation({
     mutationFn: async (attachmentId: number) => {
@@ -298,21 +245,11 @@ export default function TicketDetailPage() {
     },
   });
 
-  const updateStatusM = useMutation({
+  const deleteM = useMutation({
     mutationFn: () =>
-      api(`/tickets/${ticketId}/status`, {
-        method: "PATCH",
-        body: { status, note: note || undefined },
+      api(`/tickets/${ticketId}`, {
+        method: "DELETE",
       }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["ticketDetail", ticketId, scopeParam] });
-      qc.invalidateQueries({ queryKey: ["tickets"] });
-      setNote("");
-    },
-  });
-
-  const deleteTicketM = useMutation({
-    mutationFn: () => api(`/tickets/${ticketId}`, { method: "DELETE" }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tickets"] });
       router.replace("/tickets");
@@ -346,9 +283,10 @@ export default function TicketDetailPage() {
       setCommentFiles([]);
       setCommentNotifyEmail(false);
       setCommentError(null);
-      qc.invalidateQueries({ queryKey: ["ticketDetail", ticketId, scopeParam] });
+      setCommentModalOpen(false);
+      qc.invalidateQueries({ queryKey: ["ticketDetail", ticketId] });
     },
-    onError: (err: any) => {
+    onError: () => {
       setCommentError("댓글 등록에 실패했습니다.");
     },
   });
@@ -371,7 +309,7 @@ export default function TicketDetailPage() {
   }
 
   function removeCommentFile(idx: number) {
-    setCommentFiles((prev) => prev.filter((_, i) => i != idx));
+    setCommentFiles((prev) => prev.filter((_, i) => i !== idx));
   }
 
   if (isLoading) return <div className="p-6">요청을 불러오는 중입니다...</div>;
@@ -379,103 +317,107 @@ export default function TicketDetailPage() {
   if (!data) return <div className="p-6 text-sm text-gray-500">요청이 없습니다.</div>;
 
   const t = data.ticket;
-  const canEdit =
-    !isStaffScope && me.emp_no === t.requester_emp_no && t.status === "open" && !t.assignee_emp_no;
   const statusInfo = statusMeta(t.status);
   const priorityInfo = priorityMeta(t.priority);
-  const attachments = data.attachments ?? [];
-  const comments = data.comments ?? [];
-  const selectedComment = comments.find((c) => c.id === openCommentId) ?? null;
-  const ticketAttachments = attachments.filter((a) => !a.comment_id);
-  const selectedAttachments = attachments.filter((a) => a.comment_id === openCommentId);
+  const selectedComment = data.comments.find((c) => c.id === openCommentId) ?? null;
+  const ticketAttachments = data.attachments.filter((a) => !a.comment_id);
+  const selectedAttachments = data.attachments.filter((a) => a.comment_id === openCommentId);
+  const canEdit = t.status === "open" && t.requester_emp_no === me.emp_no;
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold">{t.title}</h1>
-          <div className="flex items-center gap-2 mt-2">
-            <Badge label={statusInfo.label} cls={statusInfo.cls} />
-            <Badge label={priorityInfo.label} cls={priorityInfo.cls} />
+    <>
+      <div className="p-6 space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-semibold">{t.title}</h1>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge label={statusInfo.label} cls={statusInfo.cls} />
+              <Badge label={priorityInfo.label} cls={priorityInfo.cls} />
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {canEdit && (
-            <>
+          <div className="flex items-center gap-2">
+            {canEdit && (
               <button
-                className="border rounded px-3 py-2 text-sm bg-white transition-all hover:bg-slate-50 active:bg-slate-100 hover:shadow-sm active:translate-y-px"
-                onClick={() => {
-                  if (hasUnsavedComment && !confirm(UNSAVED_MESSAGE)) return;
-                  router.push(`/tickets/${t.id}/edit`);
-                }}
+                className="border rounded px-3 py-2 text-sm bg-white transition-all hover:bg-slate-50 active:bg-slate-100"
+                onClick={() => router.replace(`/tickets/${ticketId}/edit`)}
               >
                 수정
               </button>
+            )}
+            {canEdit && (
               <button
-                className="border rounded px-3 py-2 text-sm text-red-600 border-red-200 transition-colors hover:bg-red-50 active:bg-red-100 disabled:opacity-60"
+                className="border border-red-200 text-red-700 rounded px-3 py-2 text-sm hover:bg-red-50"
                 onClick={() => {
                   if (!confirm("요청을 삭제하시겠습니까?")) return;
-                  deleteTicketM.mutate();
+                  deleteM.mutate();
                 }}
-                disabled={deleteTicketM.isPending}
+                disabled={deleteM.isPending}
               >
-                삭제
+                {deleteM.isPending ? "삭제 중.." : "삭제"}
               </button>
-            </>
-          )}
-          <button
-            className="border rounded px-3 py-2 text-sm bg-white transition-all hover:bg-slate-50 active:bg-slate-100 hover:shadow-sm active:translate-y-px"
-            onClick={() => {
-              if (hasUnsavedComment && !confirm(UNSAVED_MESSAGE)) return;
-              router.back();
-            }}
-          >
-            돌아가기
-          </button>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-2 divide-y divide-slate-200 md:divide-y-0 md:divide-x">
-            <div className="divide-y divide-slate-200">
-              <FieldRow label="요청자" value={formatUser(t.requester, t.requester_emp_no)} />
-              <FieldRow label="담당자" value={formatUser(t.assignee, t.assignee_emp_no, "미배정")} />
-              <FieldRow label="카테고리" value={categoryLabel(t.category_id, categoryMap)} />
-              <FieldRow label="작업 구분" value={workTypeLabel(t.work_type)} />
-            </div>
-            <div className="divide-y divide-slate-200">
-              <FieldRow label="프로젝트" value={t.project_name ?? "-"} />
-              <FieldRow label="생성일" value={formatDate(t.created_at)} />
-              <FieldRow label="최근 업데이트" value={formatDate(t.updated_at || t.created_at)} />
-              <FieldRow label="" value="" />
-            </div>
+            )}
+            <button
+              className="border rounded px-3 py-2 text-sm bg-white transition-all hover:bg-slate-50 active:bg-slate-100"
+              onClick={() => router.back()}
+            >
+              돌아가기
+            </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4">
-          <div className="space-y-4">
-            <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-              <div className="px-4 py-3 border-b text-sm font-semibold">요청 상세</div>
-              <div className="p-4 space-y-4">
-                <section className="space-y-2">
-                  <div className="text-sm font-semibold">요청 내용</div>
-                  <div className="border rounded p-3 text-sm">
+        <div className="space-y-4">
+          <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-2 divide-y divide-slate-200 md:divide-y-0 md:divide-x">
+              <div className="divide-y divide-slate-200">
+                <FieldRow label="요청자" value={formatUser(t.requester, t.requester_emp_no)} />
+                <FieldRow
+                  label="담당자"
+                  value={formatAssignees(t.assignees, t.assignee_emp_nos ?? null)}
+                />
+                <FieldRow
+                  label="카테고리"
+                  value={formatCategoryList(
+                    t.category_ids ?? (t.category_id ? [t.category_id] : []),
+                    categoryMap,
+                  )}
+                />
+                <FieldRow label="작업 구분" value={workTypeLabel(t.work_type)} />
+              </div>
+              <div className="divide-y divide-slate-200">
+                <FieldRow label="프로젝트" value={t.project_name ?? "-"} />
+                <FieldRow label="생성일" value={formatDate(t.created_at)} />
+                <FieldRow label="최근 업데이트" value={formatDate(t.updated_at)} />
+                <FieldRow label="" value="" />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4">
+            <div className="space-y-4">
+              <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div className="px-4 py-2 border-b text-sm font-semibold">요청 상세</div>
+                <div className="p-4 space-y-4">
+                  <div className="rounded border p-3 text-sm">
                     <TiptapViewer value={t.description} />
                   </div>
-                </section>
+                </div>
+              </section>
 
-                <section className="space-y-2">
-                  <div className="text-sm font-semibold">첨부파일</div>
+              <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div className="px-4 py-2 border-b text-sm font-semibold">첨부파일</div>
+                <div className="p-4 space-y-2">
                   {ticketAttachments.length === 0 ? (
                     <div className="text-sm text-gray-500">첨부파일이 없습니다.</div>
                   ) : (
                     <div className="border rounded divide-y">
                       {ticketAttachments.map((a) => (
                         <div key={a.id} className="flex items-center justify-between px-3 py-2">
-                          <div className="text-sm">{a.filename}</div>
+                          <div>
+                            <div className="text-sm text-gray-900">{a.filename}</div>
+                            <div className="text-xs text-gray-500">{formatBytes(a.size)}</div>
+                          </div>
                           <button
-                            className="text-sm border rounded px-2 py-1 bg-white transition-all hover:bg-slate-50 active:bg-slate-100 hover:shadow-sm active:translate-y-px"
+                            className="text-sm border rounded px-2 py-1 transition-colors hover:bg-slate-50 active:bg-slate-100"
                             onClick={() => downloadAttachmentM.mutate(a.id)}
                             disabled={downloadAttachmentM.isPending}
                           >
@@ -485,194 +427,75 @@ export default function TicketDetailPage() {
                       ))}
                     </div>
                   )}
-                </section>
-              </div>
-            </div>
-          </div>
-
-          <aside className="rounded-xl border border-slate-200 bg-white shadow-sm h-fit">
-            <div className="flex items-center justify-between px-4 py-3 border-b">
-              <span className="text-sm font-semibold">댓글</span>
-              <button
-                className="text-xs border rounded px-2 py-1 transition-colors hover:bg-slate-50 active:bg-slate-100"
-                onClick={() => setCommentModalOpen(true)}
-              >
-                등록
-              </button>
-            </div>
-            <div className="p-4 space-y-4">
-              {comments.length === 0 ? (
-                <div className="text-sm text-gray-500">댓글이 없습니다.</div>
-              ) : (
-                <div className="border rounded divide-y max-h-[520px] overflow-auto">
-                  {comments.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      className="w-full text-left px-3 py-2 transition-colors hover:bg-slate-50 active:bg-slate-100"
-                      onClick={() => setOpenCommentId(c.id)}
-                    >
-                      <div className="text-sm font-semibold text-slate-900">{c.title || "제목 없음"}</div>
-                      <div className="text-xs text-slate-600 mt-1">{formatUser(c.author, c.author_emp_no)}</div>
-                      <div className="text-xs text-slate-500 mt-1">{formatDate(c.created_at)}</div>
-                    </button>
-                  ))}
                 </div>
-              )}
-            </div>
-          </aside>
-        </div>
+              </section>
 
-          
-          {isStaffScope && (
-            <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-              <div className="px-4 py-3 border-b text-sm font-semibold">상태 변경</div>
-              <div className="p-4 space-y-3">
-                <select
-                  className="w-full border rounded px-3 py-2 text-sm"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                >
-                  {STATUS_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-                <textarea
-                  className="w-full border rounded px-3 py-2 text-sm min-h-[80px]"
-                  placeholder="상태 변경 메모 (선택)"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                />
-                {updateStatusM.isError && (
-                  <div className="text-xs text-red-600">
-                    {(updateStatusM.error as any)?.message ?? "상태 변경에 실패했습니다."}
-                  </div>
-                )}
-                <button
-                  className="w-full border rounded px-3 py-2 text-sm bg-white text-black hover:bg-gray-100 disabled:opacity-60"
-                  onClick={() => updateStatusM.mutate()}
-                  disabled={updateStatusM.isPending}
-                >
-                  {updateStatusM.isPending ? "변경 중.." : "상태 업데이트"}
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4">
-            <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-              <div className="px-4 py-2 border-b text-sm font-semibold">처리 이력</div>
-              {data.events.length === 0 ? (
-                <div className="p-4 text-sm text-gray-500">처리 이력이 없습니다.</div>
-              ) : (
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr className="border-b">
-                      <th className="text-center p-2 w-16">No</th>
-                      <th className="text-center p-2 w-44">시각</th>
-                      <th className="text-center p-2 w-28">유형</th>
-                      <th className="text-center p-2">내용</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.events.map((e, idx) => {
-                      const editNote = e.type === "requester_updated" ? parseEditNote(e.note) : null;
-                      const summary = editNote?.summary ?? e.note ?? "-";
-                      const isExpandable = Boolean(editNote?.before);
-                      const isOpen = openEventId === e.id;
-                      const before = editNote?.before ?? {};
-                      const rowNo = data.events.length - idx;
-                      return (
-                        <Fragment key={e.id}>
-                          <tr
-                            className={`border-b ${isExpandable ? "cursor-pointer hover:bg-gray-50" : ""}`}
-                            onClick={() => {
-                              if (!isExpandable) return;
-                              setOpenEventId(isOpen ? null : e.id);
-                            }}
-                          >
+              <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div className="px-4 py-2 border-b text-sm font-semibold">처리 이력</div>
+                {data.events.length === 0 ? (
+                  <div className="p-4 text-sm text-gray-500">처리 이력이 없습니다.</div>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50">
+                      <tr className="border-b">
+                        <th className="text-center p-2 w-16">No</th>
+                        <th className="text-center p-2 w-44">시각</th>
+                        <th className="text-center p-2 w-28">유형</th>
+                        <th className="text-center p-2">내용</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.events.map((e, idx) => {
+                        const rowNo = data.events.length - idx;
+                        return (
+                          <tr key={e.id} className="border-b">
                             <td className="p-2 text-center">{rowNo}</td>
                             <td className="p-2 text-center text-gray-600">{formatDate(e.created_at)}</td>
-                            <td className="p-2 text-center">{eventLabel(e.type)}</td>
-                            <td className="p-2 text-center text-gray-700">{summary}</td>
+                            <td className="p-2 text-center">{e.type}</td>
+                            <td className="p-2 text-center text-gray-700">{e.note ?? "-"}</td>
                           </tr>
-                          {isExpandable && isOpen && (
-                            <tr className="border-b bg-gray-50/50">
-                              <td className="p-3" colSpan={4}>
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                  <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-                                    <div className="px-3 py-2 text-xs font-semibold border-b">수정 전 정보</div>
-                                    <div className="divide-y text-xs">
-                                      <div className="grid grid-cols-12 border-b">
-                                        <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                          제목
-                                        </div>
-                                        <div className="col-span-9 px-2 py-2">{before.title ?? "-"}</div>
-                                      </div>
-                                      <div className="grid grid-cols-12 border-b">
-                                        <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                          제목
-                                        </div>
-                                        <div className="col-span-9 px-2 py-2">
-                                          {priorityMeta(before.priority ?? "medium").label}
-                                        </div>
-                                      </div>
-                                      <div className="grid grid-cols-12 border-b">
-                                        <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                          제목
-                                        </div>
-                                        <div className="col-span-9 px-2 py-2">
-                                          {categoryLabel(before.category_id ?? null, categoryMap)}
-                                        </div>
-                                      </div>
-                                      <div className="grid grid-cols-12 border-b">
-                                        <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                          제목
-                                        </div>
-                                        <div className="col-span-9 px-2 py-2">{workTypeLabel(before.work_type)}</div>
-                                      </div>
-                                      <div className="grid grid-cols-12 border-b">
-                                        <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                          제목
-                                        </div>
-                                        <div className="col-span-9 px-2 py-2">{before.project_name ?? "-"}</div>
-                                      </div>
-                                      <div className="grid grid-cols-12 border-b">
-                                        <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                          제목
-                                        </div>
-                                        <div className="col-span-9 px-2 py-2">{formatDate(before.created_at)}</div>
-                                      </div>
-                                      <div className="grid grid-cols-12">
-                                        <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                          제목
-                                        </div>
-                                        <div className="col-span-9 px-2 py-2">{formatDate(before.updated_at)}</div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-                                    <div className="px-3 py-2 text-xs font-semibold border-b">이전 요청 상세</div>
-                                    <div className="p-3 text-sm">
-                                      <TiptapViewer value={before.description ?? { type: "doc", content: [] }} />
-                                    </div>
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                        </Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )}
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </section>
             </div>
-            <div />
+
+            <aside className="rounded-xl border border-slate-200 bg-white shadow-sm h-fit">
+              <div className="flex items-center justify-between px-4 py-3 border-b">
+                <span className="text-sm font-semibold">댓글</span>
+                <button
+                  className="text-xs border rounded px-2 py-1 transition-colors hover:bg-slate-50 active:bg-slate-100"
+                  onClick={() => setCommentModalOpen(true)}
+                >
+                  등록
+                </button>
+              </div>
+              <div className="p-4 space-y-4">
+                {data.comments.length === 0 ? (
+                  <div className="text-sm text-gray-500">댓글이 없습니다.</div>
+                ) : (
+                  <div className="border rounded divide-y max-h-[520px] overflow-auto">
+                    {data.comments.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        className="w-full text-left px-3 py-2 transition-colors hover:bg-slate-50 active:bg-slate-100"
+                        onClick={() => setOpenCommentId(c.id)}
+                      >
+                        <div className="text-sm font-semibold text-slate-900">{c.title || "제목 없음"}</div>
+                        <div className="text-xs text-slate-600 mt-1">{formatUser(c.author, c.author_emp_no)}</div>
+                        <div className="text-xs text-slate-500 mt-1">{formatDate(c.created_at)}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </aside>
           </div>
-    </div>
+        </div>
+      </div>
 
       {selectedComment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
@@ -685,10 +508,7 @@ export default function TicketDetailPage() {
                 </div>
                 <div className="text-xs text-slate-500 mt-1">{formatDate(selectedComment.created_at)}</div>
               </div>
-              <button
-                className="text-sm border rounded px-3 py-1 transition-colors hover:bg-slate-50 active:bg-slate-100"
-                onClick={() => setOpenCommentId(null)}
-              >
+              <button className="text-sm border rounded px-3 py-1" onClick={() => setOpenCommentId(null)}>
                 닫기
               </button>
             </div>
@@ -706,7 +526,7 @@ export default function TicketDetailPage() {
                       <div key={a.id} className="flex items-center justify-between px-3 py-2">
                         <div className="text-sm">{a.filename}</div>
                         <button
-                          className="text-sm border rounded px-2 py-1 bg-white transition-all hover:bg-slate-50 active:bg-slate-100 hover:shadow-sm active:translate-y-px"
+                          className="text-sm border rounded px-2 py-1 transition-colors hover:bg-slate-50 active:bg-slate-100"
                           onClick={() => downloadAttachmentM.mutate(a.id)}
                           disabled={downloadAttachmentM.isPending}
                         >
@@ -721,7 +541,6 @@ export default function TicketDetailPage() {
           </div>
         </div>
       )}
-
 
       {commentModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
@@ -840,7 +659,7 @@ export default function TicketDetailPage() {
                 />
               </div>
 
-                            <label className="flex items-center gap-2 text-sm text-slate-600">
+              <label className="flex items-center gap-2 text-sm text-slate-600">
                 <input
                   type="checkbox"
                   className="h-4 w-4 rounded border-slate-300"
@@ -853,7 +672,7 @@ export default function TicketDetailPage() {
               {commentError && <div className="text-sm text-red-600">{commentError}</div>}
 
               <div className="flex items-center justify-end gap-2">
-                                <button
+                <button
                   className="border rounded px-3 py-1 text-sm transition-colors hover:bg-slate-50 active:bg-slate-100"
                   type="button"
                   onClick={() => {
@@ -863,7 +682,7 @@ export default function TicketDetailPage() {
                 >
                   취소
                 </button>
-                                <button
+                <button
                   className="border rounded px-3 py-1 text-sm bg-slate-900 text-white transition-colors hover:bg-slate-800 active:bg-slate-900 disabled:opacity-60"
                   type="button"
                   onClick={() => {
@@ -886,6 +705,6 @@ export default function TicketDetailPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

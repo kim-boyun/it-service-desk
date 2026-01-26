@@ -142,7 +142,7 @@ export default function ReviewTicketsPage() {
 
   const { data: projects = [] } = useQuery({
     queryKey: ["projects", "mine"],
-    queryFn: () => api<Project[]>("/projects?mine=true"),
+    queryFn: () => api<Project[]>("/projects?mine=false"),
     staleTime: 60_000,
   });
 

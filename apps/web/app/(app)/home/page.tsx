@@ -1,13 +1,12 @@
 ﻿"use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useMutation } from "@tanstack/react-query";
 import { api, apiForm } from "@/lib/api";
 import { useTicketCategories } from "@/lib/use-ticket-categories";
 import { EMPTY_DOC, isEmptyDoc, TiptapDoc } from "@/lib/tiptap";
-import ProjectPickerModal from "@/components/ProjectPickerModal";
 import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes";
 import {
   ArrowRight,
@@ -28,7 +27,7 @@ type TicketCreateIn = {
   title: string;
   description: TiptapDoc;
   priority: string;
-  category_id: number;
+  category_ids: number[];
   work_type: string | null;
   project_id: number | null;
 };
@@ -37,7 +36,7 @@ type TicketFormState = {
   title: string;
   description: TiptapDoc;
   priority: string;
-  category_id: string;
+  category_ids: number[];
   work_type: string | null;
   project_id: number | null;
 };
@@ -60,7 +59,6 @@ type StepId =
   | "title"
   | "category"
   | "priority"
-  | "project"
   | "description"
   | "attachments"
   | "review";
@@ -114,12 +112,28 @@ function formatBytes(bytes: number) {
   return `${value.toFixed(value >= 10 || i === 0 ? 0 : 1)} ${sizes[i]}`;
 }
 
+function isProjectActive(project: Project) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (project.start_date) {
+    const start = new Date(`${project.start_date}T00:00:00`);
+    if (today < start) return false;
+  }
+  if (project.end_date) {
+    const end = new Date(`${project.end_date}T23:59:59`);
+    if (today > end) return false;
+  }
+  return true;
+}
+
 export default function HomePage() {
   const router = useRouter();
   const { categories, loading: categoryLoading, error: categoryError } = useTicketCategories();
   const [currentStep, setCurrentStep] = useState<StepId>("welcome");
-  const [projectModalOpen, setProjectModalOpen] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectLoading, setProjectLoading] = useState(false);
+  const [projectError, setProjectError] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -129,7 +143,7 @@ export default function HomePage() {
     title: "",
     description: EMPTY_DOC,
     priority: "medium",
-    category_id: "",
+    category_ids: [],
     work_type: null,
     project_id: null,
   });
@@ -138,13 +152,36 @@ export default function HomePage() {
 
   useUnsavedChangesWarning(isDirty);
 
+  useEffect(() => {
+    let active = true;
+    setProjectLoading(true);
+    setProjectError(null);
+    api<Project[]>("/projects?mine=false")
+      .then((data) => {
+        if (!active) return;
+        setProjects(Array.isArray(data) ? data : []);
+      })
+      .catch((err: any) => {
+        if (!active) return;
+        setProjectError(err?.message ?? "프로젝트를 불러오지 못했습니다.");
+      })
+      .finally(() => {
+        if (!active) return;
+        setProjectLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const activeProjects = useMemo(() => projects.filter(isProjectActive), [projects]);
+
   const steps: StepId[] = [
     "welcome",
     "work_type",
     "title",
     "category",
     "priority",
-    "project",
     "description",
     "attachments",
     "review",
@@ -198,6 +235,17 @@ export default function HomePage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  function toggleCategory(categoryId: number) {
+    setIsDirty(true);
+    setForm((prev) => {
+      const exists = prev.category_ids.includes(categoryId);
+      const next = exists
+        ? prev.category_ids.filter((id) => id !== categoryId)
+        : [...prev.category_ids, categoryId];
+      return { ...prev, category_ids: next };
+    });
+  }
+
   function addFiles(fileList: FileList | File[] | null) {
     if (!fileList) return;
     const files = Array.isArray(fileList) ? fileList : Array.from(fileList);
@@ -225,7 +273,6 @@ export default function HomePage() {
     setProject(selected);
     setIsDirty(true);
     setForm((prev) => ({ ...prev, project_id: selected.id }));
-    setProjectModalOpen(false);
   }
 
   function clearProject() {
@@ -259,11 +306,9 @@ export default function HomePage() {
       case "title":
         return form.title.trim().length >= 3;
       case "category":
-        return !!form.category_id;
+        return !!form.project_id && form.category_ids.length > 0;
       case "priority":
         return !!form.priority;
-      case "project":
-        return true; // Optional
       case "description":
         return !isEmptyDoc(form.description);
       case "attachments":
@@ -286,7 +331,11 @@ export default function HomePage() {
       setError("제목을 입력하세요.");
       return;
     }
-    if (!form.category_id) {
+    if (!form.project_id) {
+      setError("프로젝트를 선택하세요.");
+      return;
+    }
+    if (form.category_ids.length === 0) {
       setError("카테고리를 선택하세요.");
       return;
     }
@@ -300,7 +349,7 @@ export default function HomePage() {
         title: form.title.trim(),
         description: form.description,
         priority: form.priority,
-        category_id: Number(form.category_id),
+        category_ids: form.category_ids,
         work_type: form.work_type?.trim() || null,
         project_id: form.project_id ?? null,
       },
@@ -382,7 +431,7 @@ export default function HomePage() {
               <div className="space-y-8">
                 <div className="space-y-2">
                   <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    1단계 / 8단계
+                    1단계 / 7단계
                   </p>
                   <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
                     어떤 종류의 요청인가요?
@@ -465,7 +514,7 @@ export default function HomePage() {
               <div className="space-y-8">
                 <div className="space-y-2">
                   <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    2단계 / 8단계
+                    2단계 / 7단계
                   </p>
                   <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
                     요청 제목을 입력하세요
@@ -479,7 +528,7 @@ export default function HomePage() {
                   <input
                     ref={titleInputRef}
                     type="text"
-                    className="w-full text-2xl font-medium px-0 py-4 border-0 border-b-2 focus:outline-none focus:ring-0 transition-colors bg-transparent"
+                    className="w-full text-2xl font-medium px-4 py-4 border-0 border-b-2 focus:outline-none focus:ring-0 transition-colors bg-transparent"
                     style={{
                       borderColor: form.title.trim() ? "var(--color-primary-500)" : "var(--border-default)",
                       color: "var(--text-primary)",
@@ -510,7 +559,7 @@ export default function HomePage() {
               <div className="space-y-8">
                 <div className="space-y-2">
                   <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    3단계 / 8단계
+                    3단계 / 7단계
                   </p>
                   <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
                     카테고리를 선택하세요
@@ -520,46 +569,120 @@ export default function HomePage() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3">
-                  {categories.map((category) => {
-                    const isSelected = form.category_id === String(category.id);
-                    return (
-                      <button
-                        key={category.id}
-                        onClick={() => {
-                          handleChange("category_id", String(category.id));
-                          setTimeout(nextStep, 300);
-                        }}
-                        className="group p-4 rounded-xl border-2 transition-all text-left flex items-center justify-between"
-                        style={{
-                          borderColor: isSelected ? "var(--color-primary-500)" : "var(--border-default)",
-                          backgroundColor: isSelected ? "var(--color-primary-50)" : "var(--bg-card)",
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!isSelected) {
-                            e.currentTarget.style.borderColor = "var(--color-primary-300)";
-                            e.currentTarget.style.backgroundColor = "var(--bg-hover)";
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isSelected) {
-                            e.currentTarget.style.borderColor = "var(--border-default)";
-                            e.currentTarget.style.backgroundColor = "var(--bg-card)";
-                          }
-                        }}
-                      >
-                        <div className="flex items-center gap-3">
-                          {isSelected && (
-                            <CheckCircle2 className="w-5 h-5" style={{ color: "var(--color-primary-600)" }} />
-                          )}
-                          <span className="text-lg font-medium" style={{ color: "var(--text-primary)" }}>
-                            {category.name}
-                          </span>
-                        </div>
-                        <ChevronRight className="w-5 h-5" style={{ color: "var(--text-tertiary)" }} />
-                      </button>
-                    );
-                  })}
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
+                      프로젝트 선택
+                    </div>
+                    <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                      진행 중인 프로젝트에서 요청할 수 있습니다.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3">
+
+                    {projectLoading && (
+                      <div className="rounded-xl border border-dashed px-4 py-3 text-sm" style={{ color: "var(--text-tertiary)" }}>
+                        프로젝트를 불러오는 중...
+                      </div>
+                    )}
+                    {projectError && (
+                      <div className="rounded-xl border px-4 py-3 text-sm" style={{ color: "var(--color-danger-700)", borderColor: "var(--color-danger-200)", backgroundColor: "var(--color-danger-50)" }}>
+                        {projectError}
+                      </div>
+                    )}
+
+                    {activeProjects.map((p) => {
+                      const isSelected = project?.id === p.id;
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => handleProjectSelect(p)}
+                          className="group p-4 rounded-xl border-2 transition-all text-left flex items-center justify-between"
+                          style={{
+                            borderColor: isSelected ? "var(--color-primary-500)" : "var(--border-default)",
+                            backgroundColor: isSelected ? "var(--color-primary-50)" : "var(--bg-card)",
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            {isSelected && (
+                              <CheckCircle2 className="w-5 h-5" style={{ color: "var(--color-primary-600)" }} />
+                            )}
+                            <div>
+                              <div className="text-base font-medium" style={{ color: "var(--text-primary)" }}>
+                                [프로젝트] {p.name}
+                              </div>
+                              {(p.start_date || p.end_date) && (
+                                <div className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+                                  {p.start_date ?? "-"} ~ {p.end_date ?? "-"}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <ChevronRight className="w-5 h-5" style={{ color: "var(--text-tertiary)" }} />
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {project ? (
+                    <div className="space-y-3">
+                      <div className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
+                        카테고리 (복수 선택 가능)
+                      </div>
+                      <div className="grid grid-cols-1 gap-3">
+                        {categories.map((category) => {
+                          const isSelected = form.category_ids.includes(category.id);
+                          return (
+                            <button
+                              key={category.id}
+                              type="button"
+                              onClick={() => toggleCategory(category.id)}
+                              className="group p-4 rounded-xl border-2 transition-all text-left flex items-center justify-between"
+                              style={{
+                                borderColor: isSelected ? "var(--color-primary-500)" : "var(--border-default)",
+                                backgroundColor: isSelected ? "var(--color-primary-50)" : "var(--bg-card)",
+                              }}
+                              onMouseEnter={(e) => {
+                                if (!isSelected) {
+                                  e.currentTarget.style.borderColor = "var(--color-primary-300)";
+                                  e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!isSelected) {
+                                  e.currentTarget.style.borderColor = "var(--border-default)";
+                                  e.currentTarget.style.backgroundColor = "var(--bg-card)";
+                                }
+                              }}
+                            >
+                              <div className="flex items-center gap-3">
+                                {isSelected && (
+                                  <CheckCircle2 className="w-5 h-5" style={{ color: "var(--color-primary-600)" }} />
+                                )}
+                                <span className="text-lg font-medium" style={{ color: "var(--text-primary)" }}>
+                                  {category.name}
+                                </span>
+                              </div>
+                              <ChevronRight className="w-5 h-5" style={{ color: "var(--text-tertiary)" }} />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      className="rounded-xl border px-4 py-3 text-sm"
+                      style={{
+                        backgroundColor: "var(--bg-subtle)",
+                        borderColor: "var(--border-default)",
+                        color: "var(--text-secondary)",
+                      }}
+                    >
+                      프로젝트를 먼저 선택하면 카테고리를 고를 수 있습니다.
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -568,7 +691,7 @@ export default function HomePage() {
               <div className="space-y-8">
                 <div className="space-y-2">
                   <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    4단계 / 8단계
+                    4단계 / 7단계
                   </p>
                   <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
                     우선순위를 선택하세요
@@ -625,79 +748,11 @@ export default function HomePage() {
               </div>
             )}
 
-            {currentStep === "project" && (
-              <div className="space-y-8">
-                <div className="space-y-2">
-                  <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    5단계 / 8단계 (선택사항)
-                  </p>
-                  <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
-                    프로젝트를 선택하시겠습니까?
-                  </h2>
-                  <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
-                    특정 프로젝트와 연관이 있다면 선택해주세요
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  {project ? (
-                    <div
-                      className="p-6 rounded-2xl border-2"
-                      style={{
-                        borderColor: "var(--color-primary-500)",
-                        backgroundColor: "var(--color-primary-50)",
-                      }}
-                    >
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <h3 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
-                            {project.name}
-                          </h3>
-                          {(project.start_date || project.end_date) && (
-                            <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
-                              {project.start_date ?? "-"} ~ {project.end_date ?? "-"}
-                            </p>
-                          )}
-                        </div>
-                        <CheckCircle2 className="w-6 h-6" style={{ color: "var(--color-primary-600)" }} />
-                      </div>
-                      <button
-                        onClick={() => setProjectModalOpen(true)}
-                        className="text-sm font-medium"
-                        style={{ color: "var(--color-primary-600)" }}
-                      >
-                        다른 프로젝트 선택
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setProjectModalOpen(true)}
-                      className="w-full p-6 rounded-2xl border-2 border-dashed transition-all text-center"
-                      style={{
-                        borderColor: "var(--border-default)",
-                        backgroundColor: "var(--bg-card)",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = "var(--color-primary-300)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = "var(--border-default)";
-                      }}
-                    >
-                      <p className="text-lg font-medium" style={{ color: "var(--text-primary)" }}>
-                        + 프로젝트 선택
-                      </p>
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-
             {currentStep === "description" && (
               <div className="space-y-8">
                 <div className="space-y-2">
                   <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    6단계 / 8단계
+                    5단계 / 7단계
                   </p>
                   <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
                     요청 내용을 상세히 작성하세요
@@ -725,7 +780,7 @@ export default function HomePage() {
               <div className="space-y-8">
                 <div className="space-y-2">
                   <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    7단계 / 8단계 (선택사항)
+                    6단계 / 7단계 (선택사항)
                   </p>
                   <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
                     파일을 첨부하시겠습니까?
@@ -834,7 +889,7 @@ export default function HomePage() {
               <div className="space-y-8">
                 <div className="space-y-2">
                   <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    8단계 / 8단계
+                    7단계 / 7단계
                   </p>
                   <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
                     입력 내용을 확인하세요
@@ -879,7 +934,10 @@ export default function HomePage() {
                         카테고리
                       </p>
                       <p className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-                        {categories.find((c) => String(c.id) === form.category_id)?.name}
+                        {form.category_ids
+                          .map((id) => categories.find((c) => c.id === id)?.name)
+                          .filter(Boolean)
+                          .join(", ")}
                       </p>
                     </div>
 
@@ -902,7 +960,7 @@ export default function HomePage() {
                             프로젝트
                           </p>
                           <p className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-                            {project.name}
+                            [프로젝트] {project.name}
                           </p>
                         </div>
                       </>
@@ -1002,12 +1060,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      <ProjectPickerModal
-        open={projectModalOpen}
-        selectedId={project?.id ?? null}
-        onClose={() => setProjectModalOpen(false)}
-        onSelect={handleProjectSelect}
-      />
     </div>
   );
 }
