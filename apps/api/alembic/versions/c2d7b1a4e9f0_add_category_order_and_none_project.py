@@ -1,4 +1,4 @@
-"""add ticket category order and none project
+﻿"""add ticket category order and none project
 
 Revision ID: c2d7b1a4e9f0
 Revises: 7c8e4a9b1f2c, d2b9f9f0a3b1
@@ -82,6 +82,14 @@ def upgrade() -> None:
         conn.execute(
             sa.text("update knowledge_items set category_id = :infra_id where category_id in :old_ids")
             .bindparams(sa.bindparam("old_ids", expanding=True)),
+            {"old_ids": old_ids, "infra_id": infra_id},
+        )
+        conn.execute(
+            sa.text(
+                "delete from contact_assignment_members "
+                "where category_id in :old_ids "
+                "and emp_no in (select emp_no from contact_assignment_members where category_id = :infra_id)"
+            ).bindparams(sa.bindparam("old_ids", expanding=True)),
             {"old_ids": old_ids, "infra_id": infra_id},
         )
         conn.execute(
