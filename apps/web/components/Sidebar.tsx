@@ -292,6 +292,9 @@ export default function Sidebar() {
 
       <nav className="flex-1 overflow-y-auto p-3 space-y-1">
         {mainNav.map((item) => {
+          const ticketIdSegment = pathname.split("/")[2];
+          const isTicketDetail =
+            item.href === "/tickets" && !!ticketIdSegment && /^[0-9]+$/.test(ticketIdSegment);
           return (
             <NavLink
               key={item.href}
@@ -299,7 +302,7 @@ export default function Sidebar() {
               active={
                 pathname === item.href ||
                 (item.href !== "/tickets" && pathname.startsWith(item.href + "/")) ||
-                (item.href === "/tickets" && /^\\/tickets\\/\\d+$/.test(pathname))
+                isTicketDetail
               }
               collapsed={collapsed}
             />
