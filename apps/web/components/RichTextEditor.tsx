@@ -18,11 +18,19 @@ type Props = {
   placeholder?: string;
   readOnly?: boolean;
   onError?: (message: string) => void;
+  minHeight?: string;
 };
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
-export default function RichTextEditor({ value, onChange, placeholder, readOnly = false, onError }: Props) {
+export default function RichTextEditor({
+  value,
+  onChange,
+  placeholder,
+  readOnly = false,
+  onError,
+  minHeight,
+}: Props) {
   const [uploading, setUploading] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkValue, setLinkValue] = useState("");
@@ -139,7 +147,7 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
         </div>
       )}
 
-      <div className="relative px-4 py-3">
+      <div className="relative px-4 py-3" style={minHeight ? { minHeight } : undefined}>
         <EditorContent editor={editor} className="tiptap" />
         {placeholder && isEmptyDoc(editor.getJSON() as TiptapDoc) && (
           <div className="pointer-events-none absolute left-4 top-3 text-sm text-gray-400">{placeholder}</div>

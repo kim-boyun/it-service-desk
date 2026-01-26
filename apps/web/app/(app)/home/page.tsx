@@ -702,25 +702,14 @@ export default function HomePage() {
                   </p>
                 </div>
 
-                <div>
+                <div className="space-y-3">
                   <RichTextEditor
                     value={form.description}
                     onChange={(doc) => handleChange("description", doc)}
                     onError={setError}
                     placeholder="예: 3층 사무실에 있는 HP 프린터가 네트워크에 연결되지 않습니다. 어제까지는 정상 작동했는데..."
+                    minHeight="280px"
                   />
-                  <p className="mt-2 text-sm" style={{ color: "var(--text-tertiary)" }}>
-                    이미지는 드래그/붙여넣기로 추가할 수 있습니다.
-                  </p>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    파일 첨부 (선택)
-                  </div>
-                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                    스크린샷이나 관련 문서를 첨부해주세요 (최대 25MB)
-                  </p>
 
                   <input
                     id="attachment-input"
@@ -735,7 +724,7 @@ export default function HomePage() {
                   />
 
                   <div
-                    className="rounded-2xl border-2 border-dashed p-10 transition-all text-center cursor-pointer"
+                    className="rounded-2xl border-2 border-dashed p-6 transition-all text-center cursor-pointer"
                     style={{
                       borderColor: dragActive ? "var(--color-primary-400)" : "var(--border-default)",
                       backgroundColor: dragActive ? "var(--color-primary-50)" : "var(--bg-card)",
@@ -756,7 +745,7 @@ export default function HomePage() {
                     onClick={() => fileInputRef.current?.click()}
                   >
                     <Paperclip
-                      className="w-10 h-10 mx-auto mb-3"
+                      className="w-8 h-8 mx-auto mb-2"
                       style={{ color: "var(--text-tertiary)" }}
                     />
                     <p className="text-base font-medium mb-1" style={{ color: "var(--text-primary)" }}>
