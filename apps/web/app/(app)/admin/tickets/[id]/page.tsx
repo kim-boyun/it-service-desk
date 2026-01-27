@@ -275,6 +275,7 @@ export default function AdminTicketDetailPage() {
   const [isEditingAssignees, setIsEditingAssignees] = useState(false);
   const [isEditingCategories, setIsEditingCategories] = useState(false);
   const [isEditingWorkType, setIsEditingWorkType] = useState(false);
+  const [isEditingStatus, setIsEditingStatus] = useState(false);
   const commentFileInputRef = useRef<HTMLInputElement | null>(null);
   const commentsEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -373,10 +374,10 @@ export default function AdminTicketDetailPage() {
   });
 
   const updateStatusM = useMutation({
-    mutationFn: () =>
+    mutationFn: (newStatus?: string) =>
       api(`/tickets/${ticketId}/status`, {
         method: "PATCH",
-        body: { status },
+        body: { status: newStatus ?? status },
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-ticket-detail", ticketId] });
@@ -526,10 +527,7 @@ export default function AdminTicketDetailPage() {
         <Card>
           <CardBody padding="lg">
             <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <Badge variant={statusInfo.variant} size="md">
-                  {statusInfo.label}
-                </Badge>
+              <div>
                 <h1 
                   className="text-2xl font-semibold" 
                   style={{ color: "var(--text-primary)" }}
@@ -599,7 +597,80 @@ export default function AdminTicketDetailPage() {
           >
             <div className="grid grid-cols-1 md:grid-cols-2">
               <FieldRow label="요청자" value={formatUser(t.requester, t.requester_emp_no)} />
-              <FieldRow label="프로젝트" value={t.project_name ?? "-"} />
+              <FieldRow
+                label="상태"
+                value={
+                  <div className="space-y-2">
+                    {!isEditingStatus ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={statusInfo.variant} size="md">
+                          {statusInfo.label}
+                        </Badge>
+                        <button
+                          className="text-xs px-2 py-1 rounded transition-colors"
+                          style={{
+                            color: "var(--color-primary-600)",
+                            backgroundColor: "var(--bg-elevated)",
+                            border: "1px solid var(--border-default)",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
+                          }}
+                          onClick={() => setIsEditingStatus(true)}
+                        >
+                          편집
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="space-y-2">
+                          {STATUS_OPTIONS.map((o) => (
+                            <label key={o.value} className="inline-flex items-center gap-2 text-sm cursor-pointer">
+                              <input
+                                type="radio"
+                                className="h-4 w-4"
+                                style={{ accentColor: "var(--color-primary-600)" }}
+                                checked={status === o.value}
+                                onChange={() => {
+                                  setStatus(o.value);
+                                  updateStatusM.mutate(o.value);
+                                }}
+                              />
+                              <span>{o.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="text-xs px-3 py-1 rounded transition-colors font-medium"
+                            style={{
+                              color: "white",
+                              backgroundColor: "var(--color-primary-600)",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
+                            }}
+                            onClick={() => setIsEditingStatus(false)}
+                          >
+                            완료
+                          </button>
+                          {updateStatusM.isError && (
+                            <div className="text-xs" style={{ color: "var(--color-danger-600)" }}>
+                              상태 변경에 실패했습니다.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                }
+              />
             </div>
             <div 
               className="grid grid-cols-1 md:grid-cols-2"
@@ -711,7 +782,7 @@ export default function AdminTicketDetailPage() {
                   </div>
                 }
               />
-              <FieldRow label="생성일" value={formatDate(t.created_at)} />
+              <FieldRow label="프로젝트" value={t.project_name ?? "-"} />
             </div>
             <div 
               className="grid grid-cols-1 md:grid-cols-2"
@@ -821,7 +892,7 @@ export default function AdminTicketDetailPage() {
                   </div>
                 }
               />
-              <FieldRow label="" value="" />
+              <FieldRow label="생성일" value={formatDate(t.created_at)} />
             </div>
             <div 
               className="grid grid-cols-1 md:grid-cols-2"
@@ -1596,67 +1667,6 @@ export default function AdminTicketDetailPage() {
             </CardBody>
           )}
         </Card>
-        </div>
-
-        {/* Sticky Sidebar for Status Change */}
-        <div className="w-80" style={{ position: "sticky", top: "1.5rem", height: "fit-content" }}>
-          <Card>
-            <CardHeader>
-              <h2 
-                className="text-base font-semibold"
-                style={{ color: "var(--text-primary)" }}
-              >
-                상태 변경
-              </h2>
-            </CardHeader>
-            <CardBody padding="lg">
-              <div className="space-y-3">
-                <select
-                  className="w-full border rounded-lg px-3 py-2 text-sm transition-colors"
-                  style={{
-                    backgroundColor: "var(--bg-input)",
-                    borderColor: "var(--border-default)",
-                    color: "var(--text-primary)",
-                  }}
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                >
-                  {STATUS_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-                {updateStatusM.isError && (
-                  <div 
-                    className="text-xs"
-                    style={{ color: "var(--color-danger-600)" }}
-                  >
-                    {(updateStatusM.error as any)?.message ?? "상태 변경에 실패했습니다."}
-                  </div>
-                )}
-                <button
-                  className="w-full rounded-lg px-4 py-2 text-sm font-medium transition-all disabled:opacity-60"
-                  style={{
-                    backgroundColor: "var(--color-primary-600)",
-                    color: "#ffffff",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!e.currentTarget.disabled) {
-                      e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
-                  }}
-                  onClick={() => updateStatusM.mutate()}
-                  disabled={updateStatusM.isPending || status === t.status}
-                >
-                  {updateStatusM.isPending ? "변경 중..." : "상태 업데이트"}
-                </button>
-              </div>
-            </CardBody>
-          </Card>
         </div>
       </div>
     </>
