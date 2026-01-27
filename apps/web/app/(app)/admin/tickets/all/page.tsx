@@ -57,6 +57,7 @@ type UserSummary = {
   kor_name?: string | null;
   title?: string | null;
   department?: string | null;
+  role?: string | null;
 };
 
 function statusMeta(status: string): { label: string; variant: BadgeVariant } {
