@@ -399,12 +399,75 @@ export default function AdminAllTicketsPage() {
                             {statusInfo.label}
                           </Badge>
                         </td>
-                        <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
-                          {editingTicketId === t.id ? (
-                            <div className="space-y-2 py-2" onClick={(e) => e.stopPropagation()}>
-                              <div className="grid grid-cols-2 gap-2 max-w-md mx-auto">
+                        <td className="px-6 py-3 text-center relative" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex flex-wrap items-center justify-center gap-1.5">
+                            {(() => {
+                              const assignees = t.assignees || [];
+                              const empNos = t.assignee_emp_nos || (t.assignee_emp_no ? [t.assignee_emp_no] : []);
+                              const displayAssignees = assignees.length > 0
+                                ? assignees
+                                : staffOptions.filter((u) => empNos.includes(u.emp_no));
+                              
+                              if (displayAssignees.length === 0) {
+                                return (
+                                  <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+                                    미배정
+                                  </span>
+                                );
+                              }
+                              
+                              return displayAssignees.map((u) => (
+                                <span
+                                  key={u.emp_no}
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs"
+                                  style={{
+                                    backgroundColor: "var(--color-primary-50)",
+                                    color: "var(--color-primary-700)",
+                                    border: "1px solid var(--color-primary-200)",
+                                  }}
+                                >
+                                  {u.kor_name || u.emp_no}
+                                </span>
+                              ));
+                            })()}
+                            <button
+                              className="text-xs px-1.5 py-0.5 rounded transition-colors"
+                              style={{
+                                color: "var(--color-primary-600)",
+                                backgroundColor: "var(--bg-elevated)",
+                                border: "1px solid var(--border-default)",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingTicketId(editingTicketId === t.id ? null : t.id);
+                              }}
+                            >
+                              편집
+                            </button>
+                          </div>
+                          {editingTicketId === t.id && (
+                            <div 
+                              className="absolute z-50 mt-1 p-3 rounded-lg shadow-lg"
+                              style={{
+                                backgroundColor: "var(--bg-elevated)",
+                                border: "1px solid var(--border-default)",
+                                top: "100%",
+                                right: "0",
+                                minWidth: "280px",
+                                maxHeight: "300px",
+                                overflowY: "auto",
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="space-y-2">
                                 {staffOptions.length === 0 && (
-                                  <span className="text-xs col-span-2" style={{ color: "var(--text-tertiary)" }}>
+                                  <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>
                                     관리자 계정이 없습니다.
                                   </span>
                                 )}
@@ -412,7 +475,7 @@ export default function AdminAllTicketsPage() {
                                   const currentAssignees = t.assignee_emp_nos || (t.assignee_emp_no ? [t.assignee_emp_no] : []);
                                   const checked = currentAssignees.includes(u.emp_no);
                                   return (
-                                    <label key={u.emp_no} className="inline-flex items-center gap-2 text-xs cursor-pointer">
+                                    <label key={u.emp_no} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-opacity-50 p-1 rounded">
                                       <input
                                         type="checkbox"
                                         className="h-4 w-4 rounded"
@@ -430,74 +493,24 @@ export default function AdminAllTicketsPage() {
                                   );
                                 })}
                               </div>
-                              <button
-                                className="text-xs px-3 py-1 rounded transition-colors font-medium"
-                                style={{
-                                  color: "white",
-                                  backgroundColor: "var(--color-primary-600)",
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
-                                }}
-                                onClick={() => setEditingTicketId(null)}
-                              >
-                                완료
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex flex-wrap items-center justify-center gap-2">
-                              {(() => {
-                                const assignees = t.assignees || [];
-                                const empNos = t.assignee_emp_nos || (t.assignee_emp_no ? [t.assignee_emp_no] : []);
-                                const displayAssignees = assignees.length > 0
-                                  ? assignees
-                                  : staffOptions.filter((u) => empNos.includes(u.emp_no));
-                                
-                                if (displayAssignees.length === 0) {
-                                  return (
-                                    <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>
-                                      미배정
-                                    </span>
-                                  );
-                                }
-                                
-                                return displayAssignees.map((u) => (
-                                  <span
-                                    key={u.emp_no}
-                                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-medium"
-                                    style={{
-                                      backgroundColor: "var(--color-primary-50)",
-                                      color: "var(--color-primary-700)",
-                                      border: "1px solid var(--color-primary-200)",
-                                    }}
-                                  >
-                                    {formatUser(u, u.emp_no)}
-                                  </span>
-                                ));
-                              })()}
-                              <button
-                                className="text-xs px-2 py-0.5 rounded transition-colors"
-                                style={{
-                                  color: "var(--color-primary-600)",
-                                  backgroundColor: "var(--bg-elevated)",
-                                  border: "1px solid var(--border-default)",
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.backgroundColor = "var(--bg-hover)";
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
-                                }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingTicketId(t.id);
-                                }}
-                              >
-                                편집
-                              </button>
+                              <div className="mt-3 pt-2" style={{ borderTop: "1px solid var(--border-default)" }}>
+                                <button
+                                  className="w-full text-xs px-3 py-1.5 rounded transition-colors font-medium"
+                                  style={{
+                                    color: "white",
+                                    backgroundColor: "var(--color-primary-600)",
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
+                                  }}
+                                  onClick={() => setEditingTicketId(null)}
+                                >
+                                  완료
+                                </button>
+                              </div>
                             </div>
                           )}
                         </td>
