@@ -158,6 +158,17 @@ function formatCategoryList(ids: number[] | null | undefined, map: Record<number
   return ids.map((id) => map[id] ?? String(id)).join(", ");
 }
 
+function eventLabel(type: string) {
+  const map: Record<string, string> = {
+    ticket_created: "요청 접수",
+    status_changed: "상태 변경",
+    assignee_assigned: "담당자 지정",
+    assignee_changed: "담당자 변경",
+    requester_updated: "요청 수정",
+  };
+  return map[type] ?? type;
+}
+
 function FieldRow({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
     <div 
@@ -225,6 +236,14 @@ export default function TicketDetailPage() {
     queryFn: () => api<TicketDetail>(`/tickets/${ticketId}/detail`),
     enabled: Number.isFinite(ticketId),
   });
+
+  // Filter events to only show relevant types
+  const filteredEvents = useMemo(() => {
+    if (!data?.events) return [];
+    return data.events.filter((e) => 
+      ["ticket_created", "assignee_assigned", "assignee_changed", "status_changed"].includes(e.type)
+    );
+  }, [data?.events]);
 
   useEffect(() => {
     if (data?.comments && commentsEndRef.current) {
@@ -877,7 +896,7 @@ export default function TicketDetailPage() {
           </CardHeader>
           {isHistoryOpen && (
             <CardBody padding="none">
-              {data.events.length === 0 ? (
+              {filteredEvents.length === 0 ? (
                 <div 
                   className="text-sm text-center py-8"
                   style={{ color: "var(--text-tertiary)" }}
@@ -896,14 +915,14 @@ export default function TicketDetailPage() {
                           No
                         </th>
                         <th 
-                          className="text-center p-3 w-44 font-semibold"
-                          style={{ color: "var(--text-secondary)" }}
+                          className="text-center p-3 font-semibold"
+                          style={{ color: "var(--text-secondary)", minWidth: "180px" }}
                         >
                           시각
                         </th>
                         <th 
-                          className="text-center p-3 w-28 font-semibold"
-                          style={{ color: "var(--text-secondary)" }}
+                          className="text-center p-3 font-semibold"
+                          style={{ color: "var(--text-secondary)", minWidth: "140px" }}
                         >
                           유형
                         </th>
@@ -916,8 +935,8 @@ export default function TicketDetailPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {data.events.map((e, idx) => {
-                        const rowNo = data.events.length - idx;
+                      {filteredEvents.map((e, idx) => {
+                        const rowNo = filteredEvents.length - idx;
                         return (
                           <tr 
                             key={e.id} 
@@ -939,7 +958,7 @@ export default function TicketDetailPage() {
                               className="p-3 text-center"
                               style={{ color: "var(--text-primary)" }}
                             >
-                              {e.type}
+                              {eventLabel(e.type)}
                             </td>
                             <td 
                               className="p-3 text-center"

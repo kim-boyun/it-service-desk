@@ -463,6 +463,10 @@ def update_status(
     old = ticket.status
     new = payload.status
 
+    # Only create event if status actually changed
+    if old == new:
+        return {"ok": True, "from": old, "to": new}
+
     if not can_transition(old, new):
         raise HTTPException(
             status_code=422,
@@ -472,13 +476,24 @@ def update_status(
     ticket.status = new
     ticket.updated_at = datetime.utcnow()
 
+    # Map status to Korean labels
+    status_labels = {
+        "open": "대기",
+        "in_progress": "진행",
+        "resolved": "완료",
+        "closed": "사업 검토",
+    }
+    old_label = status_labels.get(old, old)
+    new_label = status_labels.get(new, new)
+    note = f"{old_label} -> {new_label}"
+
     ev = TicketEvent(
         ticket_id=ticket_id,
         actor_emp_no=user.emp_no,
         type="status_changed",
         from_value=old,
         to_value=new,
-        note=payload.note,
+        note=note,
     )
     session.add(ev)
 
@@ -615,6 +630,44 @@ def update_assignees(
             if u.role != "admin":
                 raise HTTPException(status_code=422, detail="Assignee must be admin")
 
+    # Get old assignees
+    old_assignees_rows = session.scalars(
+        select(TicketAssignee).where(TicketAssignee.ticket_id == ticket_id)
+    ).all()
+    old_emp_nos = sorted([row.emp_no for row in old_assignees_rows])
+    new_emp_nos = sorted(assignee_emp_nos)
+
+    # Only create event if actually changed
+    if old_emp_nos != new_emp_nos:
+        def format_user_list(emp_nos: list[str]) -> str:
+            if not emp_nos:
+                return "미배정"
+            users = session.scalars(select(User).where(User.emp_no.in_(emp_nos))).all()
+            user_map = {u.emp_no: u for u in users}
+            names = []
+            for emp_no in emp_nos:
+                u = user_map.get(emp_no)
+                if u:
+                    parts = [u.kor_name, u.title, u.department]
+                    label = " / ".join([p for p in parts if p])
+                    names.append(label or emp_no)
+                else:
+                    names.append(emp_no)
+            return ", ".join(names)
+
+        note = f"{format_user_list(old_emp_nos)} -> {format_user_list(new_emp_nos)}"
+        ev_type = "assignee_assigned" if not old_emp_nos and assignee_emp_nos else "assignee_changed"
+
+        ev = TicketEvent(
+            ticket_id=ticket_id,
+            actor_emp_no=user.emp_no,
+            type=ev_type,
+            from_value=",".join(old_emp_nos) if old_emp_nos else None,
+            to_value=",".join(new_emp_nos) if new_emp_nos else None,
+            note=note,
+        )
+        session.add(ev)
+
     session.query(TicketAssignee).filter(TicketAssignee.ticket_id == ticket_id).delete()
     for emp_no in assignee_emp_nos:
         session.add(TicketAssignee(ticket_id=ticket_id, emp_no=emp_no))
@@ -639,8 +692,9 @@ def update_admin_meta(
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
 
-    changed: list[TicketEvent] = []
+    has_changes = False
 
+    # Update category without creating event
     if payload.category_ids is not None or payload.category_id is not None:
         next_category_ids = payload.category_ids or []
         if not next_category_ids and payload.category_id is not None:
@@ -653,44 +707,20 @@ def update_admin_meta(
             raise HTTPException(status_code=404, detail="Category not found")
 
         old_category_id = ticket.category_id
-        category_map = {c.id: c.name for c in session.scalars(select(TicketCategory)).all()}
-        old_label = category_map.get(old_category_id, "-")
-        new_label = category_map.get(next_category_ids[0], "-")
-
         session.query(TicketCategoryLink).filter(TicketCategoryLink.ticket_id == ticket_id).delete()
         for category_id in next_category_ids:
             session.add(TicketCategoryLink(ticket_id=ticket_id, category_id=category_id))
         ticket.category_id = next_category_ids[0]
-        changed.append(
-            TicketEvent(
-                ticket_id=ticket_id,
-                actor_emp_no=user.emp_no,
-                type="category_changed",
-                from_value=str(old_category_id) if old_category_id else None,
-                to_value=str(next_category_ids[0]),
-                note=f"{old_label} -> {new_label}",
-            )
-        )
+        if old_category_id != next_category_ids[0]:
+            has_changes = True
 
+    # Update work_type without creating event
     if payload.work_type is not None and payload.work_type != ticket.work_type:
-        old = ticket.work_type or "-"
-        new = payload.work_type
         ticket.work_type = payload.work_type
-        changed.append(
-            TicketEvent(
-                ticket_id=ticket_id,
-                actor_emp_no=user.emp_no,
-                type="work_type_changed",
-                from_value=old,
-                to_value=new,
-                note=f"{old} -> {new}",
-            )
-        )
+        has_changes = True
 
-    if changed:
+    if has_changes:
         ticket.updated_at = datetime.utcnow()
-        for ev in changed:
-            session.add(ev)
         session.commit()
 
     return {"ok": True}

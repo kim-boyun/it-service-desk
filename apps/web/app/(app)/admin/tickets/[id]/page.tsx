@@ -230,11 +230,9 @@ function eventLabel(type: string) {
   const map: Record<string, string> = {
     ticket_created: "요청 접수",
     status_changed: "상태 변경",
-    assignee_assigned: "담당자 배정",
+    assignee_assigned: "담당자 지정",
     assignee_changed: "담당자 변경",
     requester_updated: "요청 수정",
-    category_changed: "카테고리 변경",
-    work_type_changed: "작업 구분 변경",
   };
   return map[type] ?? type;
 }
@@ -265,7 +263,6 @@ export default function AdminTicketDetailPage() {
   const isStaff = me.role === "admin";
 
   const [status, setStatus] = useState("open");
-  const [note, setNote] = useState("");
   const [openEventId, setOpenEventId] = useState<number | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [assigneeEmpNos, setAssigneeEmpNos] = useState<string[]>([]);
@@ -379,12 +376,11 @@ export default function AdminTicketDetailPage() {
     mutationFn: () =>
       api(`/tickets/${ticketId}/status`, {
         method: "PATCH",
-        body: { status, note: note || undefined },
+        body: { status },
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-ticket-detail", ticketId] });
       qc.invalidateQueries({ queryKey: ["admin-tickets"] });
-      setNote("");
     },
   });
 
@@ -516,9 +512,17 @@ export default function AdminTicketDetailPage() {
   const priorityInfo = priorityMeta(t.priority);
   const ticketAttachments = data.attachments.filter((a) => !a.comment_id);
 
+  // Filter events to only show relevant types
+  const filteredEvents = useMemo(() => {
+    return data.events.filter((e) => 
+      ["ticket_created", "assignee_assigned", "assignee_changed", "status_changed"].includes(e.type)
+    );
+  }, [data.events]);
+
   return (
     <>
-      <div className="space-y-6 animate-fadeIn">
+      <div className="flex gap-6 animate-fadeIn relative">
+        <div className="flex-1 space-y-6">
         <Card>
           <CardBody padding="lg">
             <div className="flex items-start justify-between gap-4">
@@ -1243,74 +1247,6 @@ export default function AdminTicketDetailPage() {
           </CardBody>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <h2 
-              className="text-base font-semibold"
-              style={{ color: "var(--text-primary)" }}
-            >
-              상태 변경
-            </h2>
-          </CardHeader>
-          <CardBody padding="lg">
-            <div className="space-y-3">
-              <select
-                className="w-full border rounded-lg px-3 py-2 text-sm transition-colors"
-                style={{
-                  backgroundColor: "var(--bg-input)",
-                  borderColor: "var(--border-default)",
-                  color: "var(--text-primary)",
-                }}
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-              >
-                {STATUS_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-              <textarea
-                className="w-full border rounded-lg px-3 py-2 text-sm min-h-[80px] transition-colors"
-                style={{
-                  backgroundColor: "var(--bg-input)",
-                  borderColor: "var(--border-default)",
-                  color: "var(--text-primary)",
-                }}
-                placeholder="상태 변경 메모 (선택)"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-              />
-              {updateStatusM.isError && (
-                <div 
-                  className="text-xs"
-                  style={{ color: "var(--color-danger-600)" }}
-                >
-                  {(updateStatusM.error as any)?.message ?? "상태 변경에 실패했습니다."}
-                </div>
-              )}
-              <button
-                className="w-full rounded-lg px-4 py-2 text-sm font-medium transition-all disabled:opacity-60"
-                style={{
-                  backgroundColor: "var(--color-primary-600)",
-                  color: "#ffffff",
-                }}
-                onMouseEnter={(e) => {
-                  if (!e.currentTarget.disabled) {
-                    e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
-                }}
-                onClick={() => updateStatusM.mutate()}
-                disabled={updateStatusM.isPending}
-              >
-                {updateStatusM.isPending ? "변경 중.." : "상태 업데이트"}
-              </button>
-            </div>
-          </CardBody>
-        </Card>
 
         <Card>
           <CardHeader>
@@ -1335,7 +1271,7 @@ export default function AdminTicketDetailPage() {
           </CardHeader>
           {isHistoryOpen && (
             <CardBody padding="none">
-              {data.events.length === 0 ? (
+              {filteredEvents.length === 0 ? (
                 <div 
                   className="text-sm text-center py-8"
                   style={{ color: "var(--text-tertiary)" }}
@@ -1354,14 +1290,14 @@ export default function AdminTicketDetailPage() {
                           No
                         </th>
                         <th 
-                          className="text-center p-3 w-44 font-semibold"
-                          style={{ color: "var(--text-secondary)" }}
+                          className="text-center p-3 font-semibold"
+                          style={{ color: "var(--text-secondary)", minWidth: "180px" }}
                         >
                           시각
                         </th>
                         <th 
-                          className="text-center p-3 w-28 font-semibold"
-                          style={{ color: "var(--text-secondary)" }}
+                          className="text-center p-3 font-semibold"
+                          style={{ color: "var(--text-secondary)", minWidth: "140px" }}
                         >
                           유형
                         </th>
@@ -1374,13 +1310,13 @@ export default function AdminTicketDetailPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {data.events.map((e, idx) => {
+                      {filteredEvents.map((e, idx) => {
                         const editNote = e.type === "requester_updated" ? parseEditNote(e.note) : null;
                         const summary = editNote?.summary ?? e.note ?? "-";
                         const isExpandable = Boolean(editNote?.before);
                         const isOpen = openEventId === e.id;
                         const before = editNote?.before ?? {};
-                        const rowNo = data.events.length - idx;
+                        const rowNo = filteredEvents.length - idx;
                         return (
                           <Fragment key={e.id}>
                             <tr
@@ -1627,6 +1563,68 @@ export default function AdminTicketDetailPage() {
             </CardBody>
           )}
         </Card>
+        </div>
+
+        {/* Sticky Sidebar for Status Change */}
+        <div className="w-80" style={{ position: "sticky", top: "1.5rem", height: "fit-content" }}>
+          <Card>
+            <CardHeader>
+              <h2 
+                className="text-base font-semibold"
+                style={{ color: "var(--text-primary)" }}
+              >
+                상태 변경
+              </h2>
+            </CardHeader>
+            <CardBody padding="lg">
+              <div className="space-y-3">
+                <select
+                  className="w-full border rounded-lg px-3 py-2 text-sm transition-colors"
+                  style={{
+                    backgroundColor: "var(--bg-input)",
+                    borderColor: "var(--border-default)",
+                    color: "var(--text-primary)",
+                  }}
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                >
+                  {STATUS_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                {updateStatusM.isError && (
+                  <div 
+                    className="text-xs"
+                    style={{ color: "var(--color-danger-600)" }}
+                  >
+                    {(updateStatusM.error as any)?.message ?? "상태 변경에 실패했습니다."}
+                  </div>
+                )}
+                <button
+                  className="w-full rounded-lg px-4 py-2 text-sm font-medium transition-all disabled:opacity-60"
+                  style={{
+                    backgroundColor: "var(--color-primary-600)",
+                    color: "#ffffff",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!e.currentTarget.disabled) {
+                      e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
+                  }}
+                  onClick={() => updateStatusM.mutate()}
+                  disabled={updateStatusM.isPending || status === t.status}
+                >
+                  {updateStatusM.isPending ? "변경 중..." : "상태 업데이트"}
+                </button>
+              </div>
+            </CardBody>
+          </Card>
+        </div>
       </div>
     </>
   );

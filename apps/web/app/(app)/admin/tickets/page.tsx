@@ -34,7 +34,7 @@ type TicketListResponse =
   | Ticket[];
 
 type SortDir = "asc" | "desc";
-type SortKey = "id" | "title" | "status" | "priority" | "work_type" | "category_id" | "created_at";
+type SortKey = "id" | "title" | "status" | "priority" | "work_type" | "category_id" | "created_at" | "assignee";
 
 const STATUS_SORT: Record<string, number> = {
   open: 0,
@@ -219,6 +219,17 @@ export default function AdminTicketsPage() {
       return aa.localeCompare(bb);
     };
 
+    const getAssigneeName = (t: Ticket) => {
+      const assignees = t.assignees || [];
+      const empNos = t.assignee_emp_nos || (t.assignee_emp_no ? [t.assignee_emp_no] : []);
+      const displayAssignees = assignees.length > 0
+        ? assignees
+        : staffOptions.filter((u) => empNos.includes(u.emp_no));
+      
+      if (displayAssignees.length === 0) return "";
+      return displayAssignees[0].kor_name || displayAssignees[0].emp_no || "";
+    };
+
     const base = [...filtered].sort((a, b) => {
       if (sortKey === "id") return a.id - b.id;
       if (sortKey === "title") return compareText(a.title, b.title);
@@ -238,12 +249,13 @@ export default function AdminTicketsPage() {
         const cb = categoryMap[b.category_id ?? 0] ?? "";
         return compareText(ca, cb);
       }
+      if (sortKey === "assignee") return compareText(getAssigneeName(a), getAssigneeName(b));
       if (sortKey === "created_at") return toTime(a.created_at) - toTime(b.created_at);
       return 0;
     });
 
     return sortDir === "asc" ? base : base.reverse();
-  }, [filtered, sortKey, sortDir, categoryMap]);
+  }, [filtered, sortKey, sortDir, categoryMap, staffOptions]);
 
   const categoryLabel = (c?: number | null) => {
     if (!c) return "-";
@@ -346,7 +358,7 @@ export default function AdminTicketsPage() {
                       {renderSortLabel("status", "상태")}
                     </th>
                     <th className="text-center px-6 py-3 font-semibold w-40 whitespace-nowrap" style={{ color: "var(--text-secondary)" }}>
-                      담당자
+                      {renderSortLabel("assignee", "담당자")}
                     </th>
                     <th className="text-center px-6 py-3 font-semibold w-28" style={{ color: "var(--text-secondary)" }}>
                       {renderSortLabel("work_type", "작업 구분")}
