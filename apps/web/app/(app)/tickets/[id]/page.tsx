@@ -201,6 +201,7 @@ export default function TicketDetailPage() {
   const [commentFiles, setCommentFiles] = useState<File[]>([]);
   const [commentError, setCommentError] = useState<string | null>(null);
   const [commentNotifyEmail, setCommentNotifyEmail] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const commentFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data, isLoading, error } = useQuery({
@@ -496,48 +497,39 @@ export default function TicketDetailPage() {
           </div>
         </Card>
 
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6">
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <h2 
-                  className="text-base font-semibold"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  요청 상세
-                </h2>
-              </CardHeader>
-              <CardBody padding="lg">
+        <Card>
+          <CardHeader>
+            <h2 
+              className="text-base font-semibold"
+              style={{ color: "var(--text-primary)" }}
+            >
+              요청 상세
+            </h2>
+          </CardHeader>
+          <CardBody padding="lg">
+            <div 
+              className="rounded-lg border p-4 text-sm"
+              style={{ 
+                borderColor: "var(--border-default)",
+                backgroundColor: "var(--bg-subtle)"
+              }}
+            >
+              <TiptapViewer value={t.description} />
+            </div>
+            
+            {ticketAttachments.length > 0 && (
+              <>
                 <div 
-                  className="rounded-lg border p-4 text-sm"
-                  style={{ 
-                    borderColor: "var(--border-default)",
-                    backgroundColor: "var(--bg-subtle)"
-                  }}
-                >
-                  <TiptapViewer value={t.description} />
-                </div>
-              </CardBody>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <h2 
-                  className="text-base font-semibold"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  첨부파일
-                </h2>
-              </CardHeader>
-              <CardBody padding="lg">
-                {ticketAttachments.length === 0 ? (
+                  className="border-t my-4"
+                  style={{ borderColor: "var(--border-default)" }}
+                />
+                <div className="space-y-2">
                   <div 
-                    className="text-sm text-center py-4"
-                    style={{ color: "var(--text-tertiary)" }}
+                    className="text-sm font-semibold"
+                    style={{ color: "var(--text-primary)" }}
                   >
-                    첨부파일이 없습니다.
+                    첨부파일
                   </div>
-                ) : (
                   <div 
                     className="border rounded-lg divide-y"
                     style={{ borderColor: "var(--border-default)" }}
@@ -590,182 +582,196 @@ export default function TicketDetailPage() {
                       </div>
                     ))}
                   </div>
-                )}
-              </CardBody>
-            </Card>
+                </div>
+              </>
+            )}
+          </CardBody>
+        </Card>
 
-            <Card>
-              <CardHeader>
-                <h2 
-                  className="text-base font-semibold"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  처리 이력
-                </h2>
-              </CardHeader>
-              <CardBody padding="none">
-                {data.events.length === 0 ? (
-                  <div 
-                    className="text-sm text-center py-8"
-                    style={{ color: "var(--text-tertiary)" }}
-                  >
-                    처리 이력이 없습니다.
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead style={{ backgroundColor: "var(--bg-subtle)" }}>
-                        <tr style={{ borderBottom: "1px solid var(--border-default)" }}>
-                          <th 
-                            className="text-center p-3 w-16 font-semibold"
-                            style={{ color: "var(--text-secondary)" }}
-                          >
-                            No
-                          </th>
-                          <th 
-                            className="text-center p-3 w-44 font-semibold"
-                            style={{ color: "var(--text-secondary)" }}
-                          >
-                            시각
-                          </th>
-                          <th 
-                            className="text-center p-3 w-28 font-semibold"
-                            style={{ color: "var(--text-secondary)" }}
-                          >
-                            유형
-                          </th>
-                          <th 
-                            className="text-center p-3 font-semibold"
-                            style={{ color: "var(--text-secondary)" }}
-                          >
-                            내용
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {data.events.map((e, idx) => {
-                          const rowNo = data.events.length - idx;
-                          return (
-                            <tr 
-                              key={e.id} 
-                              style={{ borderBottom: "1px solid var(--border-default)" }}
-                            >
-                              <td 
-                                className="p-3 text-center"
-                                style={{ color: "var(--text-primary)" }}
-                              >
-                                {rowNo}
-                              </td>
-                              <td 
-                                className="p-3 text-center"
-                                style={{ color: "var(--text-secondary)" }}
-                              >
-                                {formatDate(e.created_at)}
-                              </td>
-                              <td 
-                                className="p-3 text-center"
-                                style={{ color: "var(--text-primary)" }}
-                              >
-                                {e.type}
-                              </td>
-                              <td 
-                                className="p-3 text-center"
-                                style={{ color: "var(--text-secondary)" }}
-                              >
-                                {e.note ?? "-"}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </CardBody>
-            </Card>
-          </div>
-
-          <aside>
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between w-full">
-                  <h2 
-                    className="text-base font-semibold"
-                    style={{ color: "var(--text-primary)" }}
-                  >
-                    댓글
-                  </h2>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between w-full">
+              <h2 
+                className="text-base font-semibold"
+                style={{ color: "var(--text-primary)" }}
+              >
+                댓글
+              </h2>
+              <button
+                className="text-xs rounded-lg px-3 py-1.5 font-medium transition-all"
+                style={{
+                  backgroundColor: "var(--color-primary-600)",
+                  color: "#ffffff",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
+                }}
+                onClick={() => setCommentModalOpen(true)}
+              >
+                등록
+              </button>
+            </div>
+          </CardHeader>
+          <CardBody padding="lg">
+            {data.comments.length === 0 ? (
+              <div 
+                className="text-sm text-center py-4"
+                style={{ color: "var(--text-tertiary)" }}
+              >
+                댓글이 없습니다.
+              </div>
+            ) : (
+              <div 
+                className="border rounded-lg divide-y"
+                style={{ borderColor: "var(--border-default)" }}
+              >
+                {data.comments.map((c) => (
                   <button
-                    className="text-xs rounded-lg px-3 py-1.5 font-medium transition-all"
-                    style={{
-                      backgroundColor: "var(--color-primary-600)",
-                      color: "#ffffff",
-                    }}
+                    key={c.id}
+                    type="button"
+                    className="w-full text-left px-4 py-3 transition-colors"
+                    style={{ borderColor: "var(--border-default)" }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
+                      e.currentTarget.style.backgroundColor = "var(--bg-hover)";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
+                      e.currentTarget.style.backgroundColor = "transparent";
                     }}
-                    onClick={() => setCommentModalOpen(true)}
+                    onClick={() => setOpenCommentId(c.id)}
                   >
-                    등록
+                    <div 
+                      className="text-sm font-semibold"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      {c.title || "제목 없음"}
+                    </div>
+                    <div 
+                      className="text-xs mt-1"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      {formatUser(c.author, c.author_emp_no)}
+                    </div>
+                    <div 
+                      className="text-xs mt-1"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
+                      {formatDate(c.created_at)}
+                    </div>
                   </button>
+                ))}
+              </div>
+            )}
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <button
+              className="flex items-center justify-between w-full cursor-pointer"
+              onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+            >
+              <h2 
+                className="text-base font-semibold"
+                style={{ color: "var(--text-primary)" }}
+              >
+                처리 이력
+              </h2>
+              <span 
+                className="text-sm transition-transform"
+                style={{ 
+                  color: "var(--text-secondary)",
+                  transform: isHistoryOpen ? "rotate(90deg)" : "rotate(0deg)"
+                }}
+              >
+                {isHistoryOpen ? "▼" : "▶"}
+              </span>
+            </button>
+          </CardHeader>
+          {isHistoryOpen && (
+            <CardBody padding="none">
+              {data.events.length === 0 ? (
+                <div 
+                  className="text-sm text-center py-8"
+                  style={{ color: "var(--text-tertiary)" }}
+                >
+                  처리 이력이 없습니다.
                 </div>
-              </CardHeader>
-              <CardBody padding="lg">
-                {data.comments.length === 0 ? (
-                  <div 
-                    className="text-sm text-center py-4"
-                    style={{ color: "var(--text-tertiary)" }}
-                  >
-                    댓글이 없습니다.
-                  </div>
-                ) : (
-                  <div 
-                    className="border rounded-lg divide-y max-h-[520px] overflow-auto"
-                    style={{ borderColor: "var(--border-default)" }}
-                  >
-                    {data.comments.map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        className="w-full text-left px-4 py-3 transition-colors"
-                        style={{ borderColor: "var(--border-default)" }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = "var(--bg-hover)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = "transparent";
-                        }}
-                        onClick={() => setOpenCommentId(c.id)}
-                      >
-                        <div 
-                          className="text-sm font-semibold"
-                          style={{ color: "var(--text-primary)" }}
-                        >
-                          {c.title || "제목 없음"}
-                        </div>
-                        <div 
-                          className="text-xs mt-1"
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead style={{ backgroundColor: "var(--bg-subtle)" }}>
+                      <tr style={{ borderBottom: "1px solid var(--border-default)" }}>
+                        <th 
+                          className="text-center p-3 w-16 font-semibold"
                           style={{ color: "var(--text-secondary)" }}
                         >
-                          {formatUser(c.author, c.author_emp_no)}
-                        </div>
-                        <div 
-                          className="text-xs mt-1"
-                          style={{ color: "var(--text-tertiary)" }}
+                          No
+                        </th>
+                        <th 
+                          className="text-center p-3 w-44 font-semibold"
+                          style={{ color: "var(--text-secondary)" }}
                         >
-                          {formatDate(c.created_at)}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </CardBody>
-            </Card>
-          </aside>
-        </div>
+                          시각
+                        </th>
+                        <th 
+                          className="text-center p-3 w-28 font-semibold"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          유형
+                        </th>
+                        <th 
+                          className="text-center p-3 font-semibold"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          내용
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.events.map((e, idx) => {
+                        const rowNo = data.events.length - idx;
+                        return (
+                          <tr 
+                            key={e.id} 
+                            style={{ borderBottom: "1px solid var(--border-default)" }}
+                          >
+                            <td 
+                              className="p-3 text-center"
+                              style={{ color: "var(--text-primary)" }}
+                            >
+                              {rowNo}
+                            </td>
+                            <td 
+                              className="p-3 text-center"
+                              style={{ color: "var(--text-secondary)" }}
+                            >
+                              {formatDate(e.created_at)}
+                            </td>
+                            <td 
+                              className="p-3 text-center"
+                              style={{ color: "var(--text-primary)" }}
+                            >
+                              {e.type}
+                            </td>
+                            <td 
+                              className="p-3 text-center"
+                              style={{ color: "var(--text-secondary)" }}
+                            >
+                              {e.note ?? "-"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardBody>
+          )}
+        </Card>
       </div>
 
       {selectedComment && (

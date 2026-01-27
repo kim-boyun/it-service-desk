@@ -250,6 +250,7 @@ export default function AdminTicketDetailPage() {
   const [note, setNote] = useState("");
   const [openEventId, setOpenEventId] = useState<number | null>(null);
   const [openCommentId, setOpenCommentId] = useState<number | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [assigneeEmpNos, setAssigneeEmpNos] = useState<string[]>([]);
   const [categoryIds, setCategoryIds] = useState<number[]>([]);
   const [workType, setWorkType] = useState<string>("");
@@ -690,560 +691,553 @@ export default function AdminTicketDetailPage() {
           </div>
         </Card>
 
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6">
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <h2 
-                  className="text-base font-semibold"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  요청 상세
-                </h2>
-              </CardHeader>
-              <CardBody padding="lg">
-                <div className="space-y-6">
-                  <section className="space-y-3">
-                    <div 
-                      className="text-sm font-semibold"
-                      style={{ color: "var(--text-secondary)" }}
-                    >
-                      요청 내용
-                    </div>
-                    <div 
-                      className="rounded-lg border p-4 text-sm"
-                      style={{ 
-                        borderColor: "var(--border-default)",
-                        backgroundColor: "var(--bg-subtle)"
-                      }}
-                    >
-                      <TiptapViewer value={t.description} />
-                    </div>
-                  </section>
-
-                  <section className="space-y-3">
-                    <div 
-                      className="text-sm font-semibold"
-                      style={{ color: "var(--text-secondary)" }}
-                    >
-                      첨부파일
-                    </div>
-                    {ticketAttachments.length === 0 ? (
-                      <div 
-                        className="text-sm text-center py-4"
-                        style={{ color: "var(--text-tertiary)" }}
-                      >
-                        첨부파일이 없습니다.
-                      </div>
-                    ) : (
-                      <div 
-                        className="border rounded-lg divide-y"
-                        style={{ borderColor: "var(--border-default)" }}
-                      >
-                        {ticketAttachments.map((a) => (
-                          <div 
-                            key={a.id} 
-                            className="flex items-center justify-between px-4 py-3 transition-colors"
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = "var(--bg-hover)";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = "transparent";
-                            }}
-                          >
-                            <div 
-                              className="text-sm font-medium"
-                              style={{ color: "var(--text-primary)" }}
-                            >
-                              {a.filename}
-                            </div>
-                            <button
-                              className="text-sm rounded-lg px-3 py-1.5 font-medium transition-all"
-                              style={{
-                                backgroundColor: "var(--bg-elevated)",
-                                borderWidth: "1px",
-                                borderStyle: "solid",
-                                borderColor: "var(--border-default)",
-                                color: "var(--text-primary)",
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = "var(--bg-hover)";
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
-                              }}
-                              onClick={() => downloadAttachmentM.mutate(a.id)}
-                              disabled={downloadAttachmentM.isPending}
-                            >
-                              다운로드
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </section>
-                </div>
-              </CardBody>
-            </Card>
-          </div>
-
-          <aside>
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between w-full">
-                  <h2 
-                    className="text-base font-semibold"
-                    style={{ color: "var(--text-primary)" }}
-                  >
-                    댓글
-                  </h2>
-                  <button
-                    className="text-xs rounded-lg px-3 py-1.5 font-medium transition-all"
-                    style={{
-                      backgroundColor: "var(--color-primary-600)",
-                      color: "#ffffff",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
-                    }}
-                    onClick={() => setCommentModalOpen(true)}
-                  >
-                    등록
-                  </button>
-                </div>
-              </CardHeader>
-              <CardBody padding="lg">
-                {data.comments.length === 0 ? (
+        <Card>
+          <CardHeader>
+            <h2 
+              className="text-base font-semibold"
+              style={{ color: "var(--text-primary)" }}
+            >
+              요청 상세
+            </h2>
+          </CardHeader>
+          <CardBody padding="lg">
+            <div 
+              className="rounded-lg border p-4 text-sm"
+              style={{ 
+                borderColor: "var(--border-default)",
+                backgroundColor: "var(--bg-subtle)"
+              }}
+            >
+              <TiptapViewer value={t.description} />
+            </div>
+            {ticketAttachments.length > 0 && (
+              <>
+                <div 
+                  className="my-4"
+                  style={{ 
+                    borderTop: "1px solid var(--border-default)"
+                  }}
+                />
+                <div className="space-y-3">
                   <div 
-                    className="text-sm text-center py-4"
-                    style={{ color: "var(--text-tertiary)" }}
+                    className="text-sm font-semibold"
+                    style={{ color: "var(--text-secondary)" }}
                   >
-                    댓글이 없습니다.
+                    첨부파일
                   </div>
-                ) : (
                   <div 
-                    className="border rounded-lg divide-y max-h-[520px] overflow-auto"
+                    className="border rounded-lg divide-y"
                     style={{ borderColor: "var(--border-default)" }}
                   >
-                    {data.comments.map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        className="w-full text-left px-4 py-3 transition-colors"
-                        style={{ borderColor: "var(--border-default)" }}
+                    {ticketAttachments.map((a) => (
+                      <div 
+                        key={a.id} 
+                        className="flex items-center justify-between px-4 py-3 transition-colors"
                         onMouseEnter={(e) => {
                           e.currentTarget.style.backgroundColor = "var(--bg-hover)";
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.backgroundColor = "transparent";
                         }}
-                        onClick={() => setOpenCommentId(c.id)}
                       >
                         <div 
-                          className="text-sm font-semibold"
+                          className="text-sm font-medium"
                           style={{ color: "var(--text-primary)" }}
                         >
-                          {c.title || "제목 없음"}
+                          {a.filename}
                         </div>
-                        <div 
-                          className="text-xs mt-1"
-                          style={{ color: "var(--text-secondary)" }}
+                        <button
+                          className="text-sm rounded-lg px-3 py-1.5 font-medium transition-all"
+                          style={{
+                            backgroundColor: "var(--bg-elevated)",
+                            borderWidth: "1px",
+                            borderStyle: "solid",
+                            borderColor: "var(--border-default)",
+                            color: "var(--text-primary)",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
+                          }}
+                          onClick={() => downloadAttachmentM.mutate(a.id)}
+                          disabled={downloadAttachmentM.isPending}
                         >
-                          {formatUser(c.author, c.author_emp_no)}
-                        </div>
-                        <div 
-                          className="text-xs mt-1"
-                          style={{ color: "var(--text-tertiary)" }}
-                        >
-                          {formatDate(c.created_at)}
-                        </div>
-                      </button>
+                          다운로드
+                        </button>
+                      </div>
                     ))}
                   </div>
-                )}
-              </CardBody>
-            </Card>
-          </aside>
-        </div>
+                </div>
+              </>
+            )}
+          </CardBody>
+        </Card>
 
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6">
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <h2 
-                  className="text-base font-semibold"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  상태 변경
-                </h2>
-              </CardHeader>
-              <CardBody padding="lg">
-                <div className="space-y-3">
-                  <select
-                    className="w-full border rounded-lg px-3 py-2 text-sm transition-colors"
-                    style={{
-                      backgroundColor: "var(--bg-input)",
-                      borderColor: "var(--border-default)",
-                      color: "var(--text-primary)",
-                    }}
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                  >
-                    {STATUS_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                  <textarea
-                    className="w-full border rounded-lg px-3 py-2 text-sm min-h-[80px] transition-colors"
-                    style={{
-                      backgroundColor: "var(--bg-input)",
-                      borderColor: "var(--border-default)",
-                      color: "var(--text-primary)",
-                    }}
-                    placeholder="상태 변경 메모 (선택)"
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                  />
-                  {updateStatusM.isError && (
-                    <div 
-                      className="text-xs"
-                      style={{ color: "var(--color-danger-600)" }}
-                    >
-                      {(updateStatusM.error as any)?.message ?? "상태 변경에 실패했습니다."}
-                    </div>
-                  )}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between w-full">
+              <h2 
+                className="text-base font-semibold"
+                style={{ color: "var(--text-primary)" }}
+              >
+                댓글
+              </h2>
+              <button
+                className="text-xs rounded-lg px-3 py-1.5 font-medium transition-all"
+                style={{
+                  backgroundColor: "var(--color-primary-600)",
+                  color: "#ffffff",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
+                }}
+                onClick={() => setCommentModalOpen(true)}
+              >
+                등록
+              </button>
+            </div>
+          </CardHeader>
+          <CardBody padding="lg">
+            {data.comments.length === 0 ? (
+              <div 
+                className="text-sm text-center py-4"
+                style={{ color: "var(--text-tertiary)" }}
+              >
+                댓글이 없습니다.
+              </div>
+            ) : (
+              <div 
+                className="border rounded-lg divide-y max-h-[520px] overflow-auto"
+                style={{ borderColor: "var(--border-default)" }}
+              >
+                {data.comments.map((c) => (
                   <button
-                    className="w-full rounded-lg px-4 py-2 text-sm font-medium transition-all disabled:opacity-60"
-                    style={{
-                      backgroundColor: "var(--color-primary-600)",
-                      color: "#ffffff",
-                    }}
+                    key={c.id}
+                    type="button"
+                    className="w-full text-left px-4 py-3 transition-colors"
+                    style={{ borderColor: "var(--border-default)" }}
                     onMouseEnter={(e) => {
-                      if (!e.currentTarget.disabled) {
-                        e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
-                      }
+                      e.currentTarget.style.backgroundColor = "var(--bg-hover)";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
+                      e.currentTarget.style.backgroundColor = "transparent";
                     }}
-                    onClick={() => updateStatusM.mutate()}
-                    disabled={updateStatusM.isPending}
+                    onClick={() => setOpenCommentId(c.id)}
                   >
-                    {updateStatusM.isPending ? "변경 중.." : "상태 업데이트"}
+                    <div 
+                      className="text-sm font-semibold"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      {c.title || "제목 없음"}
+                    </div>
+                    <div 
+                      className="text-xs mt-1"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      {formatUser(c.author, c.author_emp_no)}
+                    </div>
+                    <div 
+                      className="text-xs mt-1"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
+                      {formatDate(c.created_at)}
+                    </div>
                   </button>
-                </div>
-              </CardBody>
-            </Card>
+                ))}
+              </div>
+            )}
+          </CardBody>
+        </Card>
 
-            <Card>
-              <CardHeader>
-                <h2 
-                  className="text-base font-semibold"
-                  style={{ color: "var(--text-primary)" }}
+        <Card>
+          <CardHeader>
+            <h2 
+              className="text-base font-semibold"
+              style={{ color: "var(--text-primary)" }}
+            >
+              상태 변경
+            </h2>
+          </CardHeader>
+          <CardBody padding="lg">
+            <div className="space-y-3">
+              <select
+                className="w-full border rounded-lg px-3 py-2 text-sm transition-colors"
+                style={{
+                  backgroundColor: "var(--bg-input)",
+                  borderColor: "var(--border-default)",
+                  color: "var(--text-primary)",
+                }}
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+              >
+                {STATUS_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <textarea
+                className="w-full border rounded-lg px-3 py-2 text-sm min-h-[80px] transition-colors"
+                style={{
+                  backgroundColor: "var(--bg-input)",
+                  borderColor: "var(--border-default)",
+                  color: "var(--text-primary)",
+                }}
+                placeholder="상태 변경 메모 (선택)"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+              {updateStatusM.isError && (
+                <div 
+                  className="text-xs"
+                  style={{ color: "var(--color-danger-600)" }}
                 >
-                  처리 이력
-                </h2>
-              </CardHeader>
-              <CardBody padding="none">
-                {data.events.length === 0 ? (
-                  <div 
-                    className="text-sm text-center py-8"
-                    style={{ color: "var(--text-tertiary)" }}
-                  >
-                    처리 이력이 없습니다.
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead style={{ backgroundColor: "var(--bg-subtle)" }}>
-                        <tr style={{ borderBottom: "1px solid var(--border-default)" }}>
-                          <th 
-                            className="text-center p-3 w-16 font-semibold"
-                            style={{ color: "var(--text-secondary)" }}
-                          >
-                            No
-                          </th>
-                          <th 
-                            className="text-center p-3 w-44 font-semibold"
-                            style={{ color: "var(--text-secondary)" }}
-                          >
-                            시각
-                          </th>
-                          <th 
-                            className="text-center p-3 w-28 font-semibold"
-                            style={{ color: "var(--text-secondary)" }}
-                          >
-                            유형
-                          </th>
-                          <th 
-                            className="text-center p-3 font-semibold"
-                            style={{ color: "var(--text-secondary)" }}
-                          >
-                            내용
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {data.events.map((e, idx) => {
-                          const editNote = e.type === "requester_updated" ? parseEditNote(e.note) : null;
-                          const summary = editNote?.summary ?? e.note ?? "-";
-                          const isExpandable = Boolean(editNote?.before);
-                          const isOpen = openEventId === e.id;
-                          const before = editNote?.before ?? {};
-                          const rowNo = data.events.length - idx;
-                          return (
-                            <Fragment key={e.id}>
-                              <tr
-                                className={`${isExpandable ? "cursor-pointer transition-colors" : ""}`}
-                                style={{ borderBottom: "1px solid var(--border-default)" }}
-                                onMouseEnter={(e) => {
-                                  if (isExpandable) {
-                                    e.currentTarget.style.backgroundColor = "var(--bg-hover)";
-                                  }
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.backgroundColor = "transparent";
-                                }}
-                                onClick={() => {
-                                  if (!isExpandable) return;
-                                  setOpenEventId(isOpen ? null : e.id);
+                  {(updateStatusM.error as any)?.message ?? "상태 변경에 실패했습니다."}
+                </div>
+              )}
+              <button
+                className="w-full rounded-lg px-4 py-2 text-sm font-medium transition-all disabled:opacity-60"
+                style={{
+                  backgroundColor: "var(--color-primary-600)",
+                  color: "#ffffff",
+                }}
+                onMouseEnter={(e) => {
+                  if (!e.currentTarget.disabled) {
+                    e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
+                }}
+                onClick={() => updateStatusM.mutate()}
+                disabled={updateStatusM.isPending}
+              >
+                {updateStatusM.isPending ? "변경 중.." : "상태 업데이트"}
+              </button>
+            </div>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <button
+              type="button"
+              className="w-full flex items-center justify-between cursor-pointer"
+              onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+            >
+              <h2 
+                className="text-base font-semibold"
+                style={{ color: "var(--text-primary)" }}
+              >
+                처리 이력
+              </h2>
+              <span 
+                className="text-lg"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                {isHistoryOpen ? "▼" : "▶"}
+              </span>
+            </button>
+          </CardHeader>
+          {isHistoryOpen && (
+            <CardBody padding="none">
+              {data.events.length === 0 ? (
+                <div 
+                  className="text-sm text-center py-8"
+                  style={{ color: "var(--text-tertiary)" }}
+                >
+                  처리 이력이 없습니다.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead style={{ backgroundColor: "var(--bg-subtle)" }}>
+                      <tr style={{ borderBottom: "1px solid var(--border-default)" }}>
+                        <th 
+                          className="text-center p-3 w-16 font-semibold"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          No
+                        </th>
+                        <th 
+                          className="text-center p-3 w-44 font-semibold"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          시각
+                        </th>
+                        <th 
+                          className="text-center p-3 w-28 font-semibold"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          유형
+                        </th>
+                        <th 
+                          className="text-center p-3 font-semibold"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          내용
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.events.map((e, idx) => {
+                        const editNote = e.type === "requester_updated" ? parseEditNote(e.note) : null;
+                        const summary = editNote?.summary ?? e.note ?? "-";
+                        const isExpandable = Boolean(editNote?.before);
+                        const isOpen = openEventId === e.id;
+                        const before = editNote?.before ?? {};
+                        const rowNo = data.events.length - idx;
+                        return (
+                          <Fragment key={e.id}>
+                            <tr
+                              className={`${isExpandable ? "cursor-pointer transition-colors" : ""}`}
+                              style={{ borderBottom: "1px solid var(--border-default)" }}
+                              onMouseEnter={(e) => {
+                                if (isExpandable) {
+                                  e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = "transparent";
+                              }}
+                              onClick={() => {
+                                if (!isExpandable) return;
+                                setOpenEventId(isOpen ? null : e.id);
+                              }}
+                            >
+                              <td 
+                                className="p-3 text-center"
+                                style={{ color: "var(--text-primary)" }}
+                              >
+                                {rowNo}
+                              </td>
+                              <td 
+                                className="p-3 text-center"
+                                style={{ color: "var(--text-secondary)" }}
+                              >
+                                {formatDate(e.created_at)}
+                              </td>
+                              <td 
+                                className="p-3 text-center"
+                                style={{ color: "var(--text-primary)" }}
+                              >
+                                {eventLabel(e.type)}
+                              </td>
+                              <td 
+                                className="p-3 text-center"
+                                style={{ color: "var(--text-secondary)" }}
+                              >
+                                {summary}
+                              </td>
+                            </tr>
+                            {isExpandable && isOpen && (
+                              <tr 
+                                style={{ 
+                                  borderBottom: "1px solid var(--border-default)",
+                                  backgroundColor: "var(--bg-subtle)"
                                 }}
                               >
-                                <td 
-                                  className="p-3 text-center"
-                                  style={{ color: "var(--text-primary)" }}
-                                >
-                                  {rowNo}
-                                </td>
-                                <td 
-                                  className="p-3 text-center"
-                                  style={{ color: "var(--text-secondary)" }}
-                                >
-                                  {formatDate(e.created_at)}
-                                </td>
-                                <td 
-                                  className="p-3 text-center"
-                                  style={{ color: "var(--text-primary)" }}
-                                >
-                                  {eventLabel(e.type)}
-                                </td>
-                                <td 
-                                  className="p-3 text-center"
-                                  style={{ color: "var(--text-secondary)" }}
-                                >
-                                  {summary}
+                                <td className="p-4" colSpan={4}>
+                                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                    <Card>
+                                      <CardHeader>
+                                        <h3 
+                                          className="text-xs font-semibold"
+                                          style={{ color: "var(--text-primary)" }}
+                                        >
+                                          수정 전 정보
+                                        </h3>
+                                      </CardHeader>
+                                      <CardBody padding="none">
+                                        <div 
+                                          className="divide-y text-xs"
+                                          style={{ borderColor: "var(--border-default)" }}
+                                        >
+                                          <div 
+                                            className="grid grid-cols-12"
+                                            style={{ borderBottom: "1px solid var(--border-default)" }}
+                                          >
+                                            <div 
+                                              className="col-span-3 px-2 py-2 border-r"
+                                              style={{ 
+                                                color: "var(--text-secondary)",
+                                                backgroundColor: "var(--bg-subtle)",
+                                                borderColor: "var(--border-default)"
+                                              }}
+                                            >
+                                              제목
+                                            </div>
+                                            <div 
+                                              className="col-span-9 px-2 py-2"
+                                              style={{ color: "var(--text-primary)" }}
+                                            >
+                                              {before.title ?? "-"}
+                                            </div>
+                                          </div>
+                                          <div 
+                                            className="grid grid-cols-12"
+                                            style={{ borderBottom: "1px solid var(--border-default)" }}
+                                          >
+                                            <div 
+                                              className="col-span-3 px-2 py-2 border-r"
+                                              style={{ 
+                                                color: "var(--text-secondary)",
+                                                backgroundColor: "var(--bg-subtle)",
+                                                borderColor: "var(--border-default)"
+                                              }}
+                                            >
+                                              우선순위
+                                            </div>
+                                            <div 
+                                              className="col-span-9 px-2 py-2"
+                                              style={{ color: "var(--text-primary)" }}
+                                            >
+                                              {priorityMeta(before.priority ?? "medium").label}
+                                            </div>
+                                          </div>
+                                          <div 
+                                            className="grid grid-cols-12"
+                                            style={{ borderBottom: "1px solid var(--border-default)" }}
+                                          >
+                                            <div 
+                                              className="col-span-3 px-2 py-2 border-r"
+                                              style={{ 
+                                                color: "var(--text-secondary)",
+                                                backgroundColor: "var(--bg-subtle)",
+                                                borderColor: "var(--border-default)"
+                                              }}
+                                            >
+                                              카테고리
+                                            </div>
+                                            <div 
+                                              className="col-span-9 px-2 py-2"
+                                              style={{ color: "var(--text-primary)" }}
+                                            >
+                                              {formatCategoryList(
+                                                before.category_ids ??
+                                                  (before.category_id ? [before.category_id] : []),
+                                                categoryMap,
+                                              )}
+                                            </div>
+                                          </div>
+                                          <div 
+                                            className="grid grid-cols-12"
+                                            style={{ borderBottom: "1px solid var(--border-default)" }}
+                                          >
+                                            <div 
+                                              className="col-span-3 px-2 py-2 border-r"
+                                              style={{ 
+                                                color: "var(--text-secondary)",
+                                                backgroundColor: "var(--bg-subtle)",
+                                                borderColor: "var(--border-default)"
+                                              }}
+                                            >
+                                              작업 구분
+                                            </div>
+                                            <div 
+                                              className="col-span-9 px-2 py-2"
+                                              style={{ color: "var(--text-primary)" }}
+                                            >
+                                              {workTypeLabel(before.work_type)}
+                                            </div>
+                                          </div>
+                                          <div 
+                                            className="grid grid-cols-12"
+                                            style={{ borderBottom: "1px solid var(--border-default)" }}
+                                          >
+                                            <div 
+                                              className="col-span-3 px-2 py-2 border-r"
+                                              style={{ 
+                                                color: "var(--text-secondary)",
+                                                backgroundColor: "var(--bg-subtle)",
+                                                borderColor: "var(--border-default)"
+                                              }}
+                                            >
+                                              프로젝트
+                                            </div>
+                                            <div 
+                                              className="col-span-9 px-2 py-2"
+                                              style={{ color: "var(--text-primary)" }}
+                                            >
+                                              {before.project_name ?? "-"}
+                                            </div>
+                                          </div>
+                                          <div 
+                                            className="grid grid-cols-12"
+                                            style={{ borderBottom: "1px solid var(--border-default)" }}
+                                          >
+                                            <div 
+                                              className="col-span-3 px-2 py-2 border-r"
+                                              style={{ 
+                                                color: "var(--text-secondary)",
+                                                backgroundColor: "var(--bg-subtle)",
+                                                borderColor: "var(--border-default)"
+                                              }}
+                                            >
+                                              생성일
+                                            </div>
+                                            <div 
+                                              className="col-span-9 px-2 py-2"
+                                              style={{ color: "var(--text-primary)" }}
+                                            >
+                                              {formatDate(before.created_at)}
+                                            </div>
+                                          </div>
+                                          <div className="grid grid-cols-12">
+                                            <div 
+                                              className="col-span-3 px-2 py-2 border-r"
+                                              style={{ 
+                                                color: "var(--text-secondary)",
+                                                backgroundColor: "var(--bg-subtle)",
+                                                borderColor: "var(--border-default)"
+                                              }}
+                                            >
+                                              최근 업데이트
+                                            </div>
+                                            <div 
+                                              className="col-span-9 px-2 py-2"
+                                              style={{ color: "var(--text-primary)" }}
+                                            >
+                                              {formatDate(before.updated_at)}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </CardBody>
+                                    </Card>
+                                    <Card>
+                                      <CardHeader>
+                                        <h3 
+                                          className="text-xs font-semibold"
+                                          style={{ color: "var(--text-primary)" }}
+                                        >
+                                          이전 요청 상세
+                                        </h3>
+                                      </CardHeader>
+                                      <CardBody padding="md">
+                                        <div className="text-sm">
+                                          <TiptapViewer value={before.description ?? { type: "doc", content: [] }} />
+                                        </div>
+                                      </CardBody>
+                                    </Card>
+                                  </div>
                                 </td>
                               </tr>
-                              {isExpandable && isOpen && (
-                                <tr 
-                                  style={{ 
-                                    borderBottom: "1px solid var(--border-default)",
-                                    backgroundColor: "var(--bg-subtle)"
-                                  }}
-                                >
-                                  <td className="p-4" colSpan={4}>
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                      <Card>
-                                        <CardHeader>
-                                          <h3 
-                                            className="text-xs font-semibold"
-                                            style={{ color: "var(--text-primary)" }}
-                                          >
-                                            수정 전 정보
-                                          </h3>
-                                        </CardHeader>
-                                        <CardBody padding="none">
-                                          <div 
-                                            className="divide-y text-xs"
-                                            style={{ borderColor: "var(--border-default)" }}
-                                          >
-                                            <div 
-                                              className="grid grid-cols-12"
-                                              style={{ borderBottom: "1px solid var(--border-default)" }}
-                                            >
-                                              <div 
-                                                className="col-span-3 px-2 py-2 border-r"
-                                                style={{ 
-                                                  color: "var(--text-secondary)",
-                                                  backgroundColor: "var(--bg-subtle)",
-                                                  borderColor: "var(--border-default)"
-                                                }}
-                                              >
-                                                제목
-                                              </div>
-                                              <div 
-                                                className="col-span-9 px-2 py-2"
-                                                style={{ color: "var(--text-primary)" }}
-                                              >
-                                                {before.title ?? "-"}
-                                              </div>
-                                            </div>
-                                            <div 
-                                              className="grid grid-cols-12"
-                                              style={{ borderBottom: "1px solid var(--border-default)" }}
-                                            >
-                                              <div 
-                                                className="col-span-3 px-2 py-2 border-r"
-                                                style={{ 
-                                                  color: "var(--text-secondary)",
-                                                  backgroundColor: "var(--bg-subtle)",
-                                                  borderColor: "var(--border-default)"
-                                                }}
-                                              >
-                                                우선순위
-                                              </div>
-                                              <div 
-                                                className="col-span-9 px-2 py-2"
-                                                style={{ color: "var(--text-primary)" }}
-                                              >
-                                                {priorityMeta(before.priority ?? "medium").label}
-                                              </div>
-                                            </div>
-                                            <div 
-                                              className="grid grid-cols-12"
-                                              style={{ borderBottom: "1px solid var(--border-default)" }}
-                                            >
-                                              <div 
-                                                className="col-span-3 px-2 py-2 border-r"
-                                                style={{ 
-                                                  color: "var(--text-secondary)",
-                                                  backgroundColor: "var(--bg-subtle)",
-                                                  borderColor: "var(--border-default)"
-                                                }}
-                                              >
-                                                카테고리
-                                              </div>
-                                              <div 
-                                                className="col-span-9 px-2 py-2"
-                                                style={{ color: "var(--text-primary)" }}
-                                              >
-                                                {formatCategoryList(
-                                                  before.category_ids ??
-                                                    (before.category_id ? [before.category_id] : []),
-                                                  categoryMap,
-                                                )}
-                                              </div>
-                                            </div>
-                                            <div 
-                                              className="grid grid-cols-12"
-                                              style={{ borderBottom: "1px solid var(--border-default)" }}
-                                            >
-                                              <div 
-                                                className="col-span-3 px-2 py-2 border-r"
-                                                style={{ 
-                                                  color: "var(--text-secondary)",
-                                                  backgroundColor: "var(--bg-subtle)",
-                                                  borderColor: "var(--border-default)"
-                                                }}
-                                              >
-                                                작업 구분
-                                              </div>
-                                              <div 
-                                                className="col-span-9 px-2 py-2"
-                                                style={{ color: "var(--text-primary)" }}
-                                              >
-                                                {workTypeLabel(before.work_type)}
-                                              </div>
-                                            </div>
-                                            <div 
-                                              className="grid grid-cols-12"
-                                              style={{ borderBottom: "1px solid var(--border-default)" }}
-                                            >
-                                              <div 
-                                                className="col-span-3 px-2 py-2 border-r"
-                                                style={{ 
-                                                  color: "var(--text-secondary)",
-                                                  backgroundColor: "var(--bg-subtle)",
-                                                  borderColor: "var(--border-default)"
-                                                }}
-                                              >
-                                                프로젝트
-                                              </div>
-                                              <div 
-                                                className="col-span-9 px-2 py-2"
-                                                style={{ color: "var(--text-primary)" }}
-                                              >
-                                                {before.project_name ?? "-"}
-                                              </div>
-                                            </div>
-                                            <div 
-                                              className="grid grid-cols-12"
-                                              style={{ borderBottom: "1px solid var(--border-default)" }}
-                                            >
-                                              <div 
-                                                className="col-span-3 px-2 py-2 border-r"
-                                                style={{ 
-                                                  color: "var(--text-secondary)",
-                                                  backgroundColor: "var(--bg-subtle)",
-                                                  borderColor: "var(--border-default)"
-                                                }}
-                                              >
-                                                생성일
-                                              </div>
-                                              <div 
-                                                className="col-span-9 px-2 py-2"
-                                                style={{ color: "var(--text-primary)" }}
-                                              >
-                                                {formatDate(before.created_at)}
-                                              </div>
-                                            </div>
-                                            <div className="grid grid-cols-12">
-                                              <div 
-                                                className="col-span-3 px-2 py-2 border-r"
-                                                style={{ 
-                                                  color: "var(--text-secondary)",
-                                                  backgroundColor: "var(--bg-subtle)",
-                                                  borderColor: "var(--border-default)"
-                                                }}
-                                              >
-                                                최근 업데이트
-                                              </div>
-                                              <div 
-                                                className="col-span-9 px-2 py-2"
-                                                style={{ color: "var(--text-primary)" }}
-                                              >
-                                                {formatDate(before.updated_at)}
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </CardBody>
-                                      </Card>
-                                      <Card>
-                                        <CardHeader>
-                                          <h3 
-                                            className="text-xs font-semibold"
-                                            style={{ color: "var(--text-primary)" }}
-                                          >
-                                            이전 요청 상세
-                                          </h3>
-                                        </CardHeader>
-                                        <CardBody padding="md">
-                                          <div className="text-sm">
-                                            <TiptapViewer value={before.description ?? { type: "doc", content: [] }} />
-                                          </div>
-                                        </CardBody>
-                                      </Card>
-                                    </div>
-                                  </td>
-                                </tr>
-                              )}
-                            </Fragment>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </CardBody>
-            </Card>
-          </div>
-          <div />
-        </div>
+                            )}
+                          </Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardBody>
+          )}
+        </Card>
       </div>
       {selectedComment && (
         <div 
