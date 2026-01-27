@@ -319,9 +319,6 @@ export default function AdminAllTicketsPage() {
                     <th className="text-center px-6 py-3 font-semibold w-28" style={{ color: "var(--text-secondary)" }}>
                       {renderSortLabel("status", "상태")}
                     </th>
-                    <th className="text-center px-6 py-3 font-semibold w-28" style={{ color: "var(--text-secondary)" }}>
-                      {renderSortLabel("priority", "우선순위")}
-                    </th>
                     <th className="text-center px-6 py-3 font-semibold w-40 whitespace-nowrap" style={{ color: "var(--text-secondary)" }}>
                       {renderSortLabel("assignee", "담당자")}
                     </th>
@@ -369,11 +366,6 @@ export default function AdminAllTicketsPage() {
                         <td className="px-6 py-4 text-center">
                           <Badge variant={statusInfo.variant} size="md">
                             {statusInfo.label}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <Badge variant={priorityInfo.variant} size="md">
-                            {priorityInfo.label}
                           </Badge>
                         </td>
                         <td className="px-6 py-4 text-center whitespace-nowrap" style={{ color: "var(--text-secondary)" }}>

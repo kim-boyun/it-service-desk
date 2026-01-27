@@ -385,21 +385,16 @@ export default function TicketDetailPage() {
         <Card>
           <CardBody padding="lg">
             <div className="flex items-start justify-between gap-4">
-              <div>
+              <div className="flex items-center gap-3">
+                <Badge variant={statusInfo.variant} size="md">
+                  {statusInfo.label}
+                </Badge>
                 <h1 
                   className="text-2xl font-semibold" 
                   style={{ color: "var(--text-primary)" }}
                 >
                   {t.title}
                 </h1>
-                <div className="flex items-center gap-2 mt-3">
-                  <Badge variant={statusInfo.variant} size="md">
-                    {statusInfo.label}
-                  </Badge>
-                  <Badge variant={priorityInfo.variant} size="md">
-                    {priorityInfo.label}
-                  </Badge>
-                </div>
               </div>
               <div className="flex items-center gap-2">
                 {canEdit && (
@@ -478,22 +473,24 @@ export default function TicketDetailPage() {
 
         <Card>
           <div 
-            className="grid grid-cols-1 md:grid-cols-2 overflow-hidden rounded-xl"
+            className="overflow-hidden rounded-xl divide-y"
             style={{ 
               border: "1px solid var(--border-default)",
+              borderColor: "var(--border-default)",
             }}
           >
-            <div 
-              className="divide-y"
-              style={{ 
-                borderColor: "var(--border-default)",
-              }}
-            >
+            <div className="grid grid-cols-1 md:grid-cols-2">
               <FieldRow label="요청자" value={formatUser(t.requester, t.requester_emp_no)} />
+              <FieldRow label="프로젝트" value={t.project_name ?? "-"} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2">
               <FieldRow
                 label="담당자"
                 value={formatAssignees(t.assignees, t.assignee_emp_nos ?? null)}
               />
+              <FieldRow label="생성일" value={formatDate(t.created_at)} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2">
               <FieldRow
                 label="카테고리"
                 value={formatCategoryList(
@@ -501,18 +498,11 @@ export default function TicketDetailPage() {
                   categoryMap,
                 )}
               />
-              <FieldRow label="작업 구분" value={workTypeLabel(t.work_type)} />
+              <FieldRow label="" value="" />
             </div>
-            <div 
-              className="divide-y"
-              style={{ 
-                borderColor: "var(--border-default)",
-              }}
-            >
-              <FieldRow label="프로젝트" value={t.project_name ?? "-"} />
-              <FieldRow label="생성일" value={formatDate(t.created_at)} />
-              <FieldRow label="최근 업데이트" value={formatDate(t.updated_at)} />
-              <FieldRow label="마감일" value={"-"} />
+            <div className="grid grid-cols-1 md:grid-cols-2">
+              <FieldRow label="작업 구분" value={workTypeLabel(t.work_type)} />
+              <FieldRow label="" value="" />
             </div>
           </div>
         </Card>
@@ -551,13 +541,16 @@ export default function TicketDetailPage() {
                     첨부파일
                   </div>
                   <div 
-                    className="border rounded-lg divide-y"
+                    className="border rounded-lg"
                     style={{ borderColor: "var(--border-default)" }}
                   >
-                    {ticketAttachments.map((a) => (
+                    {ticketAttachments.map((a, idx) => (
                       <div 
                         key={a.id} 
                         className="flex items-center justify-between px-4 py-3 transition-colors"
+                        style={{
+                          borderTop: idx > 0 ? "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))" : undefined,
+                        }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.backgroundColor = "var(--bg-hover)";
                         }}
@@ -766,7 +759,7 @@ export default function TicketDetailPage() {
                   </label>
 
                   <button
-                    className="text-xs rounded-lg px-4 py-1.5 font-medium transition-all disabled:opacity-60"
+                    className="text-sm rounded-lg px-5 py-2.5 font-medium transition-all disabled:opacity-60"
                     style={{
                       backgroundColor: "var(--color-primary-600)",
                       color: "#ffffff",
