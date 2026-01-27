@@ -6,9 +6,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useMe } from "@/lib/auth-context";
 import { useTicketCategories } from "@/lib/use-ticket-categories";
-import PageHeader from "@/components/PageHeader";
 import Pagination from "@/components/Pagination";
 import ErrorDialog from "@/components/ErrorDialog";
+import { Badge, Card, CardHeader, CardBody } from "@/components/ui";
+import { Search } from "lucide-react";
 
 type Ticket = {
   id: number;
@@ -47,6 +48,8 @@ const PRIORITY_SORT: Record<string, number> = {
   low: 3,
 };
 
+type BadgeVariant = "default" | "primary" | "success" | "warning" | "danger" | "info" | "neutral";
+
 type UserSummary = {
   emp_no: string;
   kor_name?: string | null;
@@ -55,42 +58,30 @@ type UserSummary = {
   role?: string | null;
 };
 
-function statusMeta(status: string) {
+function statusMeta(status: string): { label: string; variant: BadgeVariant } {
   const s = status.toLowerCase();
   if (["open", "new", "pending"].includes(s)) {
-    return { label: "대기", cls: "bg-blue-50 text-blue-700 border-blue-200" };
+    return { label: "대기", variant: "info" };
   }
   if (["in_progress", "processing", "assigned"].includes(s)) {
-    return { label: "진행", cls: "bg-amber-50 text-amber-700 border-amber-200" };
+    return { label: "진행", variant: "warning" };
   }
-  if (s == "resolved") return { label: "완료", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" };
-  if (s == "closed") return { label: "사업 검토", cls: "bg-slate-100 text-slate-700 border-slate-200" };
-  return { label: status, cls: "bg-gray-100 text-gray-700 border-gray-200" };
+  if (s === "resolved") {
+    return { label: "완료", variant: "success" };
+  }
+  if (s === "closed") {
+    return { label: "사업 검토", variant: "neutral" };
+  }
+  return { label: status, variant: "default" };
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const { label, cls } = statusMeta(status);
-  return (
-    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${cls}`}>
-      {label}
-    </span>
-  );
-}
-
-function PriorityBadge({ priority }: { priority?: string }) {
+function priorityMeta(priority?: string): { label: string; variant: BadgeVariant } {
   const p = (priority || "medium").toLowerCase();
-  const map: Record<string, { label: string; cls: string }> = {
-    low: { label: "낮음", cls: "bg-gray-100 text-gray-700 border-gray-200" },
-    medium: { label: "보통", cls: "bg-blue-50 text-blue-700 border-blue-200" },
-    high: { label: "높음", cls: "bg-amber-50 text-amber-800 border-amber-200" },
-    urgent: { label: "긴급", cls: "bg-red-50 text-red-700 border-red-200" },
-  };
-  const v = map[p] ?? map.medium;
-  return (
-    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${v.cls}`}>
-      {v.label}
-    </span>
-  );
+  if (p === "low") return { label: "낮음", variant: "neutral" };
+  if (p === "medium") return { label: "보통", variant: "info" };
+  if (p === "high") return { label: "높음", variant: "warning" };
+  if (p === "urgent") return { label: "긴급", variant: "danger" };
+  return { label: "보통", variant: "info" };
 }
 
 function formatUser(user?: UserSummary | null, fallbackEmpNo?: string | null, emptyLabel = "-") {
@@ -110,7 +101,16 @@ function normalize(res: TicketListResponse): { items: Ticket[]; total?: number }
 function formatDate(v?: string | null) {
   if (!v) return "-";
   const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? "-" : d.toLocaleString();
+  return Number.isNaN(d.getTime())
+    ? "-"
+    : d.toLocaleString("ko-KR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
 }
 
 function toTime(v?: string | null) {
@@ -292,110 +292,187 @@ export default function AdminTicketsPage() {
   };
 
   return (
-    <div className="p-5 space-y-5">
-      <PageHeader
-        title="요청 관리"
-        meta={
-          <span>
-            내 담당 <span className="text-emerald-700 font-semibold">{sorted.length}</span>건
-          </span>
-        }
-      />
-
+    <div className="space-y-6 animate-fadeIn">
       <ErrorDialog message={errorMessage} onClose={() => setErrorMessage(null)} />
 
-      <section className="space-y-3">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <h2 className="text-base font-semibold text-slate-900">내 담당 요청</h2>
-          <div className="flex items-center gap-2 flex-wrap">
-            <select
-              className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              <option value="all">전체 카테고리</option>
-              {categories.map((c) => (
-                <option key={c.id} value={String(c.id)}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <input
-              className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-60 focus:outline-none focus:ring-2 focus:ring-slate-300"
-              placeholder="제목/요청자 검색"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+            목록을 불러오는 중...
           </div>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-          <table className="w-full text-sm text-center">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="text-left p-3 w-20">{renderSortLabel("id", "ID")}</th>
-                <th className="text-left p-3">{renderSortLabel("title", "제목")}</th>
-                <th className="text-center p-3 w-28">{renderSortLabel("status", "상태")}</th>
-                <th className="text-center p-3 w-28">{renderSortLabel("priority", "우선순위")}</th>
-                <th className="text-center p-3 w-40 whitespace-nowrap">담당자</th>
-                <th className="text-center p-3 w-28">{renderSortLabel("work_type", "작업 구분")}</th>
-                <th className="text-center p-3 w-32">{renderSortLabel("category_id", "카테고리")}</th>
-                <th className="text-center p-3 w-44 whitespace-nowrap">{renderSortLabel("created_at", "작성일")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pageItems.map((t) => (
-                <tr
-                  key={t.id}
-                  className="border-t cursor-pointer hover:bg-slate-50"
-                  onClick={() => router.push(`/admin/tickets/${t.id}`)}
+      )}
+
+      {!isLoading && (
+        <Card padding="none">
+          <CardHeader>
+            <div className="flex items-center justify-between flex-wrap gap-4 w-full px-6 py-4">
+              <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                내 담당 요청
+              </h2>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <select
+                  className="border rounded-lg px-3 py-2 text-sm transition-colors"
+                  style={{
+                    backgroundColor: "var(--bg-input)",
+                    borderColor: "var(--border-default)",
+                    color: "var(--text-primary)",
+                  }}
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
                 >
-                  <td className="p-3 text-left">{t.id}</td>
-                  <td className="p-3 text-left">
-                    <div className="font-medium text-slate-900">{t.title}</div>
-                    <div className="text-xs text-slate-500 mt-0.5">{formatUser(t.requester, t.requester_emp_no)}</div>
-                  </td>
-                  <td className="p-3 text-center">
-                    <StatusBadge status={t.status} />
-                  </td>
-                  <td className="p-3 text-center">
-                    <PriorityBadge priority={t.priority} />
-                  </td>
-                  <td className="p-3 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                    <select
-                      className="w-full min-w-[240px] border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-center bg-white"
-                      value={t.assignee_emp_no ?? ""}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        const assigneeEmpNo = value || null;
-                        assignM.mutate({ ticketId: t.id, assigneeEmpNo });
-                      }}
-                    >
-                      <option value="">미배정</option>
-                      {staffOptions.map((u) => (
-                        <option key={u.emp_no} value={u.emp_no}>
-                          {formatUser(u, u.emp_no, u.emp_no)}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="p-3 text-center">{workTypeLabel(t.work_type)}</td>
-                  <td className="p-3 text-center">{categoryLabel(t.category_id)}</td>
-                  <td className="p-3 text-center text-slate-600 whitespace-nowrap">{formatDate(t.created_at)}</td>
-                </tr>
-              ))}
-              {!pageItems.length && !isLoading && (
-                <tr className="border-t">
-                  <td className="p-4 text-slate-500 text-center" colSpan={8}>
-                    내 담당 요청이 없습니다.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        <Pagination page={page} total={sorted.length} pageSize={pageSize} onChange={setPage} />
-      </section>
+                  <option value="all">전체 카테고리</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={String(c.id)}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="relative">
+                  <Search
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+                    style={{ color: "var(--text-tertiary)" }}
+                  />
+                  <input
+                    className="border rounded-lg pl-10 pr-3 py-2 text-sm w-52 transition-colors"
+                    style={{
+                      backgroundColor: "var(--bg-input)",
+                      borderColor: "var(--border-default)",
+                      color: "var(--text-primary)",
+                    }}
+                    placeholder="제목/요청자 검색"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardBody padding="none">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm whitespace-nowrap">
+                <thead style={{ backgroundColor: "var(--bg-subtle)" }}>
+                  <tr style={{ borderBottom: "1px solid var(--border-default)" }}>
+                    <th className="text-left px-6 py-3 font-semibold w-20" style={{ color: "var(--text-secondary)" }}>
+                      {renderSortLabel("id", "ID")}
+                    </th>
+                    <th className="text-left px-6 py-3 font-semibold" style={{ color: "var(--text-secondary)" }}>
+                      {renderSortLabel("title", "제목")}
+                    </th>
+                    <th className="text-center px-6 py-3 font-semibold w-28" style={{ color: "var(--text-secondary)" }}>
+                      {renderSortLabel("status", "상태")}
+                    </th>
+                    <th className="text-center px-6 py-3 font-semibold w-28" style={{ color: "var(--text-secondary)" }}>
+                      {renderSortLabel("priority", "우선순위")}
+                    </th>
+                    <th className="text-center px-6 py-3 font-semibold w-40 whitespace-nowrap" style={{ color: "var(--text-secondary)" }}>
+                      담당자
+                    </th>
+                    <th className="text-center px-6 py-3 font-semibold w-28" style={{ color: "var(--text-secondary)" }}>
+                      {renderSortLabel("work_type", "작업 구분")}
+                    </th>
+                    <th className="text-center px-6 py-3 font-semibold w-40 whitespace-nowrap" style={{ color: "var(--text-secondary)" }}>
+                      {renderSortLabel("category_id", "카테고리")}
+                    </th>
+                    <th className="text-center px-6 py-3 font-semibold w-44 whitespace-nowrap" style={{ color: "var(--text-secondary)" }}>
+                      {renderSortLabel("created_at", "작성일")}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageItems.map((t) => {
+                    const statusInfo = statusMeta(t.status);
+                    const priorityInfo = priorityMeta(t.priority);
+                    return (
+                      <tr
+                        key={t.id}
+                        className="border-b cursor-pointer transition-colors"
+                        style={{ borderColor: "var(--border-default)" }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = "transparent";
+                        }}
+                        onClick={() => router.push(`/admin/tickets/${t.id}`)}
+                      >
+                        <td className="px-6 py-4" style={{ color: "var(--text-secondary)" }}>
+                          {t.id}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="min-h-[40px] flex flex-col justify-center">
+                            <div className="font-medium" style={{ color: "var(--text-primary)" }}>
+                              {t.title}
+                            </div>
+                            <div className="text-xs mt-0.5" style={{ color: "var(--text-tertiary)" }}>
+                              {formatUser(t.requester, t.requester_emp_no)}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <Badge variant={statusInfo.variant} size="md">
+                            {statusInfo.label}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <Badge variant={priorityInfo.variant} size="md">
+                            {priorityInfo.label}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <select
+                            className="w-full min-w-[240px] border rounded-lg px-2 py-1.5 text-xs text-center transition-colors"
+                            style={{
+                              backgroundColor: "var(--bg-input)",
+                              borderColor: "var(--border-default)",
+                              color: "var(--text-primary)",
+                            }}
+                            value={t.assignee_emp_no ?? ""}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              const assigneeEmpNo = value || null;
+                              assignM.mutate({ ticketId: t.id, assigneeEmpNo });
+                            }}
+                          >
+                            <option value="">미배정</option>
+                            {staffOptions.map((u) => (
+                              <option key={u.emp_no} value={u.emp_no}>
+                                {formatUser(u, u.emp_no, u.emp_no)}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-6 py-4 text-center" style={{ color: "var(--text-secondary)" }}>
+                          {workTypeLabel(t.work_type)}
+                        </td>
+                        <td className="px-6 py-4 text-center whitespace-nowrap" style={{ color: "var(--text-secondary)" }}>
+                          {categoryLabel(t.category_id)}
+                        </td>
+                        <td className="px-6 py-4 text-center whitespace-nowrap" style={{ color: "var(--text-tertiary)" }}>
+                          {formatDate(t.created_at)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {!pageItems.length && (
+                    <tr>
+                      <td className="px-6 py-12 text-center" colSpan={8} style={{ color: "var(--text-tertiary)" }}>
+                        내 담당 요청이 없습니다.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="px-6 py-4 border-t" style={{ borderColor: "var(--border-default)" }}>
+              <Pagination page={page} total={sorted.length} pageSize={pageSize} onChange={setPage} />
+            </div>
+          </CardBody>
+        </Card>
+      )}
     </div>
   );
 }
