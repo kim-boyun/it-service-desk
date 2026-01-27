@@ -98,36 +98,38 @@ def create_comment(
     session.commit()
     session.refresh(comment)
 
-    try:
-        requester = session.get(User, ticket.requester_emp_no)
-        if requester:
-            category_label = get_category_label(session, ticket.category_id)
-            if user.emp_no == ticket.requester_emp_no:
-                admins: list[User] = []
-                if ticket.assignee_emp_no:
-                    assignee = session.get(User, ticket.assignee_emp_no)
-                    if assignee and assignee.role == "admin":
-                        admins = [assignee]
-                if not admins and ticket.category_id:
-                    admins = get_category_admins(session, ticket.category_id)
-                notify_requester_commented(
-                    ticket,
-                    comment,
-                    requester,
-                    admins,
-                    category_label=category_label,
-                )
-            else:
-                notify_admin_commented(
-                    ticket,
-                    comment,
-                    requester,
-                    user,
-                    category_label=category_label,
-                )
-    except Exception:
-        logger = logging.getLogger(__name__)
-        logger.exception("댓글 메일 발송 처리 실패 (comment_id=%s)", comment.id)
+    # notify_email이 True일 때만 메일 발송
+    if payload.notify_email:
+        try:
+            requester = session.get(User, ticket.requester_emp_no)
+            if requester:
+                category_label = get_category_label(session, ticket.category_id)
+                if user.emp_no == ticket.requester_emp_no:
+                    admins: list[User] = []
+                    if ticket.assignee_emp_no:
+                        assignee = session.get(User, ticket.assignee_emp_no)
+                        if assignee and assignee.role == "admin":
+                            admins = [assignee]
+                    if not admins and ticket.category_id:
+                        admins = get_category_admins(session, ticket.category_id)
+                    notify_requester_commented(
+                        ticket,
+                        comment,
+                        requester,
+                        admins,
+                        category_label=category_label,
+                    )
+                else:
+                    notify_admin_commented(
+                        ticket,
+                        comment,
+                        requester,
+                        user,
+                        category_label=category_label,
+                    )
+        except Exception:
+            logger = logging.getLogger(__name__)
+            logger.exception("댓글 메일 발송 처리 실패 (comment_id=%s)", comment.id)
 
     return CommentOut(
         id=comment.id,
