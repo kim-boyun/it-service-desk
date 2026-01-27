@@ -214,7 +214,15 @@ function FieldRow({ label, value }: { label: string; value?: React.ReactNode }) 
 function formatDate(v?: string | null) {
   if (!v) return "-";
   const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? "-" : d.toLocaleString();
+  return Number.isNaN(d.getTime()) 
+    ? "-" 
+    : d.toLocaleString("ko-KR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
 }
 
 function eventLabel(type: string) {
@@ -789,7 +797,7 @@ export default function AdminTicketDetailPage() {
             </h2>
           </CardHeader>
           <CardBody padding="lg">
-            <div className="space-y-4 max-h-[600px] overflow-y-auto mb-4">
+            <div className="space-y-3 max-h-[600px] overflow-y-auto mb-4">
               {data.comments.length === 0 ? (
                 <div 
                   className="text-sm text-center py-8"
@@ -805,10 +813,10 @@ export default function AdminTicketDetailPage() {
                     return (
                       <div 
                         key={c.id} 
-                        className={`flex flex-col ${isMyComment ? "items-end" : "items-start"}`}
+                        className="flex justify-start"
                       >
                         <div 
-                          className="max-w-[80%] rounded-2xl px-4 py-3 shadow-sm"
+                          className="rounded-2xl px-4 py-2 shadow-sm"
                           style={{
                             backgroundColor: isMyComment ? "var(--color-primary-50)" : "var(--bg-subtle)",
                             borderWidth: "1px",
@@ -816,7 +824,7 @@ export default function AdminTicketDetailPage() {
                             borderColor: isMyComment ? "var(--color-primary-200)" : "var(--border-default)",
                           }}
                         >
-                          <div className="flex items-center gap-2 mb-2">
+                          <div className="flex items-center gap-2 mb-1">
                             <span 
                               className="text-xs font-semibold"
                               style={{ color: isMyComment ? "var(--color-primary-700)" : "var(--text-secondary)" }}
@@ -835,7 +843,7 @@ export default function AdminTicketDetailPage() {
                           </div>
                           {commentAttachments.length > 0 && (
                             <div 
-                              className="mt-3 pt-3 space-y-1"
+                              className="mt-2 pt-2 space-y-1"
                               style={{ borderTop: "1px solid var(--border-default)" }}
                             >
                               {commentAttachments.map((a) => (
