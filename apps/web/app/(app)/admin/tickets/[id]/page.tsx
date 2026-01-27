@@ -298,6 +298,12 @@ export default function AdminTicketDetailPage() {
     enabled: isStaff,
   });
 
+  useEffect(() => {
+    if (data?.comments && commentsEndRef.current) {
+      commentsEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [data?.comments]);
+
   const staffOptions = useMemo(() => adminUsers.filter((u) => u.role === "admin"), [adminUsers]);
 
   useEffect(() => {
@@ -813,10 +819,10 @@ export default function AdminTicketDetailPage() {
                     return (
                       <div 
                         key={c.id} 
-                        className="flex justify-start"
+                        className="w-full"
                       >
                         <div 
-                          className="rounded-2xl px-4 py-2 shadow-sm"
+                          className="w-full rounded-2xl px-4 py-2 shadow-sm"
                           style={{
                             backgroundColor: isMyComment ? "var(--color-primary-50)" : "var(--bg-subtle)",
                             borderWidth: "1px",

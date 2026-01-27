@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -224,6 +224,12 @@ export default function TicketDetailPage() {
     queryFn: () => api<TicketDetail>(`/tickets/${ticketId}/detail`),
     enabled: Number.isFinite(ticketId),
   });
+
+  useEffect(() => {
+    if (data?.comments && commentsEndRef.current) {
+      commentsEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [data?.comments]);
 
   const downloadAttachmentM = useMutation({
     mutationFn: async (attachmentId: number) => {
@@ -627,10 +633,10 @@ export default function TicketDetailPage() {
                     return (
                       <div 
                         key={c.id} 
-                        className="flex justify-start"
+                        className="w-full"
                       >
                         <div 
-                          className="rounded-2xl px-4 py-2 shadow-sm"
+                          className="w-full rounded-2xl px-4 py-2 shadow-sm"
                           style={{
                             backgroundColor: isMyComment ? "var(--color-primary-50)" : "var(--bg-subtle)",
                             borderWidth: "1px",
