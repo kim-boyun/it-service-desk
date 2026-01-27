@@ -596,6 +596,7 @@ export default function AdminTicketDetailPage() {
               <FieldRow label="요청자" value={formatUser(t.requester, t.requester_emp_no)} />
               <FieldRow label="프로젝트" value={t.project_name ?? "-"} />
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2">
               <FieldRow
                 label="담당자"
                 value={
