@@ -39,6 +39,9 @@ type UserSummary = {
   department?: string | null;
 };
 
+type SortDir = "asc" | "desc";
+type SortKey = "title" | "status" | "work_type" | "category_id" | "created_at";
+
 const STATUS_SORT: Record<string, number> = {
   open: 0,
   in_progress: 1,
@@ -116,10 +119,69 @@ export default function ResolvedTicketsPage() {
   const [search, setSearch] = useState("");
   const [projectFilter, setProjectFilter] = useState("all");
   const [page, setPage] = useState(1);
-      return toTime(b.updated_at) - toTime(a.updated_at);
+  const pageSize = 10;
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("created_at");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["resolved-tickets"],
+    queryFn: () => api<Ticket[]>(`/tickets?status=${status}&limit=100&offset=0`),
+    staleTime: 5_000,
+  });
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ["projects-mine-false"],
+    queryFn: () => api<Project[]>("/projects?mine=false"),
+    staleTime: 30_000,
+  });
+
+  useEffect(() => {
+    if (!error) return;
+    setErrorMessage((error as any)?.message ?? "요청 목록을 불러오지 못했습니다.");
+  }, [error]);
+
+  const filtered = useMemo(() => {
+    let list = Array.isArray(data) ? data : [];
+    if (projectFilter !== "all") {
+      list = list.filter((t) => String(t.project_id ?? "") === projectFilter);
+    }
+    if (search.trim()) {
+      const term = search.trim().toLowerCase();
+      list = list.filter(
+        (t) => t.title.toLowerCase().includes(term) || String(t.id).includes(term)
+      );
+    }
+
+    const compareText = (a?: string | null, b?: string | null) => {
+      const aa = (a ?? "").toLowerCase();
+      const bb = (b ?? "").toLowerCase();
+      return aa.localeCompare(bb);
+    };
+
+    const sorted = [...list].sort((a, b) => {
+      if (sortKey === "title") return compareText(a.title, b.title);
+      if (sortKey === "status") {
+        const sa = STATUS_SORT[a.status] ?? 9;
+        const sb = STATUS_SORT[b.status] ?? 9;
+        return sa - sb;
+      }
+      if (sortKey === "work_type") return compareText(a.work_type, b.work_type);
+      if (sortKey === "category_id") {
+        const ca = categoryMap[a.category_id ?? 0] ?? "";
+        const cb = categoryMap[b.category_id ?? 0] ?? "";
+        return compareText(ca, cb);
+      }
+      if (sortKey === "created_at") return toTime(a.created_at) - toTime(b.created_at);
+      return 0;
     });
-    return list;
-  }, [data, search, projectFilter]);
+
+    return sortDir === "asc" ? sorted : sorted.reverse();
+  }, [data, search, projectFilter, sortKey, sortDir, categoryMap]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filtered.length, search, projectFilter, sortKey, sortDir]);
 
   const pageItems = useMemo(
     () => filtered.slice((page - 1) * pageSize, page * pageSize),
@@ -129,6 +191,39 @@ export default function ResolvedTicketsPage() {
   const categoryLabel = (c?: number | null) => {
     if (!c) return "-";
     return categoryMap[c] ?? String(c);
+  };
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortKey(key);
+    setSortDir("asc");
+  };
+
+  const renderSortLabel = (key: SortKey, label: string) => {
+    const active = sortKey === key;
+    const arrow = active ? (sortDir === "asc" ? "▲" : "▼") : "↕";
+    return (
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 transition-colors"
+        style={{
+          color: active ? "var(--text-primary)" : "var(--text-secondary)",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = "var(--text-primary)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = active ? "var(--text-primary)" : "var(--text-secondary)";
+        }}
+        onClick={() => toggleSort(key)}
+      >
+        <span>{label}</span>
+        <span className="text-[10px]">{arrow}</span>
+      </button>
+    );
   };
 
   return (
@@ -196,26 +291,26 @@ export default function ResolvedTicketsPage() {
                 <thead style={{ backgroundColor: "var(--bg-subtle)" }}>
                   <tr style={{ borderBottom: "1px solid var(--border-default)" }}>
                     <th className="text-left px-6 py-3 font-semibold" style={{ color: "var(--text-secondary)" }}>
-                      제목
+                      {renderSortLabel("title", "제목")}
                     </th>
                     <th className="text-center px-6 py-3 font-semibold w-28" style={{ color: "var(--text-secondary)" }}>
-                      상태
+                      {renderSortLabel("status", "상태")}
                     </th>
                     
                     <th className="text-center px-6 py-3 font-semibold w-28" style={{ color: "var(--text-secondary)" }}>
-                      작업 구분
+                      {renderSortLabel("work_type", "작업 구분")}
                     </th>
                     <th
                       className="text-center px-6 py-3 font-semibold w-40 whitespace-nowrap"
                       style={{ color: "var(--text-secondary)" }}
                     >
-                      카테고리
+                      {renderSortLabel("category_id", "카테고리")}
                     </th>
                     <th
                       className="text-center px-6 py-3 font-semibold w-44 whitespace-nowrap"
                       style={{ color: "var(--text-secondary)" }}
                     >
-                      최근 업데이트
+                      {renderSortLabel("created_at", "작성일")}
                     </th>
                   </tr>
                 </thead>
@@ -248,7 +343,7 @@ export default function ResolvedTicketsPage() {
                         {categoryLabel(t.category_id)}
                       </td>
                       <td className="px-6 py-4 text-center whitespace-nowrap" style={{ color: "var(--text-tertiary)" }}>
-                        {formatDate(t.updated_at)}
+                        {formatDate(t.created_at)}
                       </td>
                     </tr>
                   ))}

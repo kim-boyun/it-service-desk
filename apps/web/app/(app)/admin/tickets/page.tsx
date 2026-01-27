@@ -30,13 +30,8 @@ type TicketListResponse =
   | { data: Ticket[]; total?: number }
   | Ticket[];
 
-const STATUS_OPTIONS = [
-  { value: "all", label: "전체" },
-  { value: "open", label: "대기" },
-  { value: "in_progress", label: "진행" },
-  { value: "resolved", label: "완료" },
-  { value: "closed", label: "사업 검토" },
-];
+type SortDir = "asc" | "desc";
+type SortKey = "id" | "title" | "status" | "priority" | "work_type" | "category_id" | "created_at";
 
 const STATUS_SORT: Record<string, number> = {
   open: 0,
@@ -153,15 +148,12 @@ export default function AdminTicketsPage() {
   const router = useRouter();
   const qc = useQueryClient();
   const { categories, map: categoryMap } = useTicketCategories();
-  const [unassignedStatus, setUnassignedStatus] = useState<string>("all");
-  const [myStatus, setMyStatus] = useState<string>("all");
-  const [unassignedSearch, setUnassignedSearch] = useState("");
-  const [mySearch, setMySearch] = useState("");
-  const [unassignedCategory, setUnassignedCategory] = useState("all");
-  const [myCategory, setMyCategory] = useState("all");
-  const [unassignedPage, setUnassignedPage] = useState(1);
-  const [myPage, setMyPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("all");
+  const [page, setPage] = useState(1);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("created_at");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   if (me.role !== "admin") {
     router.replace("/home");
@@ -210,180 +202,94 @@ export default function AdminTicketsPage() {
 
   const norm = normalize(data ?? []);
 
-  const unassignedTickets = useMemo(() => {
-    let list = norm.items.filter((t) => !t.assignee_emp_no);
-    if (unassignedStatus !== "all") {
-      list = list.filter((t) => t.status === unassignedStatus);
-    }
-    if (unassignedCategory !== "all") {
-      list = list.filter((t) => String(t.category_id ?? "") === unassignedCategory);
-    }
-    if (unassignedSearch.trim()) {
-      list = list.filter((t) => matchesSearch(t, unassignedSearch.trim()));
-    }
-    return list.sort((a, b) => {
-      const sa = STATUS_SORT[a.status] ?? 9;
-      const sb = STATUS_SORT[b.status] ?? 9;
-      if (sa !== sb) return sa - sb;
-      const pa = priorityRank(a.priority);
-      const pb = priorityRank(b.priority);
-      if (pa !== pb) return pa - pb;
-      return toTime(b.updated_at) - toTime(a.updated_at);
-    });
-  }, [norm.items, unassignedStatus, unassignedCategory, unassignedSearch]);
-
-  const myTickets = useMemo(() => {
+  const filtered = useMemo(() => {
     let list = norm.items.filter((t) => t.assignee_emp_no === me.emp_no);
-    if (myStatus !== "all") {
-      list = list.filter((t) => t.status === myStatus);
+    if (category !== "all") {
+      list = list.filter((t) => String(t.category_id ?? "") === category);
     }
-    if (myCategory !== "all") {
-      list = list.filter((t) => String(t.category_id ?? "") === myCategory);
+    if (search.trim()) {
+      list = list.filter((t) => matchesSearch(t, search.trim()));
     }
-    if (mySearch.trim()) {
-      list = list.filter((t) => matchesSearch(t, mySearch.trim()));
-    }
-    return list.sort((a, b) => {
-      const sa = STATUS_SORT[a.status] ?? 9;
-      const sb = STATUS_SORT[b.status] ?? 9;
-      if (sa !== sb) return sa - sb;
-      const pa = priorityRank(a.priority);
-      const pb = priorityRank(b.priority);
-      if (pa !== pb) return pa - pb;
-      return toTime(b.updated_at) - toTime(a.updated_at);
+    return list;
+  }, [norm.items, me.emp_no, category, search]);
+
+  const sorted = useMemo(() => {
+    const compareText = (a?: string | null, b?: string | null) => {
+      const aa = (a ?? "").toLowerCase();
+      const bb = (b ?? "").toLowerCase();
+      return aa.localeCompare(bb);
+    };
+
+    const base = [...filtered].sort((a, b) => {
+      if (sortKey === "id") return a.id - b.id;
+      if (sortKey === "title") return compareText(a.title, b.title);
+      if (sortKey === "status") {
+        const sa = STATUS_SORT[a.status] ?? 9;
+        const sb = STATUS_SORT[b.status] ?? 9;
+        return sa - sb;
+      }
+      if (sortKey === "priority") {
+        const pa = priorityRank(a.priority);
+        const pb = priorityRank(b.priority);
+        return pa - pb;
+      }
+      if (sortKey === "work_type") return compareText(a.work_type, b.work_type);
+      if (sortKey === "category_id") {
+        const ca = categoryMap[a.category_id ?? 0] ?? "";
+        const cb = categoryMap[b.category_id ?? 0] ?? "";
+        return compareText(ca, cb);
+      }
+      if (sortKey === "created_at") return toTime(a.created_at) - toTime(b.created_at);
+      return 0;
     });
-  }, [norm.items, me.emp_no, myStatus, myCategory, mySearch]);
+
+    return sortDir === "asc" ? base : base.reverse();
+  }, [filtered, sortKey, sortDir, categoryMap]);
 
   const categoryLabel = (c?: number | null) => {
     if (!c) return "-";
     return categoryMap[c] ?? String(c);
   };
 
-  const unassignedPageSize = 5;
-  const myPageSize = 10;
-  const unassignedPageItems = unassignedTickets.slice((unassignedPage - 1) * unassignedPageSize, unassignedPage * unassignedPageSize);
-  const myPageItems = myTickets.slice((myPage - 1) * myPageSize, myPage * myPageSize);
+  const pageSize = 10;
+  const pageItems = sorted.slice((page - 1) * pageSize, page * pageSize);
 
   useEffect(() => {
-    setUnassignedPage(1);
-  }, [unassignedSearch, unassignedCategory, unassignedStatus]);
+    setPage(1);
+  }, [search, category, sortKey, sortDir]);
 
-  useEffect(() => {
-    setMyPage(1);
-  }, [mySearch, myCategory, myStatus]);
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortKey(key);
+    setSortDir("asc");
+  };
 
-  const renderFilters = (
-    status: string,
-    setStatus: (v: string) => void,
-    search: string,
-    setSearch: (v: string) => void,
-    category: string,
-    setCategory: (v: string) => void
-  ) => (
-    <div className="flex items-center gap-2 flex-wrap">
-      <div className="hidden md:flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1">
-        {STATUS_OPTIONS.map((o) => (
-          <button
-            key={o.value}
-            className={`px-2 py-1 text-xs rounded ${
-              status === o.value ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-slate-100"
-            }`}
-            onClick={() => setStatus(o.value)}
-            type="button"
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
-      <select
-        className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white"
-        value={category}
-        onChange={(e) => setCategory(e.target.value)}
+  const renderSortLabel = (key: SortKey, label: string) => {
+    const active = sortKey === key;
+    const arrow = active ? (sortDir === "asc" ? "▲" : "▼") : "↕";
+    return (
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 transition-colors"
+        style={{
+          color: active ? "var(--text-primary)" : "var(--text-secondary)",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = "var(--text-primary)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = active ? "var(--text-primary)" : "var(--text-secondary)";
+        }}
+        onClick={() => toggleSort(key)}
       >
-        <option value="all">전체 카테고리</option>
-        {categories.map((c) => (
-          <option key={c.id} value={String(c.id)}>
-            {c.name}
-          </option>
-        ))}
-      </select>
-      <input
-        className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-60 focus:outline-none focus:ring-2 focus:ring-slate-300"
-        placeholder="제목/요청자 검색"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
-    </div>
-  );
-
-  const renderTable = (items: Ticket[], emptyText: string) => (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-      <table className="w-full text-sm text-center">
-        <thead className="bg-slate-50">
-          <tr>
-            <th className="text-left p-3 w-20">ID</th>
-            <th className="text-left p-3">제목</th>
-            <th className="text-center p-3 w-28">상태</th>
-            <th className="text-center p-3 w-28">우선순위</th>
-            <th className="text-center p-3 w-40 whitespace-nowrap">담당자</th>
-            <th className="text-center p-3 w-28">작업 구분</th>
-            <th className="text-center p-3 w-32">카테고리</th>
-            <th className="text-center p-3 w-44 whitespace-nowrap">업데이트</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((t) => (
-            <tr
-              key={t.id}
-              className="border-t cursor-pointer hover:bg-slate-50"
-              onClick={() => router.push(`/admin/tickets/${t.id}`)}
-            >
-              <td className="p-3 text-left">#{t.id}</td>
-              <td className="p-3 text-left">
-                <div className="font-medium text-slate-900">{t.title}</div>
-                <div className="text-xs text-slate-500 mt-0.5">{formatUser(t.requester, t.requester_emp_no)}</div>
-              </td>
-              <td className="p-3 text-center">
-                <StatusBadge status={t.status} />
-              </td>
-              <td className="p-3 text-center">
-                <PriorityBadge priority={t.priority} />
-              </td>
-              <td className="p-3 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                <select
-                  className="w-full min-w-[240px] border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-center bg-white"
-                  value={t.assignee_emp_no ?? ""}
-                  onClick={(e) => e.stopPropagation()}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    const assigneeEmpNo = value || null;
-                    assignM.mutate({ ticketId: t.id, assigneeEmpNo });
-                  }}
-                >
-                  <option value="">미배정</option>
-                  {staffOptions.map((u) => (
-                    <option key={u.emp_no} value={u.emp_no}>
-                      {formatUser(u, u.emp_no, u.emp_no)}
-                    </option>
-                  ))}
-                </select>
-              </td>
-              <td className="p-3 text-center">{workTypeLabel(t.work_type)}</td>
-                <td className="p-3 text-center">{categoryLabel(t.category_id)}</td>
-              <td className="p-3 text-center text-slate-600 whitespace-nowrap">{formatDate(t.updated_at)}</td>
-            </tr>
-          ))}
-          {!items.length && !isLoading && (
-            <tr className="border-t">
-              <td className="p-4 text-slate-500 text-center" colSpan={8}>
-                {emptyText}
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
+        <span>{label}</span>
+        <span className="text-[10px]">{arrow}</span>
+      </button>
+    );
+  };
 
   return (
     <div className="p-5 space-y-5">
@@ -391,8 +297,7 @@ export default function AdminTicketsPage() {
         title="요청 관리"
         meta={
           <span>
-            미배정 <span className="text-emerald-700 font-semibold">{unassignedTickets.length}</span>건 / 내 담당{" "}
-            <span className="text-emerald-700 font-semibold">{myTickets.length}</span>건
+            내 담당 <span className="text-emerald-700 font-semibold">{sorted.length}</span>건
           </span>
         }
       />
@@ -401,32 +306,95 @@ export default function AdminTicketsPage() {
 
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <h2 className="text-base font-semibold text-slate-900">담당자 미배정 요청</h2>
-          {renderFilters(
-            unassignedStatus,
-            setUnassignedStatus,
-            unassignedSearch,
-            setUnassignedSearch,
-            unassignedCategory,
-            setUnassignedCategory
-          )}
-        </div>
-        {renderTable(unassignedPageItems, "미배정 요청이 없습니다.")}
-        <Pagination
-          page={unassignedPage}
-          total={unassignedTickets.length}
-          pageSize={unassignedPageSize}
-          onChange={setUnassignedPage}
-        />
-      </section>
-
-      <section className="space-y-3">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
           <h2 className="text-base font-semibold text-slate-900">내 담당 요청</h2>
-          {renderFilters(myStatus, setMyStatus, mySearch, setMySearch, myCategory, setMyCategory)}
+          <div className="flex items-center gap-2 flex-wrap">
+            <select
+              className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              <option value="all">전체 카테고리</option>
+              {categories.map((c) => (
+                <option key={c.id} value={String(c.id)}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <input
+              className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-60 focus:outline-none focus:ring-2 focus:ring-slate-300"
+              placeholder="제목/요청자 검색"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </div>
-        {renderTable(myPageItems, "내 담당 요청이 없습니다.")}
-        <Pagination page={myPage} total={myTickets.length} pageSize={myPageSize} onChange={setMyPage} />
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <table className="w-full text-sm text-center">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="text-left p-3 w-20">{renderSortLabel("id", "ID")}</th>
+                <th className="text-left p-3">{renderSortLabel("title", "제목")}</th>
+                <th className="text-center p-3 w-28">{renderSortLabel("status", "상태")}</th>
+                <th className="text-center p-3 w-28">{renderSortLabel("priority", "우선순위")}</th>
+                <th className="text-center p-3 w-40 whitespace-nowrap">담당자</th>
+                <th className="text-center p-3 w-28">{renderSortLabel("work_type", "작업 구분")}</th>
+                <th className="text-center p-3 w-32">{renderSortLabel("category_id", "카테고리")}</th>
+                <th className="text-center p-3 w-44 whitespace-nowrap">{renderSortLabel("created_at", "작성일")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pageItems.map((t) => (
+                <tr
+                  key={t.id}
+                  className="border-t cursor-pointer hover:bg-slate-50"
+                  onClick={() => router.push(`/admin/tickets/${t.id}`)}
+                >
+                  <td className="p-3 text-left">{t.id}</td>
+                  <td className="p-3 text-left">
+                    <div className="font-medium text-slate-900">{t.title}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">{formatUser(t.requester, t.requester_emp_no)}</div>
+                  </td>
+                  <td className="p-3 text-center">
+                    <StatusBadge status={t.status} />
+                  </td>
+                  <td className="p-3 text-center">
+                    <PriorityBadge priority={t.priority} />
+                  </td>
+                  <td className="p-3 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                    <select
+                      className="w-full min-w-[240px] border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-center bg-white"
+                      value={t.assignee_emp_no ?? ""}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        const assigneeEmpNo = value || null;
+                        assignM.mutate({ ticketId: t.id, assigneeEmpNo });
+                      }}
+                    >
+                      <option value="">미배정</option>
+                      {staffOptions.map((u) => (
+                        <option key={u.emp_no} value={u.emp_no}>
+                          {formatUser(u, u.emp_no, u.emp_no)}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="p-3 text-center">{workTypeLabel(t.work_type)}</td>
+                  <td className="p-3 text-center">{categoryLabel(t.category_id)}</td>
+                  <td className="p-3 text-center text-slate-600 whitespace-nowrap">{formatDate(t.created_at)}</td>
+                </tr>
+              ))}
+              {!pageItems.length && !isLoading && (
+                <tr className="border-t">
+                  <td className="p-4 text-slate-500 text-center" colSpan={8}>
+                    내 담당 요청이 없습니다.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <Pagination page={page} total={sorted.length} pageSize={pageSize} onChange={setPage} />
       </section>
     </div>
   );

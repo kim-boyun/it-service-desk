@@ -30,13 +30,8 @@ type TicketListResponse =
   | { data: Ticket[]; total?: number }
   | Ticket[];
 
-const STATUS_OPTIONS = [
-  { value: "all", label: "전체" },
-  { value: "open", label: "대기" },
-  { value: "in_progress", label: "진행" },
-  { value: "resolved", label: "완료" },
-  { value: "closed", label: "사업 검토" },
-];
+type SortDir = "asc" | "desc";
+type SortKey = "id" | "title" | "status" | "priority" | "assignee" | "work_type" | "category_id" | "created_at";
 
 const STATUS_SORT: Record<string, number> = {
   open: 0,
@@ -144,11 +139,12 @@ export default function AdminAllTicketsPage() {
   const me = useMe();
   const router = useRouter();
   const { map: categoryMap } = useTicketCategories();
-  const [status, setStatus] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 10;
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("created_at");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   if (me.role !== "admin") {
     router.replace("/home");
@@ -159,11 +155,8 @@ export default function AdminAllTicketsPage() {
   const offset = 0;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["admin-tickets-all", { limit, offset, status }],
-    queryFn: () =>
-      api<TicketListResponse>(
-        `/tickets?scope=all&limit=${limit}&offset=${offset}${status !== "all" ? `&status=${status}` : ""}`
-      ),
+    queryKey: ["admin-tickets-all", { limit, offset }],
+    queryFn: () => api<TicketListResponse>(`/tickets?scope=all&limit=${limit}&offset=${offset}`),
     staleTime: 5_000,
   });
 
@@ -171,10 +164,6 @@ export default function AdminAllTicketsPage() {
     if (!error) return;
     setErrorMessage((error as any)?.message ?? "요청 목록을 불러오지 못했습니다.");
   }, [error]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [search, status]);
 
   const norm = normalize(data ?? []);
 
@@ -189,26 +178,92 @@ export default function AdminAllTicketsPage() {
           String(t.category_id ?? "").includes(term)
       );
     }
-    list.sort((a, b) => {
-      const sa = STATUS_SORT[a.status] ?? 9;
-      const sb = STATUS_SORT[b.status] ?? 9;
-      if (sa !== sb) return sa - sb;
-      const pa = priorityRank(a.priority);
-      const pb = priorityRank(b.priority);
-      if (pa !== pb) return pa - pb;
-      return toTime(b.updated_at) - toTime(a.updated_at);
-    });
     return list;
   }, [norm.items, search]);
 
+  const sorted = useMemo(() => {
+    const compareText = (a?: string | null, b?: string | null) => {
+      const aa = (a ?? "").toLowerCase();
+      const bb = (b ?? "").toLowerCase();
+      return aa.localeCompare(bb);
+    };
+
+    const base = [...filtered].sort((a, b) => {
+      if (sortKey === "id") return a.id - b.id;
+      if (sortKey === "title") return compareText(a.title, b.title);
+      if (sortKey === "status") {
+        const sa = STATUS_SORT[a.status] ?? 9;
+        const sb = STATUS_SORT[b.status] ?? 9;
+        return sa - sb;
+      }
+      if (sortKey === "priority") {
+        const pa = priorityRank(a.priority);
+        const pb = priorityRank(b.priority);
+        return pa - pb;
+      }
+      if (sortKey === "assignee") {
+        const aa = formatUser(a.assignee, a.assignee_emp_no, "");
+        const ab = formatUser(b.assignee, b.assignee_emp_no, "");
+        return compareText(aa, ab);
+      }
+      if (sortKey === "work_type") return compareText(a.work_type, b.work_type);
+      if (sortKey === "category_id") {
+        const ca = categoryMap[a.category_id ?? 0] ?? "";
+        const cb = categoryMap[b.category_id ?? 0] ?? "";
+        return compareText(ca, cb);
+      }
+      if (sortKey === "created_at") return toTime(a.created_at) - toTime(b.created_at);
+      return 0;
+    });
+
+    return sortDir === "asc" ? base : base.reverse();
+  }, [filtered, sortKey, sortDir, categoryMap]);
+
   const pageItems = useMemo(
-    () => filtered.slice((page - 1) * pageSize, page * pageSize),
-    [filtered, page, pageSize]
+    () => sorted.slice((page - 1) * pageSize, page * pageSize),
+    [sorted, page, pageSize]
   );
 
   const categoryLabel = (c?: number | null) => {
     if (!c) return "-";
     return categoryMap[c] ?? String(c);
+  };
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, sortKey, sortDir]);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortKey(key);
+    setSortDir("asc");
+  };
+
+  const renderSortLabel = (key: SortKey, label: string) => {
+    const active = sortKey === key;
+    const arrow = active ? (sortDir === "asc" ? "▲" : "▼") : "↕";
+    return (
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 transition-colors"
+        style={{
+          color: active ? "var(--text-primary)" : "var(--text-secondary)",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = "var(--text-primary)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = active ? "var(--text-primary)" : "var(--text-secondary)";
+        }}
+        onClick={() => toggleSort(key)}
+      >
+        <span>{label}</span>
+        <span className="text-[10px]">{arrow}</span>
+      </button>
+    );
   };
 
   return (
@@ -217,43 +272,16 @@ export default function AdminAllTicketsPage() {
         title="모든 요청 관리"
         meta={
           <span>
-            총 <span className="text-emerald-700 font-semibold">{filtered.length}</span>건
+            총 <span className="text-emerald-700 font-semibold">{sorted.length}</span>건
           </span>
         }
         actions={
-          <div className="flex items-center gap-2">
-            <div className="hidden md:flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1">
-              {STATUS_OPTIONS.map((o) => (
-                <button
-                  key={o.value}
-                  className={`px-2 py-1 text-xs rounded ${
-                    status === o.value ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-slate-100"
-                  }`}
-                  onClick={() => setStatus(o.value)}
-                  type="button"
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-            <select
-              className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 md:hidden"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              {STATUS_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-            <input
-              className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-52 focus:outline-none focus:ring-2 focus:ring-slate-300"
-              placeholder="제목/ID/카테고리 검색"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+          <input
+            className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-52 focus:outline-none focus:ring-2 focus:ring-slate-300"
+            placeholder="제목/ID/카테고리 검색"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         }
       />
 
@@ -265,20 +293,20 @@ export default function AdminAllTicketsPage() {
         <table className="w-full text-sm text-center">
           <thead className="bg-slate-50">
             <tr>
-              <th className="text-left p-3 w-20">ID</th>
-              <th className="text-left p-3">제목</th>
-              <th className="text-center p-3 w-28">상태</th>
-              <th className="text-center p-3 w-28">우선순위</th>
-              <th className="text-center p-3 w-40 whitespace-nowrap">담당자</th>
-              <th className="text-center p-3 w-28">작업 구분</th>
-              <th className="text-center p-3 w-32">카테고리</th>
-              <th className="text-center p-3 w-44 whitespace-nowrap">업데이트</th>
+              <th className="text-left p-3 w-20">{renderSortLabel("id", "ID")}</th>
+              <th className="text-left p-3">{renderSortLabel("title", "제목")}</th>
+              <th className="text-center p-3 w-28">{renderSortLabel("status", "상태")}</th>
+              <th className="text-center p-3 w-28">{renderSortLabel("priority", "우선순위")}</th>
+              <th className="text-center p-3 w-40 whitespace-nowrap">{renderSortLabel("assignee", "담당자")}</th>
+              <th className="text-center p-3 w-28">{renderSortLabel("work_type", "작업 구분")}</th>
+              <th className="text-center p-3 w-32">{renderSortLabel("category_id", "카테고리")}</th>
+              <th className="text-center p-3 w-44 whitespace-nowrap">{renderSortLabel("created_at", "작성일")}</th>
             </tr>
           </thead>
           <tbody>
             {pageItems.map((t) => (
               <tr key={t.id} className="border-t cursor-pointer hover:bg-slate-50" onClick={() => router.push(`/admin/tickets/${t.id}`)}>
-                <td className="p-3 text-left">#{t.id}</td>
+                <td className="p-3 text-left">{t.id}</td>
                 <td className="p-3 text-left">
                   <div className="font-medium text-slate-900">{t.title}</div>
                   <div className="text-xs text-slate-500 mt-0.5">{formatUser(t.requester, t.requester_emp_no)}</div>
@@ -292,7 +320,7 @@ export default function AdminAllTicketsPage() {
                 <td className="p-3 text-center whitespace-nowrap">{formatUser(t.assignee, t.assignee_emp_no, "미배정")}</td>
                 <td className="p-3 text-center">{workTypeLabel(t.work_type)}</td>
                 <td className="p-3 text-center">{categoryLabel(t.category_id)}</td>
-                <td className="p-3 text-center text-slate-600 whitespace-nowrap">{formatDate(t.updated_at)}</td>
+                <td className="p-3 text-center text-slate-600 whitespace-nowrap">{formatDate(t.created_at)}</td>
               </tr>
             ))}
             {!pageItems.length && !isLoading && (
@@ -306,7 +334,7 @@ export default function AdminAllTicketsPage() {
         </table>
       </div>
 
-      <Pagination page={page} total={filtered.length} pageSize={pageSize} onChange={setPage} />
+      <Pagination page={page} total={sorted.length} pageSize={pageSize} onChange={setPage} />
     </div>
   );
 }

@@ -746,7 +746,7 @@ export default function HomePage() {
                       style={{ color: "var(--text-tertiary)" }}
                     />
                     <p className="text-base font-medium mb-1" style={{ color: "var(--text-primary)" }}>
-                      파일을 드래그하거나 클릭하여 선택
+                      첨부파일을 드래그하거나 클릭하여 선택
                     </p>
                     <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
                       파일당 최대 25MB
