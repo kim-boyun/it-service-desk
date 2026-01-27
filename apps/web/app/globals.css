@@ -99,6 +99,29 @@ nextjs-portal,
   margin-top: 0.75rem;
 }
 
+/* 댓글용 컴팩트 스타일 */
+.tiptap-comment .ProseMirror {
+  min-height: auto;
+  line-height: 1.4;
+  font-size: 0.875rem;
+}
+
+.tiptap-comment .ProseMirror > * + * {
+  margin-top: 0.25rem;
+}
+
+.tiptap-comment .ProseMirror p {
+  margin: 0;
+}
+
+.tiptap-comment h1,
+.tiptap-comment h2,
+.tiptap-comment h3,
+.tiptap-comment h4 {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
 .tiptap h1 {
   font-size: 1.5rem;
   font-weight: 700;
