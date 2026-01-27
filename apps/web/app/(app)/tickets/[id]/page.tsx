@@ -160,12 +160,21 @@ function formatCategoryList(ids: number[] | null | undefined, map: Record<number
 
 function FieldRow({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-12">
+    <div 
+      className="grid grid-cols-12 transition-colors"
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = "transparent";
+      }}
+    >
       <div 
         className="col-span-4 text-sm px-3 py-2 font-medium"
         style={{ 
           backgroundColor: "var(--bg-subtle)", 
-          color: "var(--text-secondary)" 
+          color: "var(--text-secondary)",
+          borderRight: "1px solid var(--border-default)"
         }}
       >
         {label}
@@ -194,15 +203,13 @@ export default function TicketDetailPage() {
   const { map: categoryMap } = useTicketCategories();
   const ticketId = Number(params.id);
 
-  const [openCommentId, setOpenCommentId] = useState<number | null>(null);
-  const [commentModalOpen, setCommentModalOpen] = useState(false);
-  const [commentTitle, setCommentTitle] = useState("");
   const [commentBody, setCommentBody] = useState<TiptapDoc>(EMPTY_DOC);
   const [commentFiles, setCommentFiles] = useState<File[]>([]);
   const [commentError, setCommentError] = useState<string | null>(null);
   const [commentNotifyEmail, setCommentNotifyEmail] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const commentFileInputRef = useRef<HTMLInputElement | null>(null);
+  const commentsEndRef = useRef<HTMLDivElement | null>(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["ticketDetail", ticketId],
@@ -270,7 +277,7 @@ export default function TicketDetailPage() {
       const created = await api<{ id: number }>(`/tickets/${ticketId}/comments`, {
         method: "POST",
         body: {
-          title: commentTitle.trim(),
+          title: "댓글",
           body: commentBody,
           notify_email: commentNotifyEmail,
         },
@@ -287,13 +294,14 @@ export default function TicketDetailPage() {
       return created;
     },
     onSuccess: () => {
-      setCommentTitle("");
       setCommentBody(EMPTY_DOC);
       setCommentFiles([]);
       setCommentNotifyEmail(false);
       setCommentError(null);
-      setCommentModalOpen(false);
       qc.invalidateQueries({ queryKey: ["ticketDetail", ticketId] });
+      setTimeout(() => {
+        commentsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
     },
     onError: () => {
       setCommentError("댓글 등록에 실패했습니다.");
@@ -354,9 +362,7 @@ export default function TicketDetailPage() {
   const t = data.ticket;
   const statusInfo = statusMeta(t.status);
   const priorityInfo = priorityMeta(t.priority);
-  const selectedComment = data.comments.find((c) => c.id === openCommentId) ?? null;
   const ticketAttachments = data.attachments.filter((a) => !a.comment_id);
-  const selectedAttachments = data.attachments.filter((a) => a.comment_id === openCommentId);
   const canEdit = t.status === "open" && t.requester_emp_no === me.emp_no;
 
   return (
@@ -458,10 +464,9 @@ export default function TicketDetailPage() {
 
         <Card>
           <div 
-            className="grid grid-cols-1 md:grid-cols-2"
+            className="grid grid-cols-1 md:grid-cols-2 overflow-hidden"
             style={{ 
-              borderBottomWidth: "1px",
-              borderColor: "var(--border-default)"
+              borderRadius: "var(--radius-lg)"
             }}
           >
             <div 
@@ -590,80 +595,225 @@ export default function TicketDetailPage() {
 
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between w-full">
-              <h2 
-                className="text-base font-semibold"
-                style={{ color: "var(--text-primary)" }}
-              >
-                댓글
-              </h2>
-              <button
-                className="text-xs rounded-lg px-3 py-1.5 font-medium transition-all"
-                style={{
-                  backgroundColor: "var(--color-primary-600)",
-                  color: "#ffffff",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
-                }}
-                onClick={() => setCommentModalOpen(true)}
-              >
-                등록
-              </button>
-            </div>
+            <h2 
+              className="text-base font-semibold"
+              style={{ color: "var(--text-primary)" }}
+            >
+              댓글
+            </h2>
           </CardHeader>
           <CardBody padding="lg">
-            {data.comments.length === 0 ? (
-              <div 
-                className="text-sm text-center py-4"
-                style={{ color: "var(--text-tertiary)" }}
-              >
-                댓글이 없습니다.
-              </div>
-            ) : (
-              <div 
-                className="border rounded-lg divide-y"
-                style={{ borderColor: "var(--border-default)" }}
-              >
-                {data.comments.map((c) => (
+            <div className="space-y-4 max-h-[600px] overflow-y-auto mb-4">
+              {data.comments.length === 0 ? (
+                <div 
+                  className="text-sm text-center py-8"
+                  style={{ color: "var(--text-tertiary)" }}
+                >
+                  아직 댓글이 없습니다.
+                </div>
+              ) : (
+                <>
+                  {data.comments.map((c) => {
+                    const isMyComment = me.emp_no === c.author_emp_no;
+                    const commentAttachments = data.attachments.filter((a) => a.comment_id === c.id);
+                    return (
+                      <div 
+                        key={c.id} 
+                        className={`flex flex-col ${isMyComment ? "items-end" : "items-start"}`}
+                      >
+                        <div 
+                          className="max-w-[80%] rounded-2xl px-4 py-3 shadow-sm"
+                          style={{
+                            backgroundColor: isMyComment ? "var(--color-primary-50)" : "var(--bg-subtle)",
+                            borderWidth: "1px",
+                            borderStyle: "solid",
+                            borderColor: isMyComment ? "var(--color-primary-200)" : "var(--border-default)",
+                          }}
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <span 
+                              className="text-xs font-semibold"
+                              style={{ color: isMyComment ? "var(--color-primary-700)" : "var(--text-secondary)" }}
+                            >
+                              {formatUser(c.author, c.author_emp_no)}
+                            </span>
+                            <span 
+                              className="text-xs"
+                              style={{ color: "var(--text-tertiary)" }}
+                            >
+                              {formatDate(c.created_at)}
+                            </span>
+                          </div>
+                          <div className="text-sm">
+                            <TiptapViewer value={c.body} />
+                          </div>
+                          {commentAttachments.length > 0 && (
+                            <div 
+                              className="mt-3 pt-3 space-y-1"
+                              style={{ borderTop: "1px solid var(--border-default)" }}
+                            >
+                              {commentAttachments.map((a) => (
+                                <button
+                                  key={a.id}
+                                  className="flex items-center gap-2 text-xs transition-colors rounded px-2 py-1"
+                                  style={{ color: "var(--text-secondary)" }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = "transparent";
+                                  }}
+                                  onClick={() => downloadAttachmentM.mutate(a.id)}
+                                >
+                                  <span>📎 {a.filename}</span>
+                                  <span style={{ color: "var(--text-tertiary)" }}>
+                                    ({formatBytes(a.size)})
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div ref={commentsEndRef} />
+                </>
+              )}
+            </div>
+
+            <div 
+              className="border-t pt-4"
+              style={{ borderColor: "var(--border-default)" }}
+            >
+              <div className="space-y-3">
+                <div style={{ height: "120px" }}>
+                  <RichTextEditor
+                    value={commentBody}
+                    onChange={(doc) => setCommentBody(doc)}
+                    onError={setCommentError}
+                    placeholder="댓글을 입력하세요..."
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    id="comment-file-input"
+                    type="file"
+                    multiple
+                    className="sr-only"
+                    ref={commentFileInputRef}
+                    onChange={(e) => {
+                      addCommentFiles(e.currentTarget.files);
+                      e.currentTarget.value = "";
+                    }}
+                  />
                   <button
-                    key={c.id}
                     type="button"
-                    className="w-full text-left px-4 py-3 transition-colors"
-                    style={{ borderColor: "var(--border-default)" }}
+                    className="text-xs rounded-lg px-3 py-1.5 font-medium transition-all"
+                    style={{
+                      backgroundColor: "var(--bg-elevated)",
+                      borderWidth: "1px",
+                      borderStyle: "solid",
+                      borderColor: "var(--border-default)",
+                      color: "var(--text-primary)",
+                    }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = "var(--bg-hover)";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "transparent";
+                      e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
                     }}
-                    onClick={() => setOpenCommentId(c.id)}
+                    onClick={() => commentFileInputRef.current?.click()}
                   >
-                    <div 
-                      className="text-sm font-semibold"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      {c.title || "제목 없음"}
-                    </div>
-                    <div 
-                      className="text-xs mt-1"
+                    📎 파일 첨부
+                  </button>
+
+                  {commentFiles.length > 0 && (
+                    <span 
+                      className="text-xs"
                       style={{ color: "var(--text-secondary)" }}
                     >
-                      {formatUser(c.author, c.author_emp_no)}
-                    </div>
-                    <div 
-                      className="text-xs mt-1"
-                      style={{ color: "var(--text-tertiary)" }}
-                    >
-                      {formatDate(c.created_at)}
-                    </div>
+                      {commentFiles.length}개 파일
+                    </span>
+                  )}
+
+                  <div className="flex-1" />
+
+                  <label className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-secondary)" }}>
+                    <input
+                      type="checkbox"
+                      className="h-3 w-3 rounded"
+                      checked={commentNotifyEmail}
+                      onChange={(e) => setCommentNotifyEmail(e.target.checked)}
+                    />
+                    메일 알림
+                  </label>
+
+                  <button
+                    className="text-xs rounded-lg px-4 py-1.5 font-medium transition-all disabled:opacity-60"
+                    style={{
+                      backgroundColor: "var(--color-primary-600)",
+                      color: "#ffffff",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!e.currentTarget.disabled) {
+                        e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
+                    }}
+                    disabled={createCommentM.isPending || isEmptyDoc(commentBody)}
+                    onClick={() => {
+                      setCommentError(null);
+                      if (isEmptyDoc(commentBody)) {
+                        setCommentError("댓글 내용을 입력하세요.");
+                        return;
+                      }
+                      createCommentM.mutate();
+                    }}
+                  >
+                    {createCommentM.isPending ? "등록 중..." : "등록"}
                   </button>
-                ))}
+                </div>
+
+                {commentFiles.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {commentFiles.map((file, idx) => (
+                      <div
+                        key={`${file.name}-${idx}`}
+                        className="flex items-center gap-2 rounded-lg border px-2 py-1 text-xs"
+                        style={{ 
+                          borderColor: "var(--border-default)",
+                          backgroundColor: "var(--bg-elevated)"
+                        }}
+                      >
+                        <span style={{ color: "var(--text-primary)" }}>{file.name}</span>
+                        <span style={{ color: "var(--text-tertiary)" }}>({formatBytes(file.size)})</span>
+                        <button
+                          type="button"
+                          className="hover:underline"
+                          style={{ color: "var(--color-danger-600)" }}
+                          onClick={() => removeCommentFile(idx)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {commentError && (
+                  <div 
+                    className="text-xs"
+                    style={{ color: "var(--color-danger-600)" }}
+                  >
+                    {commentError}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </CardBody>
         </Card>
 
@@ -773,430 +923,6 @@ export default function TicketDetailPage() {
           )}
         </Card>
       </div>
-
-      {selectedComment && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
-        >
-          <div 
-            className="w-full max-w-3xl rounded-xl shadow-lg"
-            style={{ 
-              backgroundColor: "var(--bg-card)",
-              boxShadow: "var(--shadow-lg)"
-            }}
-          >
-            <div 
-              className="flex items-start justify-between gap-3 px-6 py-4 border-b"
-              style={{ borderColor: "var(--border-default)" }}
-            >
-              <div>
-                <div 
-                  className="text-lg font-semibold"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  {selectedComment.title || "제목 없음"}
-                </div>
-                <div 
-                  className="text-sm mt-1"
-                  style={{ color: "var(--text-secondary)" }}
-                >
-                  {formatUser(selectedComment.author, selectedComment.author_emp_no)}
-                </div>
-                <div 
-                  className="text-xs mt-1"
-                  style={{ color: "var(--text-tertiary)" }}
-                >
-                  {formatDate(selectedComment.created_at)}
-                </div>
-              </div>
-              <button 
-                className="text-sm rounded-lg px-3 py-1.5 font-medium transition-all"
-                style={{
-                  backgroundColor: "var(--bg-elevated)",
-                  borderWidth: "1px",
-                  borderStyle: "solid",
-                  borderColor: "var(--border-default)",
-                  color: "var(--text-primary)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "var(--bg-hover)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
-                }}
-                onClick={() => setOpenCommentId(null)}
-              >
-                닫기
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div 
-                className="border rounded-lg p-4 text-sm"
-                style={{ 
-                  borderColor: "var(--border-default)",
-                  backgroundColor: "var(--bg-subtle)"
-                }}
-              >
-                <TiptapViewer value={selectedComment.body} />
-              </div>
-              <div className="space-y-2">
-                <div 
-                  className="text-sm font-semibold"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  첨부파일
-                </div>
-                {selectedAttachments.length === 0 ? (
-                  <div 
-                    className="text-sm text-center py-2"
-                    style={{ color: "var(--text-tertiary)" }}
-                  >
-                    첨부파일이 없습니다.
-                  </div>
-                ) : (
-                  <div 
-                    className="border rounded-lg divide-y"
-                    style={{ borderColor: "var(--border-default)" }}
-                  >
-                    {selectedAttachments.map((a) => (
-                      <div 
-                        key={a.id} 
-                        className="flex items-center justify-between px-4 py-3 transition-colors"
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = "var(--bg-hover)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = "transparent";
-                        }}
-                      >
-                        <div 
-                          className="text-sm font-medium"
-                          style={{ color: "var(--text-primary)" }}
-                        >
-                          {a.filename}
-                        </div>
-                        <button
-                          className="text-sm rounded-lg px-3 py-1.5 font-medium transition-all"
-                          style={{
-                            backgroundColor: "var(--bg-elevated)",
-                            borderWidth: "1px",
-                            borderStyle: "solid",
-                            borderColor: "var(--border-default)",
-                            color: "var(--text-primary)",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = "var(--bg-hover)";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
-                          }}
-                          onClick={() => downloadAttachmentM.mutate(a.id)}
-                          disabled={downloadAttachmentM.isPending}
-                        >
-                          다운로드
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {commentModalOpen && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
-        >
-          <div 
-            className="w-full max-w-3xl rounded-xl shadow-lg"
-            style={{ 
-              backgroundColor: "var(--bg-card)",
-              boxShadow: "var(--shadow-lg)"
-            }}
-          >
-            <div 
-              className="flex items-start justify-between gap-3 px-6 py-4 border-b"
-              style={{ borderColor: "var(--border-default)" }}
-            >
-              <div>
-                <div 
-                  className="text-lg font-semibold"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  댓글 등록
-                </div>
-                <div 
-                  className="text-sm mt-1"
-                  style={{ color: "var(--text-tertiary)" }}
-                >
-                  제목과 내용을 입력해 주세요.
-                </div>
-              </div>
-            </div>
-            <div className="p-6 space-y-4">
-              <div 
-                className="border rounded-xl overflow-hidden"
-                style={{ 
-                  borderColor: "var(--border-default)",
-                  backgroundColor: "var(--bg-card)"
-                }}
-              >
-                <div 
-                  className="grid grid-cols-12 border-b"
-                  style={{ borderColor: "var(--border-default)" }}
-                >
-                  <div 
-                    className="col-span-3 text-sm font-medium px-3 py-2 border-r"
-                    style={{ 
-                      backgroundColor: "var(--bg-subtle)",
-                      color: "var(--text-secondary)",
-                      borderColor: "var(--border-default)"
-                    }}
-                  >
-                    제목
-                  </div>
-                  <div className="col-span-9 px-3 py-2">
-                    <input
-                      className="w-full border rounded-lg px-2.5 py-1.5 text-sm transition-colors"
-                      style={{
-                        backgroundColor: "var(--bg-input)",
-                        borderColor: "var(--border-default)",
-                        color: "var(--text-primary)",
-                      }}
-                      value={commentTitle}
-                      onChange={(e) => setCommentTitle(e.target.value)}
-                      placeholder="댓글 제목을 입력하세요."
-                      maxLength={200}
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div 
-                  className="text-sm"
-                  style={{ color: "var(--text-secondary)" }}
-                >
-                  파일당 최대 25MB
-                </div>
-                <input
-                  id="comment-file-input"
-                  type="file"
-                  multiple
-                  className="sr-only"
-                  ref={commentFileInputRef}
-                  onChange={(e) => {
-                    addCommentFiles(e.currentTarget.files);
-                    e.currentTarget.value = "";
-                  }}
-                />
-                <div
-                  className="rounded-xl border-2 border-dashed px-4 py-3"
-                  style={{ 
-                    borderColor: "var(--border-default)",
-                    backgroundColor: "var(--bg-subtle)"
-                  }}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    addCommentFiles(e.dataTransfer.files);
-                  }}
-                >
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-all"
-                      style={{
-                        backgroundColor: "var(--bg-elevated)",
-                        borderWidth: "1px",
-                        borderStyle: "solid",
-                        borderColor: "var(--border-default)",
-                        color: "var(--text-primary)",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = "var(--bg-hover)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
-                      }}
-                      onClick={() => {
-                        const input = commentFileInputRef.current;
-                        if (!input) return;
-                        input.value = "";
-                        const showPicker = (input as HTMLInputElement & { showPicker?: () => void }).showPicker;
-                        if (showPicker) {
-                          showPicker.call(input);
-                        } else {
-                          input.click();
-                        }
-                      }}
-                    >
-                      파일 선택
-                    </button>
-                    <span 
-                      className="text-sm"
-                      style={{ color: "var(--text-tertiary)" }}
-                    >
-                      드래그/붙여넣기로 추가할 수 있습니다.
-                    </span>
-                    {commentFiles.length > 0 && (
-                      <button
-                        type="button"
-                        className="text-sm hover:underline"
-                        style={{ color: "var(--text-secondary)" }}
-                        onClick={() => setCommentFiles([])}
-                      >
-                        모두 제거
-                      </button>
-                    )}
-                  </div>
-                  <div className="mt-2 space-y-1.5">
-                    {commentFiles.length === 0 && (
-                      <p 
-                        className="text-sm"
-                        style={{ color: "var(--text-tertiary)" }}
-                      >
-                        첨부파일이 없습니다.
-                      </p>
-                    )}
-                    {commentFiles.map((file, idx) => (
-                      <div
-                        key={`${file.name}-${idx}`}
-                        className="flex items-center justify-between rounded-lg border px-2 py-1"
-                        style={{ 
-                          borderColor: "var(--border-default)",
-                          backgroundColor: "var(--bg-elevated)"
-                        }}
-                      >
-                        <div>
-                          <div 
-                            className="text-xs"
-                            style={{ color: "var(--text-primary)" }}
-                          >
-                            {file.name}
-                          </div>
-                          <div 
-                            className="text-sm"
-                            style={{ color: "var(--text-secondary)" }}
-                          >
-                            {formatBytes(file.size)}
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          className="text-sm hover:underline"
-                          style={{ color: "var(--color-danger-600)" }}
-                          onClick={() => removeCommentFile(idx)}
-                        >
-                          제거
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <RichTextEditor
-                  value={commentBody}
-                  onChange={(doc) => setCommentBody(doc)}
-                  onError={setCommentError}
-                  placeholder="댓글 내용을 입력하세요."
-                />
-              </div>
-
-              <label 
-                className="flex items-center gap-2 text-sm"
-                style={{ color: "var(--text-secondary)" }}
-              >
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded"
-                  style={{ borderColor: "var(--border-default)" }}
-                  checked={commentNotifyEmail}
-                  onChange={(e) => setCommentNotifyEmail(e.target.checked)}
-                />
-                메일 알림 발송
-              </label>
-
-              {commentError && (
-                <div 
-                  className="text-sm"
-                  style={{ color: "var(--color-danger-600)" }}
-                >
-                  {commentError}
-                </div>
-              )}
-
-              <div className="flex items-center justify-end gap-2">
-                <button
-                  className="rounded-lg px-4 py-2 text-sm font-medium transition-all"
-                  style={{
-                    backgroundColor: "var(--bg-elevated)",
-                    borderWidth: "1px",
-                    borderStyle: "solid",
-                    borderColor: "var(--border-default)",
-                    color: "var(--text-primary)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "var(--bg-hover)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
-                  }}
-                  type="button"
-                  onClick={() => {
-                    setCommentModalOpen(false);
-                    setCommentError(null);
-                  }}
-                >
-                  취소
-                </button>
-                <button
-                  className="rounded-lg px-4 py-2 text-sm font-medium transition-all disabled:opacity-60"
-                  style={{
-                    backgroundColor: "var(--color-primary-600)",
-                    color: "#ffffff",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!e.currentTarget.disabled) {
-                      e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
-                  }}
-                  type="button"
-                  disabled={createCommentM.isPending}
-                  onClick={() => {
-                    setCommentError(null);
-                    if (!commentTitle.trim()) {
-                      setCommentError("댓글 제목을 입력하세요.");
-                      return;
-                    }
-                    if (isEmptyDoc(commentBody)) {
-                      setCommentError("댓글 내용을 입력하세요.");
-                      return;
-                    }
-                    createCommentM.mutate();
-                  }}
-                >
-                  {createCommentM.isPending ? "등록 중.." : "등록"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }
