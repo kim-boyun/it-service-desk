@@ -192,18 +192,19 @@ function FieldRow({ label, value }: { label: string; value?: React.ReactNode }) 
       }}
     >
       <div 
-        className="col-span-4 text-sm px-3 py-2 font-medium"
+        className="col-span-4 text-sm px-4 py-2.5 font-medium"
         style={{ 
-          backgroundColor: "var(--bg-subtle)", 
           color: "var(--text-secondary)",
-          borderRight: "1px solid var(--border-default)"
         }}
       >
         {label}
       </div>
       <div 
-        className="col-span-8 text-sm px-3 py-2"
-        style={{ color: "var(--text-primary)" }}
+        className="col-span-8 text-sm px-4 py-2.5"
+        style={{ 
+          color: "var(--text-primary)",
+          borderLeft: "1px solid var(--border-subtle, var(--border-default))"
+        }}
       >
         {value ?? "-"}
       </div>
@@ -274,6 +275,8 @@ export default function AdminTicketDetailPage() {
   const [commentFiles, setCommentFiles] = useState<File[]>([]);
   const [commentError, setCommentError] = useState<string | null>(null);
   const [commentNotifyEmail, setCommentNotifyEmail] = useState(true);
+  const [isEditingAssignees, setIsEditingAssignees] = useState(false);
+  const [isEditingCategories, setIsEditingCategories] = useState(false);
   const commentFileInputRef = useRef<HTMLInputElement | null>(null);
   const commentsEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -589,16 +592,15 @@ export default function AdminTicketDetailPage() {
 
         <Card>
           <div 
-            className="grid grid-cols-1 md:grid-cols-2 overflow-hidden"
+            className="grid grid-cols-1 md:grid-cols-2 overflow-hidden rounded-xl"
             style={{ 
-              borderRadius: "var(--radius-lg)"
+              border: "1px solid var(--border-default)",
             }}
           >
             <div 
               className="divide-y"
               style={{ 
                 borderColor: "var(--border-default)",
-                borderRightWidth: "1px"
               }}
             >
               <FieldRow label="요청자" value={formatUser(t.requester, t.requester_emp_no)} />
@@ -606,33 +608,104 @@ export default function AdminTicketDetailPage() {
                 label="담당자"
                 value={
                   <div className="space-y-2">
-                    <div className="flex flex-wrap gap-2">
-                      {staffOptions.length === 0 && (
-                        <span className="text-xs text-slate-500">관리자 계정이 없습니다.</span>
-                      )}
-                      {staffOptions.map((u) => {
-                        const checked = assigneeEmpNos.includes(u.emp_no);
-                        return (
-                          <label key={u.emp_no} className="inline-flex items-center gap-2 text-sm">
-                            <input
-                              type="checkbox"
-                              className="h-4 w-4 rounded border-slate-300"
-                              checked={checked}
-                              onChange={() => {
-                                const next = checked
-                                  ? assigneeEmpNos.filter((empNo) => empNo !== u.emp_no)
-                                  : [...assigneeEmpNos, u.emp_no];
-                                setAssigneeEmpNos(next);
-                                updateAssigneesM.mutate(next);
-                              }}
-                            />
-                            <span>{formatUser(u, u.emp_no)}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                    {updateAssigneesM.isError && (
-                      <div className="text-xs text-red-600">담당자 변경에 실패했습니다.</div>
+                    {!isEditingAssignees ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        {assigneeEmpNos.length === 0 ? (
+                          <span 
+                            className="text-sm"
+                            style={{ color: "var(--text-tertiary)" }}
+                          >
+                            미배정
+                          </span>
+                        ) : (
+                          staffOptions
+                            .filter((u) => assigneeEmpNos.includes(u.emp_no))
+                            .map((u) => (
+                              <span
+                                key={u.emp_no}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium"
+                                style={{
+                                  backgroundColor: "var(--color-primary-50)",
+                                  color: "var(--color-primary-700)",
+                                  border: "1px solid var(--color-primary-200)",
+                                }}
+                              >
+                                {formatUser(u, u.emp_no)}
+                              </span>
+                            ))
+                        )}
+                        <button
+                          className="text-xs px-2 py-1 rounded transition-colors"
+                          style={{
+                            color: "var(--color-primary-600)",
+                            backgroundColor: "var(--bg-elevated)",
+                            border: "1px solid var(--border-default)",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
+                          }}
+                          onClick={() => setIsEditingAssignees(true)}
+                        >
+                          편집
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          {staffOptions.length === 0 && (
+                            <span className="text-xs col-span-2" style={{ color: "var(--text-tertiary)" }}>
+                              관리자 계정이 없습니다.
+                            </span>
+                          )}
+                          {staffOptions.map((u) => {
+                            const checked = assigneeEmpNos.includes(u.emp_no);
+                            return (
+                              <label key={u.emp_no} className="inline-flex items-center gap-2 text-sm cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  className="h-4 w-4 rounded"
+                                  style={{ accentColor: "var(--color-primary-600)" }}
+                                  checked={checked}
+                                  onChange={() => {
+                                    const next = checked
+                                      ? assigneeEmpNos.filter((empNo) => empNo !== u.emp_no)
+                                      : [...assigneeEmpNos, u.emp_no];
+                                    setAssigneeEmpNos(next);
+                                    updateAssigneesM.mutate(next);
+                                  }}
+                                />
+                                <span>{formatUser(u, u.emp_no)}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="text-xs px-3 py-1 rounded transition-colors font-medium"
+                            style={{
+                              color: "white",
+                              backgroundColor: "var(--color-primary-600)",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
+                            }}
+                            onClick={() => setIsEditingAssignees(false)}
+                          >
+                            완료
+                          </button>
+                          {updateAssigneesM.isError && (
+                            <div className="text-xs" style={{ color: "var(--color-danger-600)" }}>
+                              담당자 변경에 실패했습니다.
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
                 }
@@ -641,34 +714,103 @@ export default function AdminTicketDetailPage() {
                 label="카테고리"
                 value={
                   <div className="space-y-2">
-                    <div className="flex flex-wrap gap-2">
-                      {categories.length === 0 && (
-                        <span className="text-xs text-slate-500">카테고리가 없습니다.</span>
-                      )}
-                      {categories.map((c) => {
-                        const checked = categoryIds.includes(c.id);
-                        return (
-                          <label key={c.id} className="inline-flex items-center gap-2 text-sm">
-                            <input
-                              type="checkbox"
-                              className="h-4 w-4 rounded border-slate-300"
-                              checked={checked}
-                              onChange={() => {
-                                const next = checked
-                                  ? categoryIds.filter((id) => id !== c.id)
-                                  : [...categoryIds, c.id];
-                                setCategoryIds(next);
-                                updateMetaM.mutate({
-                                  category_ids: next,
-                                  work_type: workType || null,
-                                });
-                              }}
-                            />
-                            <span>{c.name}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
+                    {!isEditingCategories ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        {categoryIds.length === 0 ? (
+                          <span 
+                            className="text-sm"
+                            style={{ color: "var(--text-tertiary)" }}
+                          >
+                            선택 안 함
+                          </span>
+                        ) : (
+                          categories
+                            .filter((c) => categoryIds.includes(c.id))
+                            .map((c) => (
+                              <span
+                                key={c.id}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium"
+                                style={{
+                                  backgroundColor: "var(--color-info-50)",
+                                  color: "var(--color-info-700)",
+                                  border: "1px solid var(--color-info-200)",
+                                }}
+                              >
+                                {c.name}
+                              </span>
+                            ))
+                        )}
+                        <button
+                          className="text-xs px-2 py-1 rounded transition-colors"
+                          style={{
+                            color: "var(--color-primary-600)",
+                            backgroundColor: "var(--bg-elevated)",
+                            border: "1px solid var(--border-default)",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
+                          }}
+                          onClick={() => setIsEditingCategories(true)}
+                        >
+                          편집
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          {categories.length === 0 && (
+                            <span className="text-xs col-span-2" style={{ color: "var(--text-tertiary)" }}>
+                              카테고리가 없습니다.
+                            </span>
+                          )}
+                          {categories.map((c) => {
+                            const checked = categoryIds.includes(c.id);
+                            return (
+                              <label key={c.id} className="inline-flex items-center gap-2 text-sm cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  className="h-4 w-4 rounded"
+                                  style={{ accentColor: "var(--color-primary-600)" }}
+                                  checked={checked}
+                                  onChange={() => {
+                                    const next = checked
+                                      ? categoryIds.filter((id) => id !== c.id)
+                                      : [...categoryIds, c.id];
+                                    setCategoryIds(next);
+                                    updateMetaM.mutate({
+                                      category_ids: next,
+                                      work_type: workType || null,
+                                    });
+                                  }}
+                                />
+                                <span>{c.name}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="text-xs px-3 py-1 rounded transition-colors font-medium"
+                            style={{
+                              color: "white",
+                              backgroundColor: "var(--color-primary-600)",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
+                            }}
+                            onClick={() => setIsEditingCategories(false)}
+                          >
+                            완료
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 }
               />
@@ -676,7 +818,12 @@ export default function AdminTicketDetailPage() {
                 label="작업 구분"
                 value={
                   <select
-                    className="w-full border rounded px-2 py-1 text-sm"
+                    className="w-full rounded-lg px-3 py-1.5 text-sm transition-colors"
+                    style={{
+                      border: "1px solid var(--border-default)",
+                      backgroundColor: "var(--bg-input)",
+                      color: "var(--text-primary)",
+                    }}
                     value={workType}
                     onChange={(e) => {
                       const next = e.target.value || null;
@@ -699,7 +846,10 @@ export default function AdminTicketDetailPage() {
             </div>
             <div 
               className="divide-y"
-              style={{ borderColor: "var(--border-default)" }}
+              style={{ 
+                borderColor: "var(--border-default)",
+                borderLeft: "1px solid var(--border-default)",
+              }}
             >
               <FieldRow label="프로젝트" value={t.project_name ?? "-"} />
               <FieldRow label="생성일" value={formatDate(t.created_at)} />
@@ -822,7 +972,7 @@ export default function AdminTicketDetailPage() {
                         className="w-full"
                       >
                         <div 
-                          className="w-full rounded-2xl px-3 py-1 shadow-sm"
+                          className="w-full rounded-2xl px-3 py-2 shadow-sm"
                           style={{
                             backgroundColor: isMyComment ? "var(--color-primary-50)" : "var(--bg-subtle)",
                             borderWidth: "1px",
@@ -830,7 +980,7 @@ export default function AdminTicketDetailPage() {
                             borderColor: isMyComment ? "var(--color-primary-200)" : "var(--border-default)",
                           }}
                         >
-                          <div className="flex items-center gap-1" style={{ marginBottom: "2px" }}>
+                          <div className="flex items-center gap-1" style={{ marginBottom: "4px" }}>
                             <span 
                               className="text-xs font-semibold"
                               style={{ color: isMyComment ? "var(--color-primary-700)" : "var(--text-secondary)" }}
@@ -844,7 +994,7 @@ export default function AdminTicketDetailPage() {
                               {formatDate(c.created_at)}
                             </span>
                           </div>
-                          <div className="text-sm tiptap-comment">
+                          <div className="tiptap-comment" style={{ fontSize: "0.9375rem" }}>
                             <TiptapViewer value={c.body} />
                           </div>
                           {commentAttachments.length > 0 && (

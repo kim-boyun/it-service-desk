@@ -170,18 +170,19 @@ function FieldRow({ label, value }: { label: string; value?: React.ReactNode }) 
       }}
     >
       <div 
-        className="col-span-4 text-sm px-3 py-2 font-medium"
+        className="col-span-4 text-sm px-4 py-2.5 font-medium"
         style={{ 
-          backgroundColor: "var(--bg-subtle)", 
           color: "var(--text-secondary)",
-          borderRight: "1px solid var(--border-default)"
         }}
       >
         {label}
       </div>
       <div 
-        className="col-span-8 text-sm px-3 py-2"
-        style={{ color: "var(--text-primary)" }}
+        className="col-span-8 text-sm px-4 py-2.5"
+        style={{ 
+          color: "var(--text-primary)",
+          borderLeft: "1px solid var(--border-subtle, var(--border-default))"
+        }}
       >
         {value ?? "-"}
       </div>
@@ -478,16 +479,15 @@ export default function TicketDetailPage() {
 
         <Card>
           <div 
-            className="grid grid-cols-1 md:grid-cols-2 overflow-hidden"
+            className="grid grid-cols-1 md:grid-cols-2 overflow-hidden rounded-xl"
             style={{ 
-              borderRadius: "var(--radius-lg)"
+              border: "1px solid var(--border-default)",
             }}
           >
             <div 
               className="divide-y"
               style={{ 
                 borderColor: "var(--border-default)",
-                borderRightWidth: "1px"
               }}
             >
               <FieldRow label="요청자" value={formatUser(t.requester, t.requester_emp_no)} />
@@ -506,7 +506,10 @@ export default function TicketDetailPage() {
             </div>
             <div 
               className="divide-y"
-              style={{ borderColor: "var(--border-default)" }}
+              style={{ 
+                borderColor: "var(--border-default)",
+                borderLeft: "1px solid var(--border-default)",
+              }}
             >
               <FieldRow label="프로젝트" value={t.project_name ?? "-"} />
               <FieldRow label="생성일" value={formatDate(t.created_at)} />
@@ -636,7 +639,7 @@ export default function TicketDetailPage() {
                         className="w-full"
                       >
                         <div 
-                          className="w-full rounded-2xl px-3 py-1 shadow-sm"
+                          className="w-full rounded-2xl px-3 py-2 shadow-sm"
                           style={{
                             backgroundColor: isMyComment ? "var(--color-primary-50)" : "var(--bg-subtle)",
                             borderWidth: "1px",
@@ -644,7 +647,7 @@ export default function TicketDetailPage() {
                             borderColor: isMyComment ? "var(--color-primary-200)" : "var(--border-default)",
                           }}
                         >
-                          <div className="flex items-center gap-1" style={{ marginBottom: "2px" }}>
+                          <div className="flex items-center gap-1" style={{ marginBottom: "4px" }}>
                             <span 
                               className="text-xs font-semibold"
                               style={{ color: isMyComment ? "var(--color-primary-700)" : "var(--text-secondary)" }}
@@ -658,7 +661,7 @@ export default function TicketDetailPage() {
                               {formatDate(c.created_at)}
                             </span>
                           </div>
-                          <div className="text-sm tiptap-comment">
+                          <div className="tiptap-comment" style={{ fontSize: "0.9375rem" }}>
                             <TiptapViewer value={c.body} />
                           </div>
                           {commentAttachments.length > 0 && (
