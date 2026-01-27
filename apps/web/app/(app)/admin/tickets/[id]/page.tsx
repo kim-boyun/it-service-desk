@@ -265,7 +265,7 @@ export default function AdminTicketDetailPage() {
   const [commentBody, setCommentBody] = useState<TiptapDoc>(EMPTY_DOC);
   const [commentFiles, setCommentFiles] = useState<File[]>([]);
   const [commentError, setCommentError] = useState<string | null>(null);
-  const [commentNotifyEmail, setCommentNotifyEmail] = useState(false);
+  const [commentNotifyEmail, setCommentNotifyEmail] = useState(true);
   const commentFileInputRef = useRef<HTMLInputElement | null>(null);
   const commentsEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -873,14 +873,14 @@ export default function AdminTicketDetailPage() {
               style={{ borderColor: "var(--border-default)" }}
             >
               <div className="space-y-3">
-                <div style={{ height: "120px" }}>
-                  <RichTextEditor
-                    value={commentBody}
-                    onChange={(doc) => setCommentBody(doc)}
-                    onError={setCommentError}
-                    placeholder="댓글을 입력하세요..."
-                  />
-                </div>
+                <RichTextEditor
+                  value={commentBody}
+                  onChange={(doc) => setCommentBody(doc)}
+                  onError={setCommentError}
+                  placeholder="댓글을 입력하세요..."
+                  showToolbar={false}
+                  minHeight="60px"
+                />
 
                 <div className="flex items-center gap-2">
                   <input

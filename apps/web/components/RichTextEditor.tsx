@@ -19,6 +19,7 @@ type Props = {
   readOnly?: boolean;
   onError?: (message: string) => void;
   minHeight?: string;
+  showToolbar?: boolean;
 };
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -30,6 +31,7 @@ export default function RichTextEditor({
   readOnly = false,
   onError,
   minHeight,
+  showToolbar = true,
 }: Props) {
   const [uploading, setUploading] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
@@ -129,7 +131,7 @@ export default function RichTextEditor({
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-      {!readOnly && (
+      {!readOnly && showToolbar && (
         <div className="relative">
           <EditorToolbar
             editor={editor}
