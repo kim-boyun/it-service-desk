@@ -9,7 +9,9 @@ import { getToken } from "@/lib/auth";
 import { useMe } from "@/lib/auth-context";
 import { useTicketCategories } from "@/lib/use-ticket-categories";
 import { EMPTY_DOC, isEmptyDoc, TiptapDoc } from "@/lib/tiptap";
+import PageHeader from "@/components/PageHeader";
 import { Badge, Card, CardHeader, CardBody } from "@/components/ui";
+import { FileText } from "lucide-react";
 
 const TiptapViewer = dynamic(() => import("@/components/TiptapViewer"), { ssr: false });
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), { ssr: false });
@@ -402,69 +404,13 @@ export default function TicketDetailPage() {
   return (
     <>
       <div className="space-y-6 animate-fadeIn">
-        <Card>
-          <CardBody padding="lg">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <Badge variant={statusInfo.variant} size="md">
-                  {statusInfo.label}
-                </Badge>
-                <h1 
-                  className="text-2xl font-semibold" 
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  {t.title}
-                </h1>
-              </div>
-              <div className="flex items-center gap-2">
-                {canEdit && (
-                  <button
-                    className="rounded-lg px-4 py-2 text-sm font-medium transition-all"
-                    style={{
-                      backgroundColor: "var(--bg-elevated)",
-                      borderWidth: "1px",
-                      borderStyle: "solid",
-                      borderColor: "var(--border-default)",
-                      color: "var(--text-primary)",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = "var(--bg-hover)";
-                      e.currentTarget.style.boxShadow = "var(--shadow-sm)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
-                      e.currentTarget.style.boxShadow = "none";
-                    }}
-                    onClick={() => router.replace(`/tickets/${ticketId}/edit`)}
-                  >
-                    수정
-                  </button>
-                )}
-                {canEdit && (
-                  <button
-                    className="rounded-lg px-4 py-2 text-sm font-medium transition-all"
-                    style={{
-                      backgroundColor: "var(--color-danger-50)",
-                      borderWidth: "1px",
-                      borderStyle: "solid",
-                      borderColor: "var(--color-danger-200)",
-                      color: "var(--color-danger-700)",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = "var(--color-danger-100)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "var(--color-danger-50)";
-                    }}
-                    onClick={() => {
-                      if (!confirm("요청을 삭제하시겠습니까?")) return;
-                      deleteM.mutate();
-                    }}
-                    disabled={deleteM.isPending}
-                  >
-                    {deleteM.isPending ? "삭제 중.." : "삭제"}
-                  </button>
-                )}
+        <PageHeader
+          title="요청 상세"
+          subtitle={t.title}
+          icon={<FileText className="w-7 h-7" />}
+          actions={
+            <div className="flex items-center gap-2">
+              {canEdit && (
                 <button
                   className="rounded-lg px-4 py-2 text-sm font-medium transition-all"
                   style={{
@@ -482,14 +428,60 @@ export default function TicketDetailPage() {
                     e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
                     e.currentTarget.style.boxShadow = "none";
                   }}
-                  onClick={() => router.back()}
+                  onClick={() => router.replace(`/tickets/${ticketId}/edit`)}
                 >
-                  돌아가기
+                  수정
                 </button>
-              </div>
+              )}
+              {canEdit && (
+                <button
+                  className="rounded-lg px-4 py-2 text-sm font-medium transition-all"
+                  style={{
+                    backgroundColor: "var(--color-danger-50)",
+                    borderWidth: "1px",
+                    borderStyle: "solid",
+                    borderColor: "var(--color-danger-200)",
+                    color: "var(--color-danger-700)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "var(--color-danger-100)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "var(--color-danger-50)";
+                  }}
+                  onClick={() => {
+                    if (!confirm("요청을 삭제하시겠습니까?")) return;
+                    deleteM.mutate();
+                  }}
+                  disabled={deleteM.isPending}
+                >
+                  {deleteM.isPending ? "삭제 중.." : "삭제"}
+                </button>
+              )}
+              <button
+                className="rounded-lg px-4 py-2 text-sm font-medium transition-all"
+                style={{
+                  backgroundColor: "var(--bg-elevated)",
+                  borderWidth: "1px",
+                  borderStyle: "solid",
+                  borderColor: "var(--border-default)",
+                  color: "var(--text-primary)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                  e.currentTarget.style.boxShadow = "var(--shadow-sm)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+                onClick={() => router.back()}
+              >
+                돌아가기
+              </button>
             </div>
-          </CardBody>
-        </Card>
+          }
+        />
 
         <Card>
           <div 

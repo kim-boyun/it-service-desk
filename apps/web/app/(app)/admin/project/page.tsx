@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useMe } from "@/lib/auth-context";
+import PageHeader from "@/components/PageHeader";
+import { Folder } from "lucide-react";
 
 type Project = {
   id: number;
@@ -71,10 +73,11 @@ export default function AdminProjectPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-xl font-semibold text-slate-900">프로젝트 관리</h1>
-        <p className="mt-1 text-sm text-slate-600">프로젝트 이름과 기간만 입력해 생성할 수 있습니다.</p>
-      </div>
+      <PageHeader
+        title="프로젝트 관리"
+        subtitle="프로젝트 이름과 기간을 입력해 생성할 수 있습니다."
+        icon={<Folder className="w-7 h-7" />}
+      />
 
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
         <div className="text-sm font-semibold text-slate-900">프로젝트 생성</div>

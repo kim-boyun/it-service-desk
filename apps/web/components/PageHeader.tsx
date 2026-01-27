@@ -8,7 +8,7 @@ type PageHeaderProps = {
   subtitle?: string;
   meta?: ReactNode;
   actions?: ReactNode;
-  icon?: string;
+  icon?: ReactNode;
 };
 
 export default function PageHeader({ eyebrow, title, subtitle, meta, actions, icon }: PageHeaderProps) {
@@ -23,15 +23,15 @@ export default function PageHeader({ eyebrow, title, subtitle, meta, actions, ic
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-start gap-4 min-w-0 flex-1">
-          {icon && (
+          {icon != null && (
             <div
-              className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl text-3xl"
+              className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl"
               style={{
                 backgroundColor: "var(--color-primary-100)",
                 color: "var(--color-primary-700)",
               }}
             >
-              {icon}
+              {typeof icon === "string" ? <span className="text-3xl">{icon}</span> : icon}
             </div>
           )}
           <div className="min-w-0 flex-1">

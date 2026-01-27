@@ -8,8 +8,9 @@ import { useMe } from "@/lib/auth-context";
 import { useTicketCategories } from "@/lib/use-ticket-categories";
 import Pagination from "@/components/Pagination";
 import ErrorDialog from "@/components/ErrorDialog";
+import PageHeader from "@/components/PageHeader";
 import { Badge, Card, CardHeader, CardBody } from "@/components/ui";
-import { Search } from "lucide-react";
+import { Search, Inbox } from "lucide-react";
 
 type Ticket = {
   id: number;
@@ -305,6 +306,11 @@ export default function AdminTicketsPage() {
   return (
     <div className="space-y-6 animate-fadeIn">
       <ErrorDialog message={errorMessage} onClose={() => setErrorMessage(null)} />
+      <PageHeader
+        title="내 담당 요청"
+        subtitle="배정된 요청을 확인하고 처리하세요."
+        icon={<Inbox className="w-7 h-7" />}
+      />
 
       {isLoading && (
         <div className="flex items-center justify-center py-12">
@@ -317,11 +323,7 @@ export default function AdminTicketsPage() {
       {!isLoading && (
         <Card padding="none">
           <CardHeader>
-            <div className="flex items-center justify-between flex-wrap gap-4 w-full px-6 py-4">
-              <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-                내 담당 요청
-              </h2>
-
+            <div className="flex items-center justify-end flex-wrap gap-4 w-full px-6 py-4">
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="relative">
                   <Search

@@ -7,8 +7,9 @@ import { api } from "@/lib/api";
 import { useTicketCategories } from "@/lib/use-ticket-categories";
 import Pagination from "@/components/Pagination";
 import ErrorDialog from "@/components/ErrorDialog";
+import PageHeader from "@/components/PageHeader";
 import { Badge, Card, CardHeader, CardBody } from "@/components/ui";
-import { Search } from "lucide-react";
+import { Search, Eye } from "lucide-react";
 
 type BadgeVariant = "default" | "primary" | "success" | "warning" | "danger" | "info" | "neutral";
 
@@ -231,6 +232,11 @@ export default function ReviewTicketsPage() {
   return (
     <div className="space-y-6 animate-fadeIn">
       <ErrorDialog message={errorMessage} onClose={() => setErrorMessage(null)} />
+      <PageHeader
+        title="사업 검토"
+        subtitle="검토 대기 중인 요청을 확인하세요."
+        icon={<Eye className="w-7 h-7" />}
+      />
 
       {isLoading && (
         <div className="flex items-center justify-center py-12">
@@ -243,11 +249,7 @@ export default function ReviewTicketsPage() {
       {!isLoading && (
         <Card padding="none">
           <CardHeader>
-            <div className="flex items-center justify-between flex-wrap gap-4 w-full px-6 py-4">
-              <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-                사업 검토
-              </h2>
-
+            <div className="flex items-center justify-end flex-wrap gap-4 w-full px-6 py-4">
               <div className="flex items-center gap-2 flex-wrap">
                 <select
                   className="border rounded-lg px-3 py-2 text-sm transition-colors"

@@ -7,8 +7,9 @@ import { api } from "@/lib/api";
 import { useTicketCategories } from "@/lib/use-ticket-categories";
 import Pagination from "@/components/Pagination";
 import ErrorDialog from "@/components/ErrorDialog";
+import PageHeader from "@/components/PageHeader";
 import { Badge, Card, CardHeader, CardBody } from "@/components/ui";
-import { Search } from "lucide-react";
+import { Search, ClipboardList } from "lucide-react";
 
 type BadgeVariant = "default" | "primary" | "success" | "warning" | "danger" | "info" | "neutral";
 
@@ -258,6 +259,11 @@ export default function TicketsPage() {
   return (
     <div className="space-y-6 animate-fadeIn">
       <ErrorDialog message={errorMessage} onClose={() => setErrorMessage(null)} />
+      <PageHeader
+        title="처리 현황"
+        subtitle="진행 중인 요청을 확인하고 관리하세요."
+        icon={<ClipboardList className="w-7 h-7" />}
+      />
 
       {isLoading && (
         <div className="flex items-center justify-center py-12">
@@ -270,11 +276,7 @@ export default function TicketsPage() {
       {!isLoading && (
         <Card padding="none">
           <CardHeader>
-            <div className="flex items-center justify-between flex-wrap gap-4 w-full px-6 py-4">
-              <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-                모든 요청
-              </h2>
-
+            <div className="flex items-center justify-end flex-wrap gap-4 w-full px-6 py-4">
               <div className="flex items-center gap-2 flex-wrap">
                 <div
                   className="hidden md:flex items-center gap-1 rounded-lg border px-1.5 py-1.5"
