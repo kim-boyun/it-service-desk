@@ -50,6 +50,11 @@ def require_admin(user: User) -> None:
     if user.role != "admin":
         raise HTTPException(status_code=403, detail="Forbidden")
 
+def local_path_for_key(key: str) -> Path:
+    # 기존 uploads/ 프리픽스 호환 + 신규 tickets/notices/... 키 지원
+    rel = key.replace("uploads/", "", 1) if key.startswith("uploads/") else key
+    return UPLOAD_ROOT / rel
+
 @router.post("/tickets/{ticket_id}/attachments/upload", response_model=AttachmentOut)
 async def upload_attachment(
     ticket_id: int,
@@ -80,7 +85,8 @@ async def upload_attachment(
         spooled.write(chunk)
     spooled.seek(0)
 
-    key = f"uploads/{user.emp_no}/{datetime.utcnow().strftime('%Y/%m/%d')}/{uuid4().hex}{ext}"
+    from app.core.storage_keys import ticket_attachment_key
+    key = ticket_attachment_key(ticket_id=ticket_id, ticket_created_at=ticket.created_at, filename=filename)
     content_type = file.content_type or "application/octet-stream"
 
     if is_object_storage():
@@ -89,7 +95,7 @@ async def upload_attachment(
         )
     else:
         UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
-        target_path = UPLOAD_ROOT / key.replace("uploads/", "", 1)
+        target_path = local_path_for_key(key)
         target_path.parent.mkdir(parents=True, exist_ok=True)
 
         def _write_file():
@@ -146,7 +152,9 @@ async def upload_notice_attachment(
         spooled.write(chunk)
     spooled.seek(0)
 
-    key = f"uploads/{user.emp_no}/{datetime.utcnow().strftime('%Y/%m/%d')}/{uuid4().hex}{ext}"
+    from app.core.storage_keys import notice_attachment_key
+    notice = require_notice(notice_id, session)
+    key = notice_attachment_key(notice_id=notice_id, notice_created_at=notice.created_at, filename=filename)
     content_type = file.content_type or "application/octet-stream"
 
     if is_object_storage():
@@ -155,7 +163,7 @@ async def upload_notice_attachment(
         )
     else:
         UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
-        target_path = UPLOAD_ROOT / key.replace("uploads/", "", 1)
+        target_path = local_path_for_key(key)
         target_path.parent.mkdir(parents=True, exist_ok=True)
 
         def _write_file():
@@ -228,8 +236,7 @@ def delete_attachment(
         except Exception:
             raise HTTPException(status_code=500, detail="Failed to delete object storage file")
     else:
-        rel = att.key.replace("uploads/", "", 1)
-        path = UPLOAD_ROOT / rel
+        path = local_path_for_key(att.key)
         if path.exists():
             path.unlink()
 
@@ -263,8 +270,7 @@ def download_attachment(
     if is_object_storage():
         return RedirectResponse(get_presigned_get_url(key=att.key, expires_in=600))
 
-    rel = att.key.replace("uploads/", "", 1)
-    path = UPLOAD_ROOT / rel
+    path = local_path_for_key(att.key)
 
     if not path.exists():
         raise HTTPException(status_code=404, detail="File missing on server")

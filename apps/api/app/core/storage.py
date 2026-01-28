@@ -73,6 +73,20 @@ def delete_object(*, key: str):
     s3 = get_s3_client()
     s3.delete_object(Bucket=cfg.bucket, Key=key)
 
+def copy_object(*, src_key: str, dest_key: str):
+    cfg = get_storage_config()
+    s3 = get_s3_client()
+    s3.copy_object(
+        Bucket=cfg.bucket,
+        CopySource={"Bucket": cfg.bucket, "Key": src_key},
+        Key=dest_key,
+    )
+
+def move_object(*, src_key: str, dest_key: str):
+    # S3 호환 스토리지는 "move"가 없으므로 copy + delete로 구현
+    copy_object(src_key=src_key, dest_key=dest_key)
+    delete_object(key=src_key)
+
 def get_public_url(*, key: str) -> str:
     cfg = get_storage_config()
     if cfg.public_base_url:
@@ -103,7 +117,12 @@ def extract_key_from_url(url: str) -> str | None:
         return None
     if url.startswith("/uploads/"):
         return url[len("/uploads/") :]
-    if url.startswith("editor/") or url.startswith("uploads/"):
+    if (
+        url.startswith("editor/")
+        or url.startswith("uploads/")
+        or url.startswith("tickets/")
+        or url.startswith("notices/")
+    ):
         return url
 
     base = (settings.OBJECT_STORAGE_PUBLIC_BASE_URL or "").rstrip("/")

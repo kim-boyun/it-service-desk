@@ -80,3 +80,32 @@ def extract_image_sources(raw: Any) -> list[str]:
 
     _walk(doc)
     return sources
+
+
+def rewrite_image_sources(doc: Any, *, rewrite_src: callable) -> Any:
+    """
+    Tiptap doc 내 image node attrs.src를 rewrite_src(src)->new_src 로 치환.
+    rewrite_src가 None을 반환하면 변경하지 않음.
+    """
+    if doc is None:
+        return doc
+
+    def _walk(node: Any) -> None:
+        if isinstance(node, dict):
+            if node.get("type") == "image":
+                attrs = node.get("attrs") or {}
+                src = attrs.get("src")
+                if isinstance(src, str) and src:
+                    next_src = rewrite_src(src)
+                    if isinstance(next_src, str) and next_src and next_src != src:
+                        attrs = dict(attrs)
+                        attrs["src"] = next_src
+                        node["attrs"] = attrs
+            for child in node.get("content") or []:
+                _walk(child)
+        elif isinstance(node, list):
+            for child in node:
+                _walk(child)
+
+    _walk(doc)
+    return doc

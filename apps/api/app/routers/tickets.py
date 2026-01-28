@@ -23,9 +23,10 @@ from ..models.attachment import Attachment
 from ..schemas.attachment import AttachmentRegisterIn
 from ..models.mail_log import MailLog
 from pathlib import Path
-from ..core.tiptap import dump_tiptap, load_tiptap, is_empty_doc
+from ..core.tiptap import dump_tiptap, load_tiptap, is_empty_doc, extract_image_sources, rewrite_image_sources
 from ..core.settings import settings
-from ..core.storage import delete_object
+from ..core.storage import delete_object, extract_key_from_url, move_object
+from ..core.storage_keys import ticket_editor_key_from_src_key
 from ..services.assignment_service import get_category_admins
 from ..services.mail_events import (
     notify_admins_ticket_created,
@@ -34,6 +35,62 @@ from ..services.mail_events import (
 )
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
+
+def is_object_storage() -> bool:
+    return settings.STORAGE_BACKEND == "object"
+
+def local_path_for_key(key: str) -> Path:
+    # 기존 uploads/ 프리픽스 호환 + 신규 tickets/notices/... 키 지원
+    rel = key.replace("uploads/", "", 1) if key.startswith("uploads/") else key
+    return Path(settings.LOCAL_UPLOAD_ROOT) / rel
+
+def move_storage_key(src_key: str, dest_key: str) -> None:
+    if src_key == dest_key:
+        return
+    if is_object_storage():
+        move_object(src_key=src_key, dest_key=dest_key)
+        return
+    src = local_path_for_key(src_key)
+    dest = local_path_for_key(dest_key)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if src.exists():
+        src.replace(dest)
+
+def rewrite_src_keep_base(src: str, dest_key: str) -> str:
+    if src.startswith("/uploads/"):
+        return "/uploads/" + dest_key
+    if "/uploads/" in src:
+        head, _, _ = src.partition("/uploads/")
+        return head + "/uploads/" + dest_key
+    return "/uploads/" + dest_key
+
+def finalize_ticket_editor_images(doc: dict, *, ticket: Ticket) -> dict:
+    """
+    RichTextEditor가 임시로 업로드한 editor/... 이미지를
+    tickets/YYYY/MM/DD/{ticketId}/editor/... 로 이동하고, 문서 src를 새 경로로 교체한다.
+    """
+    moved: set[str] = set()
+
+    def _rewrite(src: str) -> str | None:
+        key = extract_key_from_url(src)
+        if not key:
+            return None
+        # 이미 최종 경로면 그대로
+        if key.startswith("tickets/") or key.startswith("notices/"):
+            return None
+        if not key.startswith("editor/"):
+            return None
+        dest_key = ticket_editor_key_from_src_key(
+            ticket_id=ticket.id,
+            ticket_created_at=ticket.created_at,
+            src_key=key,
+        )
+        if key not in moved:
+            move_storage_key(key, dest_key)
+            moved.add(key)
+        return rewrite_src_keep_base(src, dest_key)
+
+    return rewrite_image_sources(doc, rewrite_src=_rewrite)
 
 
 def is_staff(user: User) -> bool:
@@ -179,6 +236,12 @@ def create_ticket(
     )
     session.add(t)
     session.flush()
+    # editor 이미지 최종 경로로 이동 + 문서 src 치환
+    try:
+        next_doc = finalize_ticket_editor_images(payload.description, ticket=t)
+        t.description = dump_tiptap(next_doc)
+    except Exception:
+        logging.getLogger(__name__).exception("failed to finalize ticket editor images (ticket_id=%s)", t.id)
     for category_id in category_ids:
         session.add(TicketCategoryLink(ticket_id=t.id, category_id=category_id))
     # 카테고리에 지정된 담당자를 해당 요청의 담당자로 자동 배정
@@ -301,7 +364,12 @@ def update_ticket(
     if "description" in fields:
         if payload.description is None or is_empty_doc(payload.description):
             raise HTTPException(status_code=422, detail="Description is required")
-        t.description = dump_tiptap(payload.description)
+        try:
+            next_doc = finalize_ticket_editor_images(payload.description, ticket=t)
+            t.description = dump_tiptap(next_doc)
+        except Exception:
+            logging.getLogger(__name__).exception("failed to finalize ticket editor images (ticket_id=%s)", t.id)
+            t.description = dump_tiptap(payload.description)
 
     if "priority" in fields:
         if payload.priority not in ALLOWED_PRIORITY:
@@ -402,26 +470,31 @@ def delete_ticket(
     if t.status != "open":
         raise HTTPException(status_code=422, detail="Only open tickets can be deleted")
     attachments = session.scalars(select(Attachment).where(Attachment.ticket_id == ticket_id)).all()
-    if attachments:
+    keys = set()
+    for src in extract_image_sources(t.description):
+        key = extract_key_from_url(src)
+        if key:
+            keys.add(key)
+    for att in attachments:
+        keys.add(att.key)
+    if keys:
         if settings.STORAGE_BACKEND == "object":
-            for att in attachments:
+            for key in keys:
                 try:
-                    delete_object(key=att.key)
+                    delete_object(key=key)
                 except Exception:
                     logging.getLogger(__name__).exception(
-                        "admin delete: failed to delete object storage file key=%s ticket_id=%s",
-                        att.key,
+                        "delete: failed to delete object storage file key=%s ticket_id=%s",
+                        key,
                         ticket_id,
                     )
         else:
-            upload_root = Path(settings.LOCAL_UPLOAD_ROOT)
-            for att in attachments:
-                rel = att.key.replace("uploads/", "", 1)
-                path = upload_root / rel
+            for key in keys:
+                path = local_path_for_key(key)
                 if path.exists():
                     path.unlink()
-        for att in attachments:
-            session.delete(att)
+    for att in attachments:
+        session.delete(att)
     session.delete(t)
     session.commit()
     return {"ok": True}
@@ -441,22 +514,27 @@ def admin_delete_ticket(
         raise HTTPException(status_code=404, detail="Not found")
 
     attachments = session.scalars(select(Attachment).where(Attachment.ticket_id == ticket_id)).all()
-    if attachments:
+    keys = set()
+    for src in extract_image_sources(t.description):
+        key = extract_key_from_url(src)
+        if key:
+            keys.add(key)
+    for att in attachments:
+        keys.add(att.key)
+    if keys:
         if settings.STORAGE_BACKEND == "object":
-            for att in attachments:
+            for key in keys:
                 try:
-                    delete_object(key=att.key)
+                    delete_object(key=key)
                 except Exception:
                     raise HTTPException(status_code=500, detail="Failed to delete object storage file")
         else:
-            upload_root = Path(settings.LOCAL_UPLOAD_ROOT)
-            for att in attachments:
-                rel = att.key.replace("uploads/", "", 1)
-                path = upload_root / rel
+            for key in keys:
+                path = local_path_for_key(key)
                 if path.exists():
                     path.unlink()
-        for att in attachments:
-            session.delete(att)
+    for att in attachments:
+        session.delete(att)
 
     comments = session.scalars(select(TicketComment).where(TicketComment.ticket_id == ticket_id)).all()
     for c in comments:

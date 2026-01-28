@@ -9,12 +9,63 @@ from ..models.attachment import Attachment
 from ..core.current_user import get_current_user
 from ..schemas.notice import NoticeCreateIn, NoticeUpdateIn, NoticeOut
 from pathlib import Path
-from ..core.tiptap import dump_tiptap, load_tiptap, is_empty_doc, extract_image_sources
+from ..core.tiptap import dump_tiptap, load_tiptap, is_empty_doc, extract_image_sources, rewrite_image_sources
 from ..core.settings import settings
-from ..core.storage import delete_object, extract_key_from_url
+from ..core.storage import delete_object, extract_key_from_url, move_object
+from ..core.storage_keys import notice_editor_key_from_src_key
 
 
 router = APIRouter(prefix="/notices", tags=["notices"])
+
+def is_object_storage() -> bool:
+    return settings.STORAGE_BACKEND == "object"
+
+def local_path_for_key(key: str) -> Path:
+    rel = key.replace("uploads/", "", 1) if key.startswith("uploads/") else key
+    return Path(settings.LOCAL_UPLOAD_ROOT) / rel
+
+def move_storage_key(src_key: str, dest_key: str) -> None:
+    if src_key == dest_key:
+        return
+    if is_object_storage():
+        move_object(src_key=src_key, dest_key=dest_key)
+        return
+    src = local_path_for_key(src_key)
+    dest = local_path_for_key(dest_key)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if src.exists():
+        src.replace(dest)
+
+def rewrite_src_keep_base(src: str, dest_key: str) -> str:
+    if src.startswith("/uploads/"):
+        return "/uploads/" + dest_key
+    if "/uploads/" in src:
+        head, _, _ = src.partition("/uploads/")
+        return head + "/uploads/" + dest_key
+    return "/uploads/" + dest_key
+
+def finalize_notice_editor_images(doc: dict, *, notice: KnowledgeItem) -> dict:
+    moved: set[str] = set()
+
+    def _rewrite(src: str) -> str | None:
+        key = extract_key_from_url(src)
+        if not key:
+            return None
+        if key.startswith("tickets/") or key.startswith("notices/"):
+            return None
+        if not key.startswith("editor/"):
+            return None
+        dest_key = notice_editor_key_from_src_key(
+            notice_id=notice.id,
+            notice_created_at=notice.created_at,
+            src_key=key,
+        )
+        if key not in moved:
+            move_storage_key(key, dest_key)
+            moved.add(key)
+        return rewrite_src_keep_base(src, dest_key)
+
+    return rewrite_image_sources(doc, rewrite_src=_rewrite)
 
 
 def require_staff(user: User) -> None:
@@ -77,9 +128,14 @@ def create_notice(
     require_staff(user)
     if is_empty_doc(payload.body):
         raise HTTPException(status_code=422, detail="Body is required")
-    notice = KnowledgeItem(title=payload.title, body=payload.body, author_emp_no=user.emp_no, kind="notice")
-    notice.body = dump_tiptap(payload.body)
+    notice = KnowledgeItem(title=payload.title, body=dump_tiptap(payload.body), author_emp_no=user.emp_no, kind="notice")
     session.add(notice)
+    session.flush()
+    try:
+        next_doc = finalize_notice_editor_images(payload.body, notice=notice)
+        notice.body = dump_tiptap(next_doc)
+    except Exception:
+        pass
     session.commit()
     session.refresh(notice)
     return {
@@ -110,7 +166,11 @@ def update_notice(
     if payload.body is not None:
         if is_empty_doc(payload.body):
             raise HTTPException(status_code=422, detail="Body is required")
-        notice.body = dump_tiptap(payload.body)
+        try:
+            next_doc = finalize_notice_editor_images(payload.body, notice=notice)
+            notice.body = dump_tiptap(next_doc)
+        except Exception:
+            notice.body = dump_tiptap(payload.body)
 
     session.commit()
     session.refresh(notice)
