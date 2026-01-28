@@ -23,6 +23,19 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* 입력폼·로그인 등 다크모드 가시성: 배경/글자색 테마 변수 사용 */
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select {
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-tertiary);
+}
+
 /* Smooth transitions for theme switching */
 *,
 *::before,

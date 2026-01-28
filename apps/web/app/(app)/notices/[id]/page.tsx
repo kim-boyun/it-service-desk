@@ -178,22 +178,11 @@ export default function NoticeDetailPage() {
   const downloadAttachment = async (attachmentId: number) => {
     setDownloadingId(attachmentId);
     try {
-      const { url } = await api<{ url: string }>(`/attachments/${attachmentId}/download-url`);
+      const { url, filename: apiFilename } = await api<{ url: string; filename?: string }>(`/attachments/${attachmentId}/download-url`);
       const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
       const token = getToken();
       const isAbsolute = /^https?:\/\//i.test(url);
       const targetUrl = isAbsolute ? url : `${apiBase}${url}`;
-
-      if (isAbsolute) {
-        const a = document.createElement("a");
-        a.href = targetUrl;
-        a.target = "_blank";
-        a.rel = "noreferrer";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        return;
-      }
 
       const res = await fetch(targetUrl, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -203,11 +192,11 @@ export default function NoticeDetailPage() {
         throw new Error(`Download failed ${res.status}: ${text}`);
       }
 
+      const blob = await res.blob();
       const cd = res.headers.get("content-disposition") ?? "";
       const m = /filename="([^"]+)"/.exec(cd);
-      const filename = m?.[1] ?? `attachment-${attachmentId}`;
+      const filename = apiFilename ?? m?.[1] ?? `attachment-${attachmentId}`;
 
-      const blob = await res.blob();
       const objectUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = objectUrl;

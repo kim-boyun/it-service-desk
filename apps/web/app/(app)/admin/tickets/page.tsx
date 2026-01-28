@@ -36,6 +36,16 @@ type TicketListResponse =
 
 type SortDir = "asc" | "desc";
 type SortKey = "id" | "title" | "status" | "priority" | "work_type" | "category_id" | "created_at" | "assignee";
+type StatusFilter = "all" | "pending" | "resolved" | "closed";
+
+function passesStatusFilter(t: Ticket, filter: StatusFilter): boolean {
+  const s = (t.status ?? "").toLowerCase();
+  if (filter === "all") return true;
+  if (filter === "pending") return s === "open" || s === "in_progress";
+  if (filter === "resolved") return s === "resolved";
+  if (filter === "closed") return s === "closed";
+  return true;
+}
 
 const STATUS_SORT: Record<string, number> = {
   open: 0,
@@ -152,10 +162,11 @@ export default function AdminTicketsPage() {
   const qc = useQueryClient();
   const { categories, map: categoryMap } = useTicketCategories();
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [page, setPage] = useState(1);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [sortKey, setSortKey] = useState<SortKey>("created_at");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [sortKey, setSortKey] = useState<SortKey | "default">("default");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [editingTicketId, setEditingTicketId] = useState<number | null>(null);
 
   if (me.role !== "admin") {
@@ -207,11 +218,12 @@ export default function AdminTicketsPage() {
 
   const filtered = useMemo(() => {
     let list = norm.items.filter((t) => t.assignee_emp_no === me.emp_no);
+    list = list.filter((t) => passesStatusFilter(t, statusFilter));
     if (search.trim()) {
       list = list.filter((t) => matchesSearch(t, search.trim()));
     }
     return list;
-  }, [norm.items, me.emp_no, search]);
+  }, [norm.items, me.emp_no, statusFilter, search]);
 
   const sorted = useMemo(() => {
     const compareText = (a?: string | null, b?: string | null) => {
@@ -232,6 +244,12 @@ export default function AdminTicketsPage() {
     };
 
     const base = [...filtered].sort((a, b) => {
+      if (sortKey === "default") {
+        const sa = STATUS_SORT[a.status] ?? 9;
+        const sb = STATUS_SORT[b.status] ?? 9;
+        if (sa !== sb) return sa - sb;
+        return toTime(a.created_at) - toTime(b.created_at);
+      }
       if (sortKey === "id") return a.id - b.id;
       if (sortKey === "title") return compareText(a.title, b.title);
       if (sortKey === "status") {
@@ -268,7 +286,7 @@ export default function AdminTicketsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, sortKey, sortDir]);
+  }, [search, statusFilter, sortKey, sortDir]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -311,19 +329,37 @@ export default function AdminTicketsPage() {
         subtitle="배정된 요청을 확인하고 처리하세요."
         icon={<Inbox className="w-7 h-7" />}
         actions={
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
-            <input
-              className="border rounded-lg pl-10 pr-3 py-2 text-sm w-72 transition-colors"
-              style={{
-                backgroundColor: "var(--bg-input)",
-                borderColor: "var(--border-default)",
-                color: "var(--text-primary)",
-              }}
-              placeholder="제목/요청자 검색"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
+              <input
+                className="border rounded-lg pl-10 pr-3 py-2 text-sm w-72 transition-colors"
+                style={{
+                  backgroundColor: "var(--bg-input)",
+                  borderColor: "var(--border-default)",
+                  color: "var(--text-primary)",
+                }}
+                placeholder="제목/요청자 검색"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-1 rounded-lg border overflow-hidden" style={{ borderColor: "var(--border-default)" }}>
+              {(["all", "pending", "resolved", "closed"] as const).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  className="px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap"
+                  style={{
+                    backgroundColor: statusFilter === f ? "var(--color-primary-100)" : "var(--bg-elevated)",
+                    color: statusFilter === f ? "var(--color-primary-700)" : "var(--text-secondary)",
+                  }}
+                  onClick={() => setStatusFilter(f)}
+                >
+                  {f === "all" ? "전체" : f === "pending" ? "대기,진행" : f === "resolved" ? "완료" : "사업검토"}
+                </button>
+              ))}
+            </div>
           </div>
         }
       />

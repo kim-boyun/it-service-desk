@@ -22,7 +22,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       className = "",
       id,
       required,
-      ...props
+      style: styleProp,
+      ...restProps
     },
     ref
   ) => {
@@ -34,7 +35,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-sm font-medium text-neutral-700 mb-1.5"
+            className="block text-sm font-medium mb-1.5"
+            style={{ color: "var(--text-primary)" }}
           >
             {label}
             {required && <span className="text-danger-500 ml-1">*</span>}
@@ -45,18 +47,22 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           id={inputId}
           required={required}
           className={`
-            block w-full px-3 py-2 text-sm
-            border rounded-lg
+            block w-full px-3 py-2 text-sm border rounded-lg
             transition-colors duration-200
-            placeholder:text-neutral-400
             focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
-            disabled:bg-neutral-50 disabled:text-neutral-500 disabled:cursor-not-allowed
-            ${error ? "border-danger-500 focus:ring-danger-500" : "border-neutral-300 hover:border-neutral-400"}
+            disabled:cursor-not-allowed
+            ${error ? "border-danger-500 focus:ring-danger-500" : ""}
             ${className}
           `}
+          style={{
+            backgroundColor: "var(--bg-input)",
+            color: "var(--text-primary)",
+            borderColor: error ? undefined : "var(--border-default)",
+            ...styleProp,
+          }}
           aria-invalid={error ? "true" : "false"}
           aria-describedby={error ? `${inputId}-error` : helperText ? `${inputId}-helper` : undefined}
-          {...props}
+          {...restProps}
         />
         {error && (
           <p id={`${inputId}-error`} className="mt-1.5 text-xs text-danger-600">
@@ -64,7 +70,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           </p>
         )}
         {helperText && !error && (
-          <p id={`${inputId}-helper`} className="mt-1.5 text-xs text-neutral-500">
+          <p id={`${inputId}-helper`} className="mt-1.5 text-xs" style={{ color: "var(--text-tertiary)" }}>
             {helperText}
           </p>
         )}

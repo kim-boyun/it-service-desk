@@ -280,7 +280,7 @@ export default function AdminDashboard() {
   const me = useMe();
   const router = useRouter();
   const { categories, map: categoryMap } = useTicketCategories();
-  const [range, setRange] = useState<"daily" | "weekly" | "monthly">("weekly");
+  const [range, setRange] = useState<"daily" | "weekly" | "monthly">("daily");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (me.role !== "admin") {
@@ -349,9 +349,12 @@ export default function AdminDashboard() {
       else byWorkType.other += 1;
     });
 
-    const newTrend = yesterdayNew === 0 ? (todayNew === 0 ? 0 : 100) : ((todayNew - yesterdayNew) / yesterdayNew) * 100;
-    const doneTrend =
+    const newTrendRaw =
+      yesterdayNew === 0 ? (todayNew === 0 ? 0 : 100) : ((todayNew - yesterdayNew) / yesterdayNew) * 100;
+    const doneTrendRaw =
       yesterdayDone === 0 ? (todayDone === 0 ? 0 : 100) : ((todayDone - yesterdayDone) / yesterdayDone) * 100;
+    const newTrend = Math.round(newTrendRaw * 10) / 10;
+    const doneTrend = Math.round(doneTrendRaw * 10) / 10;
 
     return {
       todayNew,
@@ -564,22 +567,22 @@ export default function AdminDashboard() {
           <DonutChart data={workTypeChartData} />
         </ChartCard>
 
-        <ChartCard title="상태별 분포" subtitle="현재 요청 진행 상태" icon={<ClipboardList className="w-5 h-5" />} className="min-h-[360px]">
+        <ChartCard title="상태" subtitle="요청 상태별 분류" icon={<ClipboardList className="w-5 h-5" />} className="min-h-[360px]">
           <DonutChart data={statusChartData} />
         </ChartCard>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ChartCard title="직급별 요청" subtitle="요청자 직급별 건수" icon={<UserCircle className="w-5 h-5" />} className="min-h-[360px]">
+        <ChartCard title="직급" subtitle="요청자 직급별 분류류" icon={<UserCircle className="w-5 h-5" />} className="min-h-[360px]">
           <DonutChart data={requesterTitleChartData} />
         </ChartCard>
-        <ChartCard title="부서별 요청" subtitle="요청자 부서별 건수" icon={<Building2 className="w-5 h-5" />} className="min-h-[360px]">
+        <ChartCard title="부서" subtitle="요청자 부서별 분류류" icon={<Building2 className="w-5 h-5" />} className="min-h-[360px]">
           <DonutChart data={requesterDepartmentChartData} />
         </ChartCard>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
-        <ChartCard title="카테고리별 분포" subtitle="서비스 유형별 요청 현황" icon={<PieChartIcon className="w-5 h-5" />} className="lg:col-span-3 min-h-[360px]">
+        <ChartCard title="카테고리" subtitle="서비스 유형별 분류류" icon={<PieChartIcon className="w-5 h-5" />} className="lg:col-span-3 min-h-[360px]">
           <DonutChart data={categoryChartData} />
         </ChartCard>
 

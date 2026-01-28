@@ -201,9 +201,9 @@ def get_download_url(
                 raise HTTPException(status_code=403, detail="Forbidden")
 
     if is_object_storage():
-        return {"url": get_presigned_get_url(key=att.key, expires_in=600), "expires_in": 600}
+        return {"url": get_presigned_get_url(key=att.key, expires_in=600), "expires_in": 600, "filename": att.filename}
 
-    return {"url": f"/attachments/{attachment_id}/download", "expires_in": 0}
+    return {"url": f"/attachments/{attachment_id}/download", "expires_in": 0, "filename": att.filename}
 
 
 @router.delete("/attachments/{attachment_id}")

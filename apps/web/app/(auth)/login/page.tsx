@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -69,7 +69,10 @@ function LoginForm() {
   }
 
   return (
-    <div className="app-content min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-slate-50 via-white to-blue-gray-50/70">
+    <div
+      className="app-content min-h-screen flex items-center justify-center p-6"
+      style={{ background: "var(--bg-page)" }}
+    >
       <ErrorDialog message={err} onClose={() => setErr(null)} />
       <div className="w-full max-w-3xl">
         <div className="flex justify-center pb-6">
@@ -90,16 +93,27 @@ function LoginForm() {
               setErr(null);
             }
           }}
-          className="w-full space-y-4 rounded-2xl border border-blue-gray-100 bg-white/90 px-8 py-7 shadow-xl"
+          className="w-full space-y-4 rounded-2xl border px-8 py-7 shadow-xl"
+          style={{
+            backgroundColor: "var(--bg-card)",
+            borderColor: "var(--border-default)",
+          }}
         >
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-slate-900">Login</h1>
+            <h1 className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
+              Login
+            </h1>
           </div>
 
           <div className="space-y-2">
             <label className="sr-only">Id</label>
             <input
-              className="w-full rounded-lg border border-blue-gray-200 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+              className="w-full rounded-lg border px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+              style={{
+                backgroundColor: "var(--bg-input)",
+                color: "var(--text-primary)",
+                borderColor: "var(--border-default)",
+              }}
               value={empNo}
               onChange={(e) => setEmpNo(e.target.value)}
               placeholder="Id"
@@ -110,7 +124,12 @@ function LoginForm() {
           <div className="space-y-2">
             <label className="sr-only">Password</label>
             <input
-              className="w-full rounded-lg border border-blue-gray-200 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+              className="w-full rounded-lg border px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+              style={{
+                backgroundColor: "var(--bg-input)",
+                color: "var(--text-primary)",
+                borderColor: "var(--border-default)",
+              }}
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -119,10 +138,11 @@ function LoginForm() {
             />
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-slate-700">
+          <label className="flex items-center gap-2 text-sm" style={{ color: "var(--text-secondary)" }}>
             <input
               type="checkbox"
-              className="h-4 w-4 rounded border-slate-300"
+              className="h-4 w-4 rounded"
+              style={{ accentColor: "var(--color-primary-500)", borderColor: "var(--border-default)" }}
               checked={rememberId}
               onChange={(e) => setRememberId(e.target.checked)}
             />
@@ -130,7 +150,8 @@ function LoginForm() {
           </label>
 
           <button
-            className="w-full rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-60"
+            className="w-full rounded-lg px-4 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-60 hover:opacity-90"
+            style={{ backgroundColor: "var(--color-primary-600)" }}
             disabled={loading}
             type="submit"
           >

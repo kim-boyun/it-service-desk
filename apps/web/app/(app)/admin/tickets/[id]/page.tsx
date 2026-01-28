@@ -261,7 +261,9 @@ export default function AdminTicketDetailPage() {
   const qc = useQueryClient();
   const me = useMe();
   const { categories, map: categoryMap } = useTicketCategories();
-  const ticketId = Number(params.id);
+  const rawId = params?.id;
+  const ticketId = typeof rawId === "string" ? Number(rawId) : NaN;
+  const isTicketIdValid = Number.isSafeInteger(ticketId) && ticketId > 0;
   const isStaff = me.role === "admin";
 
   const [status, setStatus] = useState("open");
@@ -291,7 +293,7 @@ export default function AdminTicketDetailPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-ticket-detail", ticketId],
     queryFn: () => api<TicketDetail>(`/tickets/${ticketId}/detail?scope=all`),
-    enabled: isStaff,
+    enabled: isStaff && isTicketIdValid,
   });
 
   const { data: adminUsers = [] } = useQuery({
@@ -326,22 +328,11 @@ export default function AdminTicketDetailPage() {
 
   const downloadAttachmentM = useMutation({
     mutationFn: async (attachmentId: number) => {
-      const { url } = await api<{ url: string }>(`/attachments/${attachmentId}/download-url`);
+      const { url, filename: apiFilename } = await api<{ url: string; filename?: string }>(`/attachments/${attachmentId}/download-url`);
       const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
       const token = getToken();
       const isAbsolute = /^https?:\/\//i.test(url);
       const targetUrl = isAbsolute ? url : `${apiBase}${url}`;
-
-      if (isAbsolute) {
-        const a = document.createElement("a");
-        a.href = targetUrl;
-        a.target = "_blank";
-        a.rel = "noreferrer";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        return true;
-      }
 
       const res = await fetch(targetUrl, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -351,11 +342,11 @@ export default function AdminTicketDetailPage() {
         throw new Error(`Download failed ${res.status}: ${text}`);
       }
 
+      const blob = await res.blob();
       const cd = res.headers.get("content-disposition") ?? "";
       const m = /filename="([^"]+)"/.exec(cd);
-      const filename = m?.[1] ?? `attachment-${attachmentId}`;
+      const filename = apiFilename ?? m?.[1] ?? `attachment-${attachmentId}`;
 
-      const blob = await res.blob();
       const objectUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = objectUrl;
@@ -473,6 +464,16 @@ export default function AdminTicketDetailPage() {
     setCommentFiles((prev) => prev.filter((_, i) => i != idx));
   }
 
+  if (!isTicketIdValid) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+          잘못된 요청 ID입니다.
+        </div>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -504,16 +505,28 @@ export default function AdminTicketDetailPage() {
   }
 
   const t = data.ticket;
+  if (!t) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+          요청을 찾을 수 없습니다.
+        </div>
+      </div>
+    );
+  }
   const statusInfo = statusMeta(t.status);
   const priorityInfo = priorityMeta(t.priority);
-  const ticketAttachments = data.attachments.filter((a) => !a.comment_id);
+  const attachments = data.attachments ?? [];
+  const comments = data.comments ?? [];
+  const ticketAttachments = attachments.filter((a) => !a.comment_id);
+  const events = data.events ?? [];
 
   // Filter events to only show relevant types
   const filteredEvents = useMemo(() => {
-    return data.events.filter((e) => 
+    return events.filter((e) => 
       ["ticket_created", "assignee_assigned", "assignee_changed", "status_changed"].includes(e.type)
     );
-  }, [data.events]);
+  }, [events]);
 
   // 완료일: 상태가 '완료'(resolved)일 때만, status_changed → resolved 이벤트 중 가장 최근 시각
   const resolvedAt = useMemo(() => {
@@ -1072,7 +1085,7 @@ export default function AdminTicketDetailPage() {
           </CardBody>
         </Card>
 
-        {data.comments.length === 0 ? (
+        {comments.length === 0 ? (
           <Card>
             <CardBody padding="lg">
               <div 
@@ -1085,9 +1098,9 @@ export default function AdminTicketDetailPage() {
           </Card>
         ) : (
           <>
-            {data.comments.map((c, index) => {
+            {comments.map((c, index) => {
               const isMyComment = me.emp_no === c.author_emp_no;
-              const commentAttachments = data.attachments.filter((a) => a.comment_id === c.id);
+              const commentAttachments = attachments.filter((a) => a.comment_id === c.id);
               return (
                 <Card key={c.id}>
                   <CardHeader>

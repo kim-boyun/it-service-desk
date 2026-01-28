@@ -51,9 +51,6 @@ def _event_message(event: TicketEvent) -> str:
             before = _status_label(event.from_value)
             after = _status_label(event.to_value)
             return f"{before} -> {after}"
-    if event.type in ("assignee_assigned", "assignee_changed"):
-        if event.note:
-            return event.note
     if event.type == "requester_updated" and event.note:
         try:
             payload = json.loads(event.note)
@@ -73,12 +70,12 @@ def list_notifications(
     items: list[NotificationOut] = []
     seen_event_ids: set[int] = set()
 
-    # 1) Ticket events for the user's own requests
+    # 1) Ticket events for the user's own requests (SMTP 조건과 동일: 요청 접수, 상태 변경만. 담당자 배정/변경은 SMTP에서 미발송)
     event_stmt = (
         select(TicketEvent, Ticket)
         .join(Ticket, TicketEvent.ticket_id == Ticket.id)
         .where(Ticket.requester_emp_no == user.emp_no)
-        .where(TicketEvent.type.in_(["ticket_created", "assignee_assigned", "assignee_changed", "status_changed"]))
+        .where(TicketEvent.type.in_(["ticket_created", "status_changed"]))
         .order_by(desc(TicketEvent.created_at), desc(TicketEvent.id))
         .limit(50)
     )
@@ -126,7 +123,7 @@ def list_notifications(
                 )
             )
 
-        # 3) Requester comments on assigned tickets
+        # 3) Requester comments on assigned tickets (SMTP notify_requester_commented와 동일 조건)
         comment_stmt = (
             select(TicketComment, Ticket, User)
             .join(Ticket, TicketComment.ticket_id == Ticket.id)
@@ -151,32 +148,7 @@ def list_notifications(
                     created_at=created_at,
                 )
             )
-
-        # 4) Assigned or changed to the current admin
-        assign_stmt = (
-            select(TicketEvent, Ticket)
-            .join(Ticket, TicketEvent.ticket_id == Ticket.id)
-            .where(TicketEvent.type.in_(["assignee_assigned", "assignee_changed"]))
-            .where(TicketEvent.to_value == user.emp_no)
-            .order_by(desc(TicketEvent.created_at), desc(TicketEvent.id))
-            .limit(50)
-        )
-        for event, ticket in session.execute(assign_stmt).all():
-            if event.id in seen_event_ids:
-                continue
-            created_at = event.created_at or ticket.updated_at or ticket.created_at
-            if not created_at:
-                continue
-            items.append(
-                NotificationOut(
-                    id=f"assign:{event.id}",
-                    ticket_id=ticket.id,
-                    ticket_title=ticket.title,
-                    type=event.type,
-                    message=_event_message(event),
-                    created_at=created_at,
-                )
-            )
+        # SMTP에는 "담당자로 나 배정" 메일 없음 → 인앱에서도 제외
     else:
         # 3) Staff comments on the user's tickets
         comment_stmt = (

@@ -72,11 +72,6 @@ def _user_label(user: User | None, fallback: str | None = None) -> str:
     return f"{name} / {title} / {department}"
 
 
-def _assignee_label(assignee: User | None) -> str:
-    if not assignee:
-        return "미배정"
-    return _user_label(assignee, assignee.emp_no)
-
 def _category_value(ticket: Ticket, label_override: str | None = None) -> str:
     if label_override:
         return label_override
@@ -158,40 +153,6 @@ def notify_admins_ticket_created(
             priority_label=priority_label,
             is_admin_link=True,
         )
-
-
-def notify_requester_assignee_changed(
-    ticket: Ticket,
-    requester: User,
-    assignee: User | None,
-    category_label: str | None = None,
-    work_type_label: str | None = None,
-) -> None:
-    assignee_label = _assignee_label(assignee)
-    status_label = _status_label(ticket.status)
-    priority_label = _priority_label(ticket.priority)
-    summary = "담당자가 변경되었습니다."
-    subject = _build_subject(summary)
-    fields = [
-        ("요청 제목", ticket.title),
-        ("카테고리", _category_value(ticket, category_label)),
-        ("작업 구분", _work_type_value(ticket, work_type_label)),
-        ("담당자", assignee_label),
-        ("요청자", _user_label(requester, requester.emp_no)),
-    ]
-    enqueue_ticket_mail(
-        event_key=f"assignee_changed:requester:{ticket.id}:{requester.emp_no}:{assignee.emp_no if assignee else 'none'}",
-        event_type="assignee_changed",
-        ticket=ticket,
-        recipient=_requester_target(requester),
-        subject=subject,
-        alert_type="담당자 변경",
-        summary=summary,
-        fields=fields,
-        status_label=status_label,
-        priority_label=priority_label,
-        is_admin_link=False,
-    )
 
 
 def notify_requester_status_changed(
