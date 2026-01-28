@@ -9,9 +9,7 @@ import { getToken } from "@/lib/auth";
 import { useMe } from "@/lib/auth-context";
 import { useTicketCategories } from "@/lib/use-ticket-categories";
 import { EMPTY_DOC, isEmptyDoc, TiptapDoc } from "@/lib/tiptap";
-import PageHeader from "@/components/PageHeader";
 import { Badge, Card, CardHeader, CardBody } from "@/components/ui";
-import { FileText } from "lucide-react";
 
 const TiptapViewer = dynamic(() => import("@/components/TiptapViewer"), { ssr: false });
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), { ssr: false });
@@ -407,36 +405,43 @@ export default function TicketDetailPage() {
   return (
     <>
       <div className="space-y-6 animate-fadeIn">
-        <PageHeader
-          title="요청 상세"
-          subtitle={t.title}
-          icon={<FileText className="w-7 h-7" />}
-          actions={
-            <div className="flex items-center gap-2">
-              <button
-                className="rounded-lg px-4 py-2 text-sm font-medium transition-all"
-                style={{
-                  backgroundColor: "var(--bg-elevated)",
-                  borderWidth: "1px",
-                  borderStyle: "solid",
-                  borderColor: "var(--border-default)",
-                  color: "var(--text-primary)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "var(--bg-hover)";
-                  e.currentTarget.style.boxShadow = "var(--shadow-sm)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
-                  e.currentTarget.style.boxShadow = "none";
-                }}
-                onClick={() => router.back()}
-              >
-                돌아가기
-              </button>
+        <Card>
+          <CardBody padding="lg">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h1
+                  className="text-2xl font-semibold"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {t.title}
+                </h1>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  className="rounded-lg px-4 py-2 text-sm font-medium transition-all"
+                  style={{
+                    backgroundColor: "var(--bg-elevated)",
+                    borderWidth: "1px",
+                    borderStyle: "solid",
+                    borderColor: "var(--border-default)",
+                    color: "var(--text-primary)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                    e.currentTarget.style.boxShadow = "var(--shadow-sm)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                  onClick={() => router.back()}
+                >
+                  돌아가기
+                </button>
+              </div>
             </div>
-          }
-        />
+          </CardBody>
+        </Card>
 
         <div 
           className="overflow-hidden rounded-xl"

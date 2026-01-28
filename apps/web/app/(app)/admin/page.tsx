@@ -618,7 +618,7 @@ export default function AdminDashboard() {
 
       <ChartCard
         title="요청 추이 분석"
-        subtitle="시간대별 요청 접수 현황"
+        subtitle="기간간별 요청 접수 현황"
         icon={<TrendingUp className="w-5 h-5" />}
         action={
           <div

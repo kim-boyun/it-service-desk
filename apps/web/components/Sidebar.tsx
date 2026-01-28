@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { useMe } from "@/lib/auth-context";
 import {
   PenSquare,
-  Bell,
+  Megaphone,
   HelpCircle,
   Ticket,
   CheckCircle,
@@ -219,7 +219,7 @@ export default function Sidebar() {
 
   const mainNav: NavItem[] = [
     { href: "/home", label: "작성", icon: PenSquare },
-    { href: "/notices", label: "공지사항", icon: Bell },
+    { href: "/notices", label: "공지사항", icon: Megaphone },
     { href: "/faq", label: "FAQ", icon: HelpCircle },
     { href: "/tickets", label: "처리 현황", icon: Ticket },
     { href: "/tickets/resolved", label: "처리 완료", icon: CheckCircle },
@@ -248,16 +248,18 @@ export default function Sidebar() {
     >
       <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: "var(--sidebar-border)" }}>
         {!collapsed ? (
-          <Link href="/home" className="flex items-center gap-2">
-            <div
-              className="text-2xl font-black tracking-tight"
-              style={{
-                color: "var(--text-primary)",
-              }}
-            >
-              IT DESK
-            </div>
-          </Link>
+          <div className="flex-1 flex justify-center min-w-0">
+            <Link href="/home" className="flex items-center justify-center">
+              <div
+                className="text-2xl font-black tracking-tight"
+                style={{
+                  color: "var(--text-primary)",
+                }}
+              >
+                IT DESK
+              </div>
+            </Link>
+          </div>
         ) : (
           <Link href="/home" className="flex items-center justify-center w-full">
             <div

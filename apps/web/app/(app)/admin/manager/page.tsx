@@ -207,25 +207,33 @@ export default function AdminManagerPage() {
         onClose={() => setError(null)}
       />
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-4">
-        <div className="text-sm font-semibold text-slate-700 mb-3">카테고리 추가</div>
+      <div
+        className="rounded-2xl border p-4"
+        style={{ borderColor: "var(--border-default)", backgroundColor: "var(--bg-card)" }}
+      >
+        <div className="text-sm font-semibold mb-3" style={{ color: "var(--text-secondary)" }}>
+          카테고리 추가
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <input
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-lg border px-3 py-2 text-sm"
+            style={{ borderColor: "var(--border-default)", backgroundColor: "var(--bg-input)", color: "var(--text-primary)" }}
             placeholder="카테고리 코드"
             value={newCode}
             onChange={(e) => setNewCode(e.target.value)}
             maxLength={50}
           />
           <input
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-lg border px-3 py-2 text-sm"
+            style={{ borderColor: "var(--border-default)", backgroundColor: "var(--bg-input)", color: "var(--text-primary)" }}
             placeholder="카테고리 이름"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             maxLength={100}
           />
           <input
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-lg border px-3 py-2 text-sm"
+            style={{ borderColor: "var(--border-default)", backgroundColor: "var(--bg-input)", color: "var(--text-primary)" }}
             placeholder="설명 (선택)"
             value={newDesc}
             onChange={(e) => setNewDesc(e.target.value)}
@@ -234,7 +242,11 @@ export default function AdminManagerPage() {
         <div className="mt-3 flex justify-end">
           <button
             type="button"
-            className="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white transition-colors hover:bg-slate-800 disabled:opacity-60"
+            className="rounded-lg px-4 py-2 text-sm transition-colors disabled:opacity-60"
+            style={{
+              backgroundColor: "var(--color-primary-600)",
+              color: "var(--text-inverse)",
+            }}
             onClick={createCategory}
             disabled={creating}
           >
@@ -244,35 +256,55 @@ export default function AdminManagerPage() {
       </div>
 
       {categoriesLoading ? (
-        <div className="text-sm text-slate-500">카테고리를 불러오는 중입니다...</div>
+        <div className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+          카테고리를 불러오는 중입니다...
+        </div>
       ) : (
         <div className="space-y-3">
           {categories.map((category) => {
             const draft = drafts[category.id];
             const isOpen = expandedId === category.id;
             return (
-              <div key={category.id} className="rounded-2xl border border-slate-200 bg-white">
+              <div
+                key={category.id}
+                className="rounded-2xl border"
+                style={{ borderColor: "var(--border-default)", backgroundColor: "var(--bg-card)" }}
+              >
                 <button
                   type="button"
                   className="w-full px-4 py-3 flex items-center justify-between text-left"
+                  style={{ color: "var(--text-primary)" }}
                   onClick={() => setExpandedId(isOpen ? null : category.id)}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-base font-semibold text-slate-900">{category.name}</span>
-                    <span className="text-xs rounded-full border border-slate-200 px-2 py-0.5 text-slate-500">
+                    <span className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
+                      {category.name}
+                    </span>
+                    <span
+                      className="text-xs rounded-full border px-2 py-0.5"
+                      style={{ borderColor: "var(--border-default)", color: "var(--text-tertiary)" }}
+                    >
                       {category.code}
                     </span>
                   </div>
-                  <span className="text-xs text-slate-500">{isOpen ? "접기" : "열기"}</span>
+                  <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+                    {isOpen ? "접기" : "열기"}
+                  </span>
                 </button>
 
                 {isOpen && (
-                  <div className="border-t border-slate-200 px-4 py-4 space-y-4">
+                  <div
+                    className="border-t px-4 py-4 space-y-4"
+                    style={{ borderColor: "var(--border-default)" }}
+                  >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <div className="text-xs font-semibold text-slate-500">카테고리 이름</div>
+                        <div className="text-xs font-semibold" style={{ color: "var(--text-tertiary)" }}>
+                          카테고리 이름
+                        </div>
                         <input
-                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                          className="w-full rounded-lg border px-3 py-2 text-sm"
+                          style={{ borderColor: "var(--border-default)", backgroundColor: "var(--bg-input)", color: "var(--text-primary)" }}
                           value={draft?.name ?? ""}
                           onChange={(e) =>
                             setDrafts((prev) => ({
@@ -286,9 +318,12 @@ export default function AdminManagerPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <div className="text-xs font-semibold text-slate-500">설명</div>
+                        <div className="text-xs font-semibold" style={{ color: "var(--text-tertiary)" }}>
+                          설명
+                        </div>
                         <input
-                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                          className="w-full rounded-lg border px-3 py-2 text-sm"
+                          style={{ borderColor: "var(--border-default)", backgroundColor: "var(--bg-input)", color: "var(--text-primary)" }}
                           value={draft?.description ?? ""}
                           onChange={(e) =>
                             setDrafts((prev) => ({
@@ -304,9 +339,13 @@ export default function AdminManagerPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <div className="text-xs font-semibold text-slate-500">담당자 지정</div>
+                      <div className="text-xs font-semibold" style={{ color: "var(--text-tertiary)" }}>
+                        담당자 지정
+                      </div>
                       {adminOnly.length === 0 ? (
-                        <div className="text-sm text-slate-500">관리자 계정이 없습니다.</div>
+                        <div className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+                          관리자 계정이 없습니다.
+                        </div>
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                           {adminOnly.map((u) => {
@@ -316,7 +355,12 @@ export default function AdminManagerPage() {
                             return (
                               <label
                                 key={`${category.id}-${u.emp_no}`}
-                                className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                                className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
+                                style={{
+                                  borderColor: "var(--border-default)",
+                                  backgroundColor: "var(--bg-input)",
+                                  color: "var(--text-primary)",
+                                }}
                               >
                                 <input
                                   type="checkbox"
@@ -342,7 +386,11 @@ export default function AdminManagerPage() {
                       </button>
                       <button
                         type="button"
-                        className="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-800 disabled:opacity-60"
+                        className="rounded-lg px-4 py-2 text-sm disabled:opacity-60"
+                        style={{
+                          backgroundColor: "var(--color-primary-600)",
+                          color: "var(--text-inverse)",
+                        }}
                         onClick={() => saveCategory(category)}
                         disabled={savingId === category.id}
                       >

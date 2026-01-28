@@ -637,6 +637,10 @@ export default function HomePage() {
                     })}
                   </div>
 
+                  <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+                    프로젝트 추가는 문의 부탁드립니다.
+                  </p>
+
                   {project ? (
                     <div className="space-y-3">
                       <div className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
