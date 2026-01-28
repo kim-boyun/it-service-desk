@@ -6,17 +6,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMe } from "@/lib/auth-context";
 import {
-  Home,
-  Ticket,
+  PenSquare,
   Bell,
   HelpCircle,
-  Settings,
+  Ticket,
   CheckCircle,
-  Eye,
+  ClipboardCheck,
   BarChart3,
   Users,
-  FolderCog,
+  Tags,
+  FolderKanban,
+  ClipboardList,
   List,
+  UserCog,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -216,20 +218,20 @@ export default function Sidebar() {
   }, [pathname]);
 
   const mainNav: NavItem[] = [
-    { href: "/home", label: "작성", icon: Home },
+    { href: "/home", label: "작성", icon: PenSquare },
     { href: "/notices", label: "공지사항", icon: Bell },
     { href: "/faq", label: "FAQ", icon: HelpCircle },
     { href: "/tickets", label: "처리 현황", icon: Ticket },
     { href: "/tickets/resolved", label: "처리 완료", icon: CheckCircle },
-    { href: "/tickets/review", label: "사업 검토", icon: Eye },
+    { href: "/tickets/review", label: "사업 검토", icon: ClipboardCheck },
   ];
 
   const adminSubNav: NavItem[] = [
     { href: "/admin", label: "대시보드", icon: BarChart3 },
     { href: "/admin/users", label: "사용자 관리", icon: Users },
-    { href: "/admin/manager", label: "카테고리 관리", icon: FolderCog },
-    { href: "/admin/project", label: "프로젝트 관리", icon: FolderCog },
-    { href: "/admin/tickets", label: "요청관리", icon: Settings },
+    { href: "/admin/manager", label: "카테고리 관리", icon: Tags },
+    { href: "/admin/project", label: "프로젝트 관리", icon: FolderKanban },
+    { href: "/admin/tickets", label: "내 담당 요청", icon: ClipboardList },
     { href: "/admin/tickets/all", label: "모든 요청", icon: List },
   ];
 
@@ -313,7 +315,7 @@ export default function Sidebar() {
           <>
             <div className="my-3 border-t" style={{ borderColor: "var(--sidebar-border)" }} />
             <ExpandableNavItem
-              item={{ href: "/admin", label: "관리자", icon: Settings }}
+              item={{ href: "/admin", label: "관리자", icon: UserCog }}
               active={isAdminActive}
               collapsed={collapsed}
               expanded={adminExpanded}

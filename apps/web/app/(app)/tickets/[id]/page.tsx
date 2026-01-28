@@ -160,15 +160,33 @@ function formatCategoryList(ids: number[] | null | undefined, map: Record<number
   return ids.map((id) => map[id] ?? String(id)).join(", ");
 }
 
+const EVENT_TYPE_LABELS: Record<string, string> = {
+  ticket_created: "요청 접수",
+  status_changed: "상태 변경",
+};
+
 function eventLabel(type: string) {
-  const map: Record<string, string> = {
-    ticket_created: "요청 접수",
-    status_changed: "상태 변경",
-    assignee_assigned: "담당자 지정",
-    assignee_changed: "담당자 변경",
-    requester_updated: "요청 수정",
-  };
-  return map[type] ?? type;
+  return EVENT_TYPE_LABELS[type] ?? type;
+}
+
+const STATUS_LABELS_FOR_EVENT: Record<string, string> = {
+  open: "대기",
+  in_progress: "진행",
+  resolved: "완료",
+  closed: "사업 검토",
+};
+
+/** 처리이력 내용: 요청 접수·상태 변경만 */
+function eventContent(e: Event): string {
+  if (e.type === "ticket_created") return "요청이 접수되었습니다.";
+  if (e.type === "status_changed") {
+    const n = e.note?.trim();
+    if (n) return n;
+    const from = e.from_value ? (STATUS_LABELS_FOR_EVENT[e.from_value] ?? e.from_value) : "미정";
+    const to = e.to_value ? (STATUS_LABELS_FOR_EVENT[e.to_value] ?? e.to_value) : "미정";
+    return `${from} → ${to}`;
+  }
+  return e.note?.trim() || "-";
 }
 
 function FieldRow({ label, value }: { label: string; value?: React.ReactNode }) {
@@ -241,12 +259,24 @@ export default function TicketDetailPage() {
     enabled: Number.isFinite(ticketId),
   });
 
-  // Filter events to only show relevant types
+  // 처리이력: 요청 접수·상태 변경만, 시간순(과거 → 현재) 정렬
   const filteredEvents = useMemo(() => {
     if (!data?.events) return [];
-    return data.events.filter((e) => 
-      ["ticket_created", "assignee_assigned", "assignee_changed", "status_changed"].includes(e.type)
+    return [...data.events]
+      .filter((e) => e.type === "ticket_created" || e.type === "status_changed")
+      .sort((a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime());
+  }, [data?.events]);
+
+  // 완료일: 상태가 '완료'(resolved)일 때, status_changed → resolved 이벤트 중 가장 최근 시각
+  const resolvedAt = useMemo(() => {
+    const evs = (data?.events ?? []).filter(
+      (e) => e.type === "status_changed" && e.to_value === "resolved"
     );
+    if (evs.length === 0) return null;
+    const sorted = [...evs].sort(
+      (a, b) => new Date((b as { created_at?: string }).created_at ?? 0).getTime() - new Date((a as { created_at?: string }).created_at ?? 0).getTime()
+    );
+    return sorted[0]?.created_at ?? null;
   }, [data?.events]);
 
   const downloadAttachmentM = useMutation({
@@ -529,6 +559,19 @@ export default function TicketDetailPage() {
               />
               <FieldRow label="생성일" value={formatDate(t.created_at)} />
             </div>
+            {t.status === "resolved" && resolvedAt && (
+              <div
+                className="relative grid grid-cols-1 md:grid-cols-2"
+                style={{ borderTop: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
+              >
+                <div
+                  className="hidden md:block absolute inset-y-0 left-1/2 w-px"
+                  style={{ backgroundColor: "var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
+                />
+                <FieldRow label="완료일" value={formatDate(resolvedAt)} />
+                <FieldRow label="" value="" />
+              </div>
+            )}
             <div 
               className="relative grid grid-cols-1 md:grid-cols-2"
               style={{ borderTop: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
@@ -957,40 +1000,37 @@ export default function TicketDetailPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredEvents.map((e, idx) => {
-                        const rowNo = filteredEvents.length - idx;
-                        return (
-                          <tr 
-                            key={e.id} 
-                            style={{ borderBottom: "1px solid var(--border-default)" }}
+                      {filteredEvents.map((e, idx) => (
+                        <tr
+                          key={e.id}
+                          style={{ borderBottom: "1px solid var(--border-default)" }}
+                        >
+                          <td
+                            className="p-3 text-center"
+                            style={{ color: "var(--text-primary)" }}
                           >
-                            <td 
-                              className="p-3 text-center"
-                              style={{ color: "var(--text-primary)" }}
-                            >
-                              {rowNo}
-                            </td>
-                            <td 
-                              className="p-3 text-center"
-                              style={{ color: "var(--text-secondary)" }}
-                            >
-                              {formatDate(e.created_at)}
-                            </td>
-                            <td 
-                              className="p-3 text-center"
-                              style={{ color: "var(--text-primary)" }}
-                            >
-                              {eventLabel(e.type)}
-                            </td>
-                            <td 
-                              className="p-3 text-center"
-                              style={{ color: "var(--text-secondary)" }}
-                            >
-                              {e.note ?? "-"}
-                            </td>
-                          </tr>
-                        );
-                      })}
+                            {idx + 1}
+                          </td>
+                          <td
+                            className="p-3 text-center"
+                            style={{ color: "var(--text-secondary)" }}
+                          >
+                            {formatDate(e.created_at)}
+                          </td>
+                          <td
+                            className="p-3 text-center"
+                            style={{ color: "var(--text-primary)" }}
+                          >
+                            {eventLabel(e.type)}
+                          </td>
+                          <td
+                            className="p-3 text-left px-3"
+                            style={{ color: "var(--text-secondary)" }}
+                          >
+                            {eventContent(e)}
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>

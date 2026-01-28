@@ -18,6 +18,11 @@ class Ticket(Base):
     requester_emp_no: Mapped[str] = mapped_column(String(50), ForeignKey("users.emp_no"))
     assignee_emp_no: Mapped[str | None] = mapped_column(String(50), ForeignKey("users.emp_no"), nullable=True)
 
+    # 요청 시점의 요청자 정보(이름/직급/부서) – 인사 이동 등과 무관하게 해당 시점으로 영구 보존
+    requester_kor_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    requester_title: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    requester_department: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

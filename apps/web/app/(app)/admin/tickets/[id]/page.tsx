@@ -515,6 +515,18 @@ export default function AdminTicketDetailPage() {
     );
   }, [data.events]);
 
+  // 완료일: 상태가 '완료'(resolved)일 때만, status_changed → resolved 이벤트 중 가장 최근 시각
+  const resolvedAt = useMemo(() => {
+    const evs = (data?.events ?? []).filter(
+      (e) => e.type === "status_changed" && e.to_value === "resolved"
+    );
+    if (evs.length === 0) return null;
+    const sorted = [...evs].sort(
+      (a, b) => new Date((b as { created_at?: string }).created_at ?? 0).getTime() - new Date((a as { created_at?: string }).created_at ?? 0).getTime()
+    );
+    return sorted[0]?.created_at ?? null;
+  }, [data?.events]);
+
   return (
     <>
       <div className="flex gap-6 animate-fadeIn relative">
@@ -860,6 +872,19 @@ export default function AdminTicketDetailPage() {
               />
               <FieldRow label="생성일" value={formatDate(t.created_at)} />
             </div>
+            {t.status === "resolved" && resolvedAt && (
+              <div
+                className="relative grid grid-cols-1 md:grid-cols-2"
+                style={{ borderTop: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
+              >
+                <div
+                  className="hidden md:block absolute inset-y-0 left-1/2 w-px"
+                  style={{ backgroundColor: "var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
+                />
+                <FieldRow label="완료일" value={formatDate(resolvedAt)} />
+                <FieldRow label="" value="" />
+              </div>
+            )}
             <div 
               className="relative grid grid-cols-1 md:grid-cols-2"
               style={{ borderTop: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))" }}

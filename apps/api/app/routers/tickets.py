@@ -104,6 +104,19 @@ def serialize_ticket(
         assignee_emp_nos = [t.assignee_emp_no]
 
     assignees = [users.get(emp_no) for emp_no in assignee_emp_nos if emp_no in users]
+    # 요청 시점 스냅샷이 있으면 그대로 사용(인사 이동과 무관), 없으면 현재 사용자 정보로 폴백
+    requester = users.get(t.requester_emp_no)
+    if (
+        getattr(t, "requester_kor_name", None) is not None
+        or getattr(t, "requester_title", None) is not None
+        or getattr(t, "requester_department", None) is not None
+    ):
+        requester = {
+            "emp_no": t.requester_emp_no,
+            "kor_name": getattr(t, "requester_kor_name", None),
+            "title": getattr(t, "requester_title", None),
+            "department": getattr(t, "requester_department", None),
+        }
     return {
         "id": t.id,
         "title": t.title,
@@ -120,7 +133,7 @@ def serialize_ticket(
         "assignee_emp_nos": assignee_emp_nos,
         "created_at": t.created_at,
         "updated_at": t.updated_at,
-        "requester": users.get(t.requester_emp_no),
+        "requester": requester,
         "assignee": users.get(t.assignee_emp_no) if t.assignee_emp_no else None,
         "assignees": assignees,
     }
@@ -159,6 +172,9 @@ def create_ticket(
         work_type=payload.work_type,
         project_id=project_id,
         requester_emp_no=user.emp_no,
+        requester_kor_name=user.kor_name,
+        requester_title=user.title,
+        requester_department=user.department,
         updated_at=now,
     )
     session.add(t)

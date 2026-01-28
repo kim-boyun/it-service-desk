@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -19,12 +19,15 @@ import {
   TrendingUp,
   Wrench,
   ClipboardList,
-  PieChart,
+  PieChart as PieChartIcon,
   Users,
   Bookmark,
   FolderOpen,
-  ArrowRight
+  ArrowRight,
+  Building2,
+  UserCircle
 } from "lucide-react";
+import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 type Ticket = {
   id: number;
@@ -33,6 +36,7 @@ type Ticket = {
   work_type?: string | null;
   created_at?: string;
   updated_at?: string;
+  requester?: { title?: string | null; department?: string | null } | null;
 };
 
 // KPICard removed - using StatCard 2.0 from ui library
@@ -85,55 +89,72 @@ function ChartCard({
   );
 }
 
-function RadialChart({
-  data,
-  size = 180,
-  thickness = 24,
-}: {
-  data: { label: string; value: number }[];
-  size?: number;
-  thickness?: number;
-}) {
+const DONUT_PALETTE = ["#2563eb", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#14b8a6", "#64748b", "#f97316"];
+
+function DonutChart({ data }: { data: { label: string; value: number }[] }) {
   const total = data.reduce((acc, cur) => acc + cur.value, 0);
-  const palette = ["#2563eb", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#14b8a6", "#64748b", "#f97316"];
-  let acc = 0;
-  const segments = data.map((d, i) => {
-    const pct = total > 0 ? (d.value / total) * 100 : 0;
-    const start = acc;
-    acc += pct;
-    return { ...d, pct, start, end: acc, color: palette[i % palette.length] };
-  });
-  const gradient =
-    total > 0
-      ? `conic-gradient(${segments
-          .map((s) => `${s.color} ${s.start.toFixed(2)}% ${s.end.toFixed(2)}%`)
-          .join(", ")})`
-      : "conic-gradient(var(--border-default) 0% 100%)";
+  const chartData = data.map((d, i) => ({
+    ...d,
+    name: d.label,
+    fill: DONUT_PALETTE[i % DONUT_PALETTE.length],
+  }));
 
   return (
     <div className="flex flex-wrap items-center gap-6">
-      <div className="relative" style={{ width: size, height: size }}>
-        <div className="h-full w-full rounded-full transition-all" style={{ background: gradient }} />
-        <div
-          className="absolute inset-0 m-auto rounded-full flex items-center justify-center text-sm font-semibold transition-colors"
-          style={{
-            width: size - thickness * 2,
-            height: size - thickness * 2,
-            backgroundColor: "var(--bg-card)",
-            color: "var(--text-primary)",
-          }}
-        >
-          {total}건
-        </div>
+      <div className="relative w-full min-w-[280px] max-w-[360px]" style={{ height: 340 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <RechartsPieChart>
+            <Pie
+              data={chartData}
+              dataKey="value"
+              nameKey="label"
+              cx="50%"
+              cy="50%"
+              innerRadius="55%"
+              outerRadius="85%"
+              paddingAngle={1}
+            >
+              {chartData.map((_, i) => (
+                <Cell key={i} fill={chartData[i].fill} stroke="var(--bg-card)" strokeWidth={2} />
+              ))}
+            </Pie>
+            <Tooltip
+              content={({ active, payload }) =>
+                active && payload?.[0] ? (
+                  <div
+                    className="rounded-lg border px-3 py-2 shadow-md"
+                    style={{
+                      backgroundColor: "var(--bg-card)",
+                      borderColor: "var(--border-default)",
+                    }}
+                  >
+                    <span style={{ color: "var(--text-secondary)" }}>{payload[0].payload.label}</span>
+                    <span className="ml-2 font-semibold" style={{ color: "var(--text-primary)" }}>
+                      {payload[0].value}건
+                    </span>
+                  </div>
+                ) : null
+              }
+            />
+          </RechartsPieChart>
+        </ResponsiveContainer>
+        {total > 0 && (
+          <div
+            className="pointer-events-none absolute inset-0 flex items-center justify-center"
+            style={{ color: "var(--text-primary)", fontSize: "0.9rem" }}
+          >
+            <span className="font-bold">{total}건</span>
+          </div>
+        )}
       </div>
-      <div className="min-w-[180px] flex-1 space-y-2 max-h-[220px] overflow-auto">
-        {segments.map((s) => (
+      <div className="min-w-[180px] flex-1 space-y-2 max-h-[300px] overflow-auto">
+        {chartData.map((s) => (
           <div key={s.label} className="flex items-center justify-between gap-3 text-sm">
             <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.fill }} />
               <span style={{ color: "var(--text-secondary)" }}>{s.label}</span>
             </div>
-            <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
+            <span className="font-semibold shrink-0" style={{ color: "var(--text-primary)" }}>
               {s.value}
             </span>
           </div>
@@ -152,14 +173,25 @@ function AreaChart({
   values: number[];
   color?: string;
 }) {
-  const width = 1400;
   const height = 240;
   const padding = 24;
   const max = Math.max(1, ...values);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const [gridColor, setGridColor] = useState("var(--border-subtle)");
+  const [width, setWidth] = useState(800);
+  const containerRef = useRef<HTMLDivElement>(null);
   const hoverRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => setWidth(el.clientWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     const updateGridColor = () => {
@@ -182,10 +214,11 @@ function AreaChart({
   const areaPath = `${linePath} L ${width - padding},${height - padding} L ${padding},${height - padding} Z`;
 
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative w-full">
       <svg
         viewBox={`0 0 ${width} ${height}`}
         className="h-64 w-full"
+        preserveAspectRatio="xMidYMid meet"
         onMouseMove={(e) => {
           if (points.length === 0) return;
           const target = e.currentTarget;
@@ -433,6 +466,24 @@ export default function AdminDashboard() {
     { label: "기타", value: stats.byWorkType.other },
   ];
 
+  const requesterTitleChartData = useMemo(() => {
+    const byTitle: Record<string, number> = {};
+    (data ?? []).forEach((t) => {
+      const label = (t.requester?.title ?? "").trim() || "미기재";
+      byTitle[label] = (byTitle[label] ?? 0) + 1;
+    });
+    return Object.entries(byTitle).map(([label, value]) => ({ label, value }));
+  }, [data]);
+
+  const requesterDepartmentChartData = useMemo(() => {
+    const byDept: Record<string, number> = {};
+    (data ?? []).forEach((t) => {
+      const label = (t.requester?.department ?? "").trim() || "미기재";
+      byDept[label] = (byDept[label] ?? 0) + 1;
+    });
+    return Object.entries(byDept).map(([label, value]) => ({ label, value }));
+  }, [data]);
+
   const timeSeriesData = useMemo(() => {
     const tickets = data ?? [];
     const now = new Date(kstMidnightTs(new Date()));
@@ -580,18 +631,27 @@ export default function AdminDashboard() {
       </ChartCard>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ChartCard title="작업 유형" subtitle="요청 유형별 분류" icon={<Wrench className="w-5 h-5" />} className="min-h-[320px]">
-          <RadialChart data={workTypeChartData} />
+        <ChartCard title="작업 유형" subtitle="요청 유형별 분류" icon={<Wrench className="w-5 h-5" />} className="min-h-[360px]">
+          <DonutChart data={workTypeChartData} />
         </ChartCard>
 
-        <ChartCard title="상태별 분포" subtitle="현재 요청 진행 상태" icon={<ClipboardList className="w-5 h-5" />} className="min-h-[320px]">
-          <RadialChart data={statusChartData} />
+        <ChartCard title="상태별 분포" subtitle="현재 요청 진행 상태" icon={<ClipboardList className="w-5 h-5" />} className="min-h-[360px]">
+          <DonutChart data={statusChartData} />
+        </ChartCard>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <ChartCard title="직급별 요청" subtitle="요청자 직급별 건수" icon={<UserCircle className="w-5 h-5" />} className="min-h-[360px]">
+          <DonutChart data={requesterTitleChartData} />
+        </ChartCard>
+        <ChartCard title="부서별 요청" subtitle="요청자 부서별 건수" icon={<Building2 className="w-5 h-5" />} className="min-h-[360px]">
+          <DonutChart data={requesterDepartmentChartData} />
         </ChartCard>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
-        <ChartCard title="카테고리별 분포" subtitle="서비스 유형별 요청 현황" icon={<PieChart className="w-5 h-5" />} className="lg:col-span-3 min-h-[320px]">
-          <RadialChart data={categoryChartData} />
+        <ChartCard title="카테고리별 분포" subtitle="서비스 유형별 요청 현황" icon={<PieChartIcon className="w-5 h-5" />} className="lg:col-span-3 min-h-[360px]">
+          <DonutChart data={categoryChartData} />
         </ChartCard>
 
         <Card padding="lg" className="flex h-full flex-col lg:col-span-1">
