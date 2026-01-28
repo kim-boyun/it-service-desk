@@ -8,6 +8,8 @@ import { api, apiForm } from "@/lib/api";
 import { EMPTY_DOC, isEmptyDoc, TiptapDoc } from "@/lib/tiptap";
 import PageHeader from "@/components/PageHeader";
 import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes";
+import { Card } from "@/components/ui";
+import { Megaphone, ArrowLeft, Save } from "lucide-react";
 
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), { ssr: false });
 
@@ -110,40 +112,107 @@ export default function NewNoticePage() {
   if (!canEdit) return null;
 
   return (
-    <div className="p-5 space-y-5">
-      <PageHeader title="공지사항 등록" />
-      <form onSubmit={handleSubmit} className="space-y-5 border border-slate-200/70 rounded-2xl bg-white p-5 shadow-sm">
-        <div className="space-y-1">
-          <div className="flex items-center justify-between">
-            <label className="text-sm text-slate-700">제목</label>
-            <span className="text-xs text-slate-500">{title.length}/255</span>
+    <form onSubmit={handleSubmit} className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title="공지사항 등록"
+        subtitle="새 공지사항을 등록합니다."
+        icon={<Megaphone className="h-7 w-7" strokeWidth={2} />}
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+              style={{
+                borderColor: "var(--border-default)",
+                backgroundColor: "var(--bg-card)",
+                color: "var(--text-secondary)",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-hover)")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-card)")}
+              onClick={() => {
+                if (isDirty && !confirm(UNSAVED_MESSAGE)) return;
+                router.back();
+              }}
+              disabled={saving}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              돌아가기
+            </button>
+            <button
+              type="submit"
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition-all"
+              style={{
+                background: "linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%)",
+                color: "white",
+              }}
+              disabled={saving}
+            >
+              <Save className="h-4 w-4" />
+              등록
+            </button>
           </div>
-          <input
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              setIsDirty(true);
-            }}
-            placeholder="제목을 입력하세요."
-            maxLength={255}
-          />
+        }
+      />
+
+      <Card padding="none" className="overflow-hidden">
+        <div className="px-6 py-4 border-b" style={{ borderColor: "var(--border-default)" }}>
+          <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+            공지 내용
+          </div>
         </div>
-        <div className="space-y-1">
-          <label className="text-sm text-slate-700">내용</label>
-          <RichTextEditor
-            value={body}
-            onChange={(next) => {
-              setBody(next);
-              setIsDirty(true);
-            }}
-            placeholder="공지사항 내용을 입력하세요."
-            onError={setErr}
-          />
+        <div className="px-6 py-5 space-y-5">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+                제목
+              </label>
+              <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+                {title.length}/255
+              </span>
+            </div>
+            <input
+              className="w-full rounded-lg border px-3 py-2 text-base font-semibold focus:outline-none focus:ring-2 transition-all"
+              style={{
+                borderColor: "var(--border-default)",
+                backgroundColor: "var(--bg-card)",
+                color: "var(--text-primary)",
+              }}
+              value={title}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                setIsDirty(true);
+              }}
+              placeholder="제목을 입력하세요."
+              maxLength={255}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+              내용
+            </label>
+            <RichTextEditor
+              value={body}
+              onChange={(next) => {
+                setBody(next);
+                setIsDirty(true);
+              }}
+              placeholder="공지사항 내용을 입력하세요."
+              onError={setErr}
+            />
+          </div>
+        </div>
+      </Card>
+
+      <Card padding="lg" className="space-y-4">
+        <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+          첨부파일
         </div>
 
         <div className="space-y-2">
-          <div className="text-sm text-slate-600">파일당 최대 25MB</div>
+          <div className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+            파일당 최대 25MB
+          </div>
           <input
             id="notice-attachment-input"
             type="file"
@@ -155,10 +224,13 @@ export default function NewNoticePage() {
               e.currentTarget.value = "";
             }}
           />
+
           <div
-            className={`rounded-2xl border-2 border-dashed px-4 py-3 transition ${
-              dragActive ? "border-emerald-400 bg-emerald-50" : "border-slate-200 bg-white"
-            }`}
+            className="rounded-2xl border-2 border-dashed px-4 py-3 transition"
+            style={{
+              borderColor: dragActive ? "var(--color-primary-400)" : "var(--border-default)",
+              backgroundColor: dragActive ? "var(--bg-selected)" : "var(--bg-card)",
+            }}
             onDragOver={(e) => {
               e.preventDefault();
               setDragActive(true);
@@ -176,7 +248,12 @@ export default function NewNoticePage() {
             <div className="flex items-center gap-2 flex-wrap">
               <button
                 type="button"
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white text-slate-700 hover:bg-slate-50 cursor-pointer"
+                className="inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm cursor-pointer transition-colors"
+                style={{
+                  borderColor: "var(--border-default)",
+                  backgroundColor: "var(--bg-card)",
+                  color: "var(--text-secondary)",
+                }}
                 onClick={() => {
                   const input = fileInputRef.current;
                   if (!input) return;
@@ -191,11 +268,14 @@ export default function NewNoticePage() {
               >
                 파일 선택
               </button>
-              <span className="text-sm text-slate-500">드래그/붙여넣기로 추가할 수 있습니다.</span>
+              <span className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+                드래그/붙여넣기로 추가할 수 있습니다.
+              </span>
               {attachments.length > 0 && (
                 <button
                   type="button"
-                  className="text-sm text-slate-600 hover:underline"
+                  className="text-sm hover:underline"
+                  style={{ color: "var(--text-secondary)" }}
                   onClick={() => setAttachments([])}
                   disabled={saving}
                 >
@@ -203,20 +283,34 @@ export default function NewNoticePage() {
                 </button>
               )}
             </div>
+
             <div className="mt-2 space-y-1.5">
-              {attachments.length === 0 && <p className="text-sm text-slate-500">첨부파일이 없습니다.</p>}
+              {attachments.length === 0 && (
+                <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+                  첨부파일이 없습니다.
+                </p>
+              )}
               {attachments.map((file, idx) => (
                 <div
                   key={`${file.name}-${idx}`}
-                  className="flex items-center justify-between rounded-lg border border-slate-200 px-2 py-1 bg-slate-50"
+                  className="flex items-center justify-between rounded-lg border px-2 py-1"
+                  style={{
+                    borderColor: "var(--border-default)",
+                    backgroundColor: "var(--bg-subtle)",
+                  }}
                 >
                   <div>
-                    <div className="text-xs text-slate-900">{file.name}</div>
-                    <div className="text-sm text-slate-600">{formatBytes(file.size)}</div>
+                    <div className="text-xs" style={{ color: "var(--text-primary)" }}>
+                      {file.name}
+                    </div>
+                    <div className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                      {formatBytes(file.size)}
+                    </div>
                   </div>
                   <button
                     type="button"
-                    className="text-sm text-red-600 hover:underline"
+                    className="text-sm hover:underline"
+                    style={{ color: "var(--color-danger-700)" }}
                     onClick={() => removeFile(idx)}
                     disabled={saving}
                   >
@@ -228,28 +322,19 @@ export default function NewNoticePage() {
           </div>
         </div>
 
-        {err && <div className="text-sm text-red-600">{err}</div>}
-        <div className="flex items-center justify-end gap-2">
-          <button
-            type="button"
-            className="px-4 py-2 text-sm rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition"
-            onClick={() => {
-              if (isDirty && !confirm(UNSAVED_MESSAGE)) return;
-              router.back();
+        {err && (
+          <div
+            className="rounded-lg border px-4 py-3 text-sm"
+            style={{
+              backgroundColor: "var(--color-danger-50)",
+              borderColor: "var(--color-danger-200)",
+              color: "var(--color-danger-700)",
             }}
-            disabled={saving}
           >
-            취소
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 text-sm rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition"
-            disabled={saving}
-          >
-            등록
-          </button>
-        </div>
-      </form>
-    </div>
+            {err}
+          </div>
+        )}
+      </Card>
+    </form>
   );
 }

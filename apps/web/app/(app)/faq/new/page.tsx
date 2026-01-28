@@ -98,7 +98,7 @@ export default function NewFaqPage() {
         }
       />
 
-      <Card padding="none" className="overflow-hidden max-w-3xl">
+      <Card padding="none" className="overflow-hidden">
         <form onSubmit={handleSubmit}>
           <div className="px-6 py-4 border-b" style={{ borderColor: "var(--border-default)" }}>
             <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
