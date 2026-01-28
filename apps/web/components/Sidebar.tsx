@@ -294,9 +294,7 @@ export default function Sidebar() {
 
       <nav className="flex-1 overflow-y-auto p-3 space-y-1">
         {mainNav.map((item) => {
-          const ticketIdSegment = pathname.split("/")[2];
-          const isTicketDetail =
-            item.href === "/tickets" && !!ticketIdSegment && /^[0-9]+$/.test(ticketIdSegment);
+          const isTicketDetail = item.href === "/tickets" && /^\/tickets\/\d+(\/|$)/.test(pathname);
           return (
             <NavLink
               key={item.href}

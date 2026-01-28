@@ -163,6 +163,9 @@
     --bg-active: var(--color-neutral-100);
     --bg-subtle: var(--color-neutral-50);
     --bg-muted: var(--color-neutral-100);
+    /* Selected state (cards, list items) */
+    --bg-selected: var(--color-primary-50);
+    --bg-selected-2: var(--color-primary-100);
 
     --text-primary: var(--color-neutral-900);
     --text-secondary: var(--color-neutral-600);
@@ -214,6 +217,9 @@
     --bg-active: #253149;
     --bg-subtle: #151e31;
     --bg-muted: #1a2235;
+    /* Selected state (cards, list items) */
+    --bg-selected: rgba(16, 185, 129, 0.16);
+    --bg-selected-2: rgba(16, 185, 129, 0.22);
 
     /* Dark text */
     --text-primary: #f8fafc;

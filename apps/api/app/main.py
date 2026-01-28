@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 import os
 
-from .routers import auth, health, tickets, comments, uploads, attachments, me, admin_users, notices, faqs, ticket_categories, projects, users, draft_tickets, notifications, contact_assignments
+from .routers import auth, health, tickets, comments, uploads, attachments, me, admin_users, notices, faqs, ticket_categories, projects, users, notifications, contact_assignments
 from .models.user import Base
 from .db import engine, SessionLocal
 from .core.seed import seed_ticket_categories
@@ -18,7 +18,6 @@ import app.models.knowledge_item  # noqa: F401
 import app.models.ticket_category  # noqa: F401
 import app.models.project  # noqa: F401
 import app.models.project_member  # noqa: F401
-import app.models.draft_ticket  # noqa: F401
 import app.models.sync_state  # noqa: F401
 import app.models.contact_assignment  # noqa: F401
 import app.models.contact_assignment_member  # noqa: F401
@@ -56,10 +55,9 @@ def on_startup():
     start_mail_worker_thread()
 
     if settings.AUTO_DB_BOOTSTRAP:
-        # Migrate tickets/draft_tickets to category_id-only schema if legacy columns exist.
+        # Migrate tickets to category_id-only schema if legacy columns exist.
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS category_id BIGINT"))
-            conn.execute(text("ALTER TABLE draft_tickets ADD COLUMN IF NOT EXISTS category_id BIGINT"))
             conn.execute(
                 text(
                     """
@@ -79,27 +77,7 @@ def on_startup():
                     """
                 )
             )
-            conn.execute(
-                text(
-                    """
-                    DO $$
-                    BEGIN
-                      IF EXISTS (
-                        SELECT 1
-                        FROM information_schema.columns
-                        WHERE table_name = 'draft_tickets' AND column_name = 'category'
-                      ) THEN
-                        UPDATE draft_tickets d
-                        SET category_id = tc.id
-                        FROM ticket_categories tc
-                        WHERE d.category_id IS NULL AND d.category = tc.code;
-                      END IF;
-                    END $$;
-                    """
-                )
-            )
             conn.execute(text("ALTER TABLE tickets DROP COLUMN IF EXISTS category"))
-            conn.execute(text("ALTER TABLE draft_tickets DROP COLUMN IF EXISTS category"))
 
 
 app.include_router(health.router)
@@ -115,7 +93,6 @@ app.include_router(faqs.router)
 app.include_router(ticket_categories.router)
 app.include_router(projects.router)
 app.include_router(users.router)
-app.include_router(draft_tickets.router)
 app.include_router(notifications.router)
 app.include_router(contact_assignments.router)
 

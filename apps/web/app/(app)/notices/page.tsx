@@ -7,7 +7,7 @@ import { api } from "@/lib/api";
 import { extractText, TiptapDoc } from "@/lib/tiptap";
 import PageHeader from "@/components/PageHeader";
 import { Card } from "@/components/ui";
-import { Plus, FileText } from "lucide-react";
+import { Plus, FileText, Megaphone } from "lucide-react";
 
 type Notice = {
   id: number;
@@ -61,7 +61,7 @@ export default function NoticesPage() {
       <PageHeader
         title="공지사항"
         subtitle="주요 공지 및 운영 안내를 확인하세요."
-        icon="📢"
+        icon={<Megaphone className="h-7 w-7" strokeWidth={2} />}
         actions={
           canEdit ? (
             <button

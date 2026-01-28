@@ -469,7 +469,7 @@ export default function HomePage() {
                         className="group relative p-6 rounded-2xl border-2 transition-all text-left"
                         style={{
                           borderColor: isSelected ? "var(--color-primary-500)" : "var(--border-default)",
-                          backgroundColor: isSelected ? "var(--color-primary-50)" : "var(--bg-card)",
+                          backgroundColor: isSelected ? "var(--bg-selected)" : "var(--bg-card)",
                           transform: isSelected ? "scale(1.02)" : "scale(1)",
                         }}
                         onMouseEnter={(e) => {
@@ -498,7 +498,7 @@ export default function HomePage() {
                             className="flex items-center justify-center w-12 h-12 rounded-xl flex-shrink-0"
                             style={{
                               backgroundColor: isSelected
-                                ? "var(--color-primary-100)"
+                                ? "var(--bg-selected-2)"
                                 : "var(--bg-subtle)",
                               color: isSelected ? "var(--color-primary-700)" : "var(--text-secondary)",
                             }}
@@ -613,7 +613,7 @@ export default function HomePage() {
                           className="group p-4 rounded-xl border-2 transition-all text-left flex items-center justify-between"
                           style={{
                             borderColor: isSelected ? "var(--color-primary-500)" : "var(--border-default)",
-                            backgroundColor: isSelected ? "var(--color-primary-50)" : "var(--bg-card)",
+                            backgroundColor: isSelected ? "var(--bg-selected)" : "var(--bg-card)",
                           }}
                         >
                           <div className="flex items-center gap-3">
@@ -653,7 +653,7 @@ export default function HomePage() {
                               className="group p-4 rounded-xl border-2 transition-all text-left flex items-center justify-between"
                               style={{
                                 borderColor: isSelected ? "var(--color-primary-500)" : "var(--border-default)",
-                                backgroundColor: isSelected ? "var(--color-primary-50)" : "var(--bg-card)",
+                                backgroundColor: isSelected ? "var(--bg-selected)" : "var(--bg-card)",
                               }}
                               onMouseEnter={(e) => {
                                 if (!isSelected) {

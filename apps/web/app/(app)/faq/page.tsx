@@ -92,7 +92,7 @@ export default function FaqPage() {
       <PageHeader
         title="자주 묻는 질문"
         subtitle="빠르게 해결되는 기본 안내를 확인하세요"
-        icon="❓"
+        icon={<HelpCircle className="h-7 w-7" strokeWidth={2} />}
         actions={
           canEdit ? (
             <button

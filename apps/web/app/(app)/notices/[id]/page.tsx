@@ -7,6 +7,9 @@ import { useMe } from "@/lib/auth-context";
 import { api, apiForm } from "@/lib/api";
 import { EMPTY_DOC, isEmptyDoc, TiptapDoc } from "@/lib/tiptap";
 import { getToken } from "@/lib/auth";
+import PageHeader from "@/components/PageHeader";
+import { Card, Badge } from "@/components/ui";
+import { Megaphone, ArrowLeft, Edit3, Trash2, Save, X as XIcon } from "lucide-react";
 
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), { ssr: false });
 const TiptapViewer = dynamic(() => import("@/components/TiptapViewer"), { ssr: false });
@@ -213,51 +216,211 @@ export default function NoticeDetailPage() {
   };
 
   if (loading) {
-    return <div className="p-6 text-sm text-gray-500">공지사항을 불러오는 중입니다...</div>;
+    return (
+      <div className="space-y-6 animate-fadeIn">
+        <Card padding="lg">
+          <div className="text-center text-sm" style={{ color: "var(--text-secondary)" }}>
+            공지사항을 불러오는 중입니다...
+          </div>
+        </Card>
+      </div>
+    );
   }
 
   if (!notice) {
     return (
-      <div className="p-6 space-y-2">
-        <div className="text-sm text-gray-500">공지사항을 찾을 수 없습니다.</div>
-        <button className="text-sm text-blue-700 underline" onClick={() => router.push("/notices")}>목록으로</button>
+      <div className="space-y-6 animate-fadeIn">
+        <Card padding="lg">
+          <div className="space-y-2">
+            <div className="text-sm" style={{ color: "var(--text-secondary)" }}>
+              공지사항을 찾을 수 없습니다.
+            </div>
+            <button
+              className="inline-flex items-center gap-2 text-sm font-medium"
+              style={{ color: "var(--color-primary-700)" }}
+              onClick={() => router.push("/notices")}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              목록으로
+            </button>
+          </div>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <div className="text-xs text-gray-500">NOTICE #{notice.id}</div>
-          {editing ? (
-            <input
-              className="w-full border rounded p-2 text-lg font-semibold"
-              value={draft.title}
-              onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
-            />
-          ) : (
-            <h1 className="text-2xl font-semibold">{notice.title}</h1>
-          )}
-          <div className="text-xs text-gray-500">생성일 {formatDate(notice.created_at)}</div>
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title={editing ? "공지사항 수정" : notice.title}
+        subtitle={editing ? "내용과 첨부파일을 수정할 수 있습니다." : "공지 상세 내용을 확인하세요."}
+        icon={<Megaphone className="h-7 w-7" strokeWidth={2} />}
+        meta={
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="neutral" size="sm">
+              NOTICE #{notice.id}
+            </Badge>
+            <span className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+              생성일 {formatDate(notice.created_at)}
+            </span>
+          </div>
+        }
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+              style={{
+                borderColor: "var(--border-default)",
+                backgroundColor: "var(--bg-card)",
+                color: "var(--text-secondary)",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-hover)")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-card)")}
+              onClick={() => router.push("/notices")}
+              disabled={saving || deleting}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              목록
+            </button>
+
+            {canEdit && (
+              <>
+                {editing ? (
+                  <>
+                    <button
+                      className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+                      style={{
+                        borderColor: "var(--border-default)",
+                        backgroundColor: "var(--bg-card)",
+                        color: "var(--text-secondary)",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-hover)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-card)")}
+                      onClick={() => {
+                        setDraft({ title: notice.title, body: notice.body });
+                        setNewAttachments([]);
+                        setEditing(false);
+                      }}
+                      disabled={saving}
+                    >
+                      <XIcon className="h-4 w-4" />
+                      취소
+                    </button>
+                    <button
+                      className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold shadow-sm transition-all"
+                      style={{
+                        background: "linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%)",
+                        color: "white",
+                      }}
+                      onClick={handleSave}
+                      disabled={saving}
+                    >
+                      <Save className="h-4 w-4" />
+                      저장
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+                      style={{
+                        borderColor: "var(--border-default)",
+                        backgroundColor: "var(--bg-card)",
+                        color: "var(--text-secondary)",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-hover)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-card)")}
+                      onClick={() => {
+                        setEditing(true);
+                        setNewAttachments([]);
+                      }}
+                    >
+                      <Edit3 className="h-4 w-4" />
+                      수정
+                    </button>
+                    <button
+                      className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-all"
+                      style={{
+                        borderColor: "var(--color-danger-300)",
+                        backgroundColor: "var(--color-danger-50)",
+                        color: "var(--color-danger-700)",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-danger-100)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "var(--color-danger-50)")}
+                      onClick={handleDelete}
+                      disabled={deleting}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      삭제
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        }
+      />
+
+      {error && (
+        <div
+          className="rounded-lg border px-4 py-3 text-sm"
+          style={{
+            backgroundColor: "var(--color-danger-50)",
+            borderColor: "var(--color-danger-200)",
+            color: "var(--color-danger-700)",
+          }}
+        >
+          {error}
         </div>
-      </div>
+      )}
 
-      {error && <div className="text-sm text-red-600">{error}</div>}
-
-      <div className="border rounded-lg bg-white p-4 shadow-sm min-h-[200px]">
-        {editing ? (
-          <RichTextEditor value={draft.body} onChange={(doc) => setDraft((d) => ({ ...d, body: doc }))} onError={setError} />
-        ) : (
-          <TiptapViewer value={notice.body} />
-        )}
-      </div>
+      <Card padding="none" className="overflow-hidden">
+        <div className="px-6 py-4 border-b" style={{ borderColor: "var(--border-default)" }}>
+          <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+            공지 내용
+          </div>
+        </div>
+        <div className="px-6 py-5">
+          {editing ? (
+            <>
+              <div className="mb-3">
+                <div className="text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
+                  제목
+                </div>
+                <input
+                  className="w-full rounded-lg border px-3 py-2 text-base font-semibold focus:outline-none focus:ring-2 transition-all"
+                  style={{
+                    borderColor: "var(--border-default)",
+                    backgroundColor: "var(--bg-card)",
+                    color: "var(--text-primary)",
+                  }}
+                  value={draft.title}
+                  onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
+                />
+              </div>
+              <RichTextEditor
+                value={draft.body}
+                onChange={(doc) => setDraft((d) => ({ ...d, body: doc }))}
+                onError={setError}
+              />
+            </>
+          ) : (
+            <div className="prose max-w-none" style={{ color: "var(--text-primary)" }}>
+              <TiptapViewer value={notice.body} />
+            </div>
+          )}
+        </div>
+      </Card>
 
       {editing ? (
-        <div className="border rounded-lg bg-white p-4 shadow-sm space-y-4">
-          <div className="text-sm font-semibold">첨부파일</div>
+        <Card padding="lg" className="space-y-4">
+          <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+            첨부파일
+          </div>
           <div className="space-y-2">
-            <div className="text-sm text-slate-600">파일당 최대 25MB</div>
+            <div className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+              파일당 최대 25MB
+            </div>
             <input
               id="notice-edit-attachment-input"
               type="file"
@@ -270,9 +433,11 @@ export default function NoticeDetailPage() {
               }}
             />
             <div
-              className={`rounded-2xl border-2 border-dashed px-4 py-3 transition ${
-                dragActive ? "border-emerald-400 bg-emerald-50" : "border-slate-200 bg-white"
-              }`}
+              className="rounded-2xl border-2 border-dashed px-4 py-3 transition"
+              style={{
+                borderColor: dragActive ? "var(--color-primary-400)" : "var(--border-default)",
+                backgroundColor: dragActive ? "var(--bg-selected)" : "var(--bg-card)",
+              }}
               onDragOver={(e) => {
                 e.preventDefault();
                 setDragActive(true);
@@ -290,7 +455,12 @@ export default function NoticeDetailPage() {
               <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
-                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white text-slate-700 hover:bg-slate-50 cursor-pointer"
+                  className="inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm cursor-pointer transition-colors"
+                  style={{
+                    borderColor: "var(--border-default)",
+                    backgroundColor: "var(--bg-card)",
+                    color: "var(--text-secondary)",
+                  }}
                   onClick={() => {
                     const input = fileInputRef.current;
                     if (!input) return;
@@ -305,11 +475,14 @@ export default function NoticeDetailPage() {
                 >
                   파일 선택
                 </button>
-                <span className="text-sm text-slate-500">드래그/붙여넣기로 추가할 수 있습니다.</span>
+                <span className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+                  드래그/붙여넣기로 추가할 수 있습니다.
+                </span>
                 {newAttachments.length > 0 && (
                   <button
                     type="button"
-                    className="text-sm text-slate-600 hover:underline"
+                    className="text-sm hover:underline"
+                    style={{ color: "var(--text-secondary)" }}
                     onClick={() => setNewAttachments([])}
                     disabled={saving}
                   >
@@ -319,20 +492,31 @@ export default function NoticeDetailPage() {
               </div>
               <div className="mt-2 space-y-1.5">
                 {newAttachments.length === 0 && (
-                  <p className="text-sm text-slate-500">선택된 파일이 없습니다.</p>
+                  <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+                    선택된 파일이 없습니다.
+                  </p>
                 )}
                 {newAttachments.map((file, idx) => (
                   <div
                     key={`${file.name}-${idx}`}
-                    className="flex items-center justify-between rounded-lg border border-slate-200 px-2 py-1 bg-slate-50"
+                    className="flex items-center justify-between rounded-lg border px-2 py-1"
+                    style={{
+                      borderColor: "var(--border-default)",
+                      backgroundColor: "var(--bg-subtle)",
+                    }}
                   >
                     <div>
-                      <div className="text-xs text-slate-900">{file.name}</div>
-                      <div className="text-sm text-slate-600">{formatBytes(file.size)}</div>
+                      <div className="text-xs" style={{ color: "var(--text-primary)" }}>
+                        {file.name}
+                      </div>
+                      <div className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                        {formatBytes(file.size)}
+                      </div>
                     </div>
                     <button
                       type="button"
-                      className="text-sm text-red-600 hover:underline"
+                      className="text-sm hover:underline"
+                      style={{ color: "var(--color-danger-700)" }}
                       onClick={() => removeNewFile(idx)}
                       disabled={saving}
                     >
@@ -345,24 +529,44 @@ export default function NoticeDetailPage() {
           </div>
 
           <div className="space-y-2">
-            <div className="text-sm font-semibold">기존 첨부파일</div>
+            <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+              기존 첨부파일
+            </div>
             {notice.attachments.length === 0 ? (
-              <div className="text-sm text-gray-500">첨부파일이 없습니다.</div>
+              <div className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+                첨부파일이 없습니다.
+              </div>
             ) : (
-              <div className="border rounded divide-y">
+              <div className="border rounded-lg overflow-hidden" style={{ borderColor: "var(--border-default)" }}>
                 {notice.attachments.map((a) => (
-                  <div key={a.id} className="flex items-center justify-between px-3 py-2">
-                    <div className="text-sm">{a.filename}</div>
+                  <div
+                    key={a.id}
+                    className="flex items-center justify-between px-3 py-2"
+                    style={{ borderTop: "1px solid var(--border-default)" }}
+                  >
+                    <div className="text-sm" style={{ color: "var(--text-primary)" }}>
+                      {a.filename}
+                    </div>
                     <div className="flex items-center gap-2">
                       <button
-                        className="text-sm border rounded px-2 py-1 transition-colors hover:bg-slate-50 active:bg-slate-100"
+                        className="text-sm border rounded px-2 py-1 transition-colors"
+                        style={{
+                          borderColor: "var(--border-default)",
+                          backgroundColor: "var(--bg-card)",
+                          color: "var(--text-secondary)",
+                        }}
                         onClick={() => downloadAttachment(a.id)}
                         disabled={downloadingId === a.id}
                       >
                         {downloadingId === a.id ? "다운로드 중.." : "다운로드"}
                       </button>
                       <button
-                        className="text-sm border rounded px-2 py-1 text-red-600 transition-colors hover:bg-red-50 active:bg-red-100"
+                        className="text-sm border rounded px-2 py-1 transition-colors"
+                        style={{
+                          borderColor: "var(--color-danger-300)",
+                          backgroundColor: "var(--color-danger-50)",
+                          color: "var(--color-danger-700)",
+                        }}
                         onClick={() => deleteExistingAttachment(a.id)}
                         disabled={deletingAttachmentId === a.id || saving}
                       >
@@ -374,19 +578,34 @@ export default function NoticeDetailPage() {
               </div>
             )}
           </div>
-        </div>
+        </Card>
       ) : (
-        <div className="border rounded-lg bg-white p-4 shadow-sm">
-          <div className="text-sm font-semibold mb-3">첨부파일</div>
+        <Card padding="lg">
+          <div className="text-sm font-semibold mb-3" style={{ color: "var(--text-primary)" }}>
+            첨부파일
+          </div>
           {notice.attachments.length === 0 ? (
-            <div className="text-sm text-gray-500">첨부파일이 없습니다.</div>
+            <div className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+              첨부파일이 없습니다.
+            </div>
           ) : (
-            <div className="border rounded divide-y">
+            <div className="border rounded-lg overflow-hidden" style={{ borderColor: "var(--border-default)" }}>
               {notice.attachments.map((a) => (
-                <div key={a.id} className="flex items-center justify-between px-3 py-2">
-                  <div className="text-sm">{a.filename}</div>
+                <div
+                  key={a.id}
+                  className="flex items-center justify-between px-3 py-2"
+                  style={{ borderTop: "1px solid var(--border-default)" }}
+                >
+                  <div className="text-sm" style={{ color: "var(--text-primary)" }}>
+                    {a.filename}
+                  </div>
                   <button
-                    className="text-sm border rounded px-2 py-1 transition-colors hover:bg-slate-50 active:bg-slate-100"
+                    className="text-sm border rounded px-2 py-1 transition-colors"
+                    style={{
+                      borderColor: "var(--border-default)",
+                      backgroundColor: "var(--bg-card)",
+                      color: "var(--text-secondary)",
+                    }}
                     onClick={() => downloadAttachment(a.id)}
                     disabled={downloadingId === a.id}
                   >
@@ -396,56 +615,8 @@ export default function NoticeDetailPage() {
               ))}
             </div>
           )}
-        </div>
+        </Card>
       )}
-
-      <div className="flex items-center justify-end gap-2">
-        {!editing && (
-          <button
-            className="px-4 py-2 text-sm rounded border bg-white text-gray-800 hover:bg-gray-100"
-            onClick={() => router.push("/notices")}
-          >
-            목록
-          </button>
-        )}
-        {canEdit && (
-          <>
-            {editing ? (
-              <>
-                <button
-                  className="px-4 py-2 text-sm rounded border bg-white text-gray-800 hover:bg-gray-100"
-                  onClick={() => {
-                    setDraft({ title: notice.title, body: notice.body });
-                    setNewAttachments([]);
-                    setEditing(false);
-                  }}
-                  disabled={saving}
-                >취소</button>
-                <button
-                  className="px-4 py-2 text-sm rounded border bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
-                  onClick={handleSave}
-                  disabled={saving}
-                >저장</button>
-              </>
-            ) : (
-              <>
-                <button
-                  className="px-4 py-2 text-sm rounded border bg-white text-gray-800 hover:bg-gray-100"
-                  onClick={() => {
-                    setEditing(true);
-                    setNewAttachments([]);
-                  }}
-                >수정</button>
-                <button
-                  className="px-4 py-2 text-sm rounded border bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
-                  onClick={handleDelete}
-                  disabled={deleting}
-                >삭제</button>
-              </>
-            )}
-          </>
-        )}
-      </div>
     </div>
   );
 }

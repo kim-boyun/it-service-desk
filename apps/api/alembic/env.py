@@ -10,7 +10,6 @@ import app.models.ticket_category  # noqa: F401
 import app.models.comment  # noqa: F401
 import app.models.event  # noqa: F401
 import app.models.attachment  # noqa: F401
-import app.models.draft_ticket  # noqa: F401
 import app.models.project  # noqa: F401
 import app.models.project_member  # noqa: F401
 import app.models.knowledge_item  # noqa: F401

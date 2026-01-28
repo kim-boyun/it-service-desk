@@ -7,6 +7,8 @@ import PageHeader from "@/components/PageHeader";
 import { useMe } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import { EMPTY_DOC, isEmptyDoc, TiptapDoc } from "@/lib/tiptap";
+import { Card, Badge } from "@/components/ui";
+import { HelpCircle, ArrowLeft, Save } from "lucide-react";
 
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), { ssr: false });
 
@@ -100,57 +102,138 @@ export default function EditFaqPage() {
   if (!canEdit) return null;
 
   if (loading) {
-    return <div className="p-6 text-sm text-gray-500">FAQ를 불러오는 중입니다...</div>;
+    return (
+      <div className="space-y-6 animate-fadeIn">
+        <Card padding="lg">
+          <div className="text-center text-sm" style={{ color: "var(--text-secondary)" }}>
+            FAQ를 불러오는 중입니다...
+          </div>
+        </Card>
+      </div>
+    );
   }
 
   if (!faq) {
     return (
-      <div className="p-6 space-y-2">
-        <div className="text-sm text-gray-500">FAQ를 찾을 수 없습니다.</div>
-        <button className="text-sm text-blue-700 underline" onClick={() => router.push("/faq")}>
-          목록으로
-        </button>
+      <div className="space-y-6 animate-fadeIn">
+        <Card padding="lg">
+          <div className="space-y-2">
+            <div className="text-sm" style={{ color: "var(--text-secondary)" }}>
+              FAQ를 찾을 수 없습니다.
+            </div>
+            <button
+              className="inline-flex items-center gap-2 text-sm font-medium"
+              style={{ color: "var(--color-primary-700)" }}
+              onClick={() => router.push("/faq")}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              목록으로
+            </button>
+          </div>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-4">
-      <PageHeader title="FAQ 수정" />
-      <form onSubmit={handleSubmit} className="max-w-3xl space-y-4 border rounded-lg bg-white p-4 shadow-sm">
-        <div className="space-y-1">
-          <label className="text-sm text-gray-700">질문</label>
-          <input
-            className="w-full border rounded px-3 py-2 text-sm"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            placeholder="질문을 입력하세요."
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm text-gray-700">답변</label>
-          <RichTextEditor value={answer} onChange={setAnswer} onError={setErr} placeholder="답변을 입력하세요." />
-        </div>
-
-        {err && <div className="text-sm text-red-600">{err}</div>}
-        <div className="flex items-center justify-end gap-2">
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title="FAQ 수정"
+        subtitle="질문과 답변을 수정합니다."
+        icon={<HelpCircle className="h-7 w-7" strokeWidth={2} />}
+        meta={
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="neutral" size="sm">
+              FAQ #{faq.id}
+            </Badge>
+          </div>
+        }
+        actions={
           <button
             type="button"
-            className="px-4 py-2 text-sm rounded border bg-white text-black hover:bg-gray-100 transition"
-            onClick={() => router.back()}
+            className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+            style={{
+              borderColor: "var(--border-default)",
+              backgroundColor: "var(--bg-card)",
+              color: "var(--text-secondary)",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-hover)")}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-card)")}
+            onClick={() => router.push("/faq")}
             disabled={saving}
           >
-            취소
+            <ArrowLeft className="h-4 w-4" />
+            목록
           </button>
-          <button
-            type="submit"
-            className="px-4 py-2 text-sm rounded border bg-white text-black hover:bg-gray-100 transition"
-            disabled={saving}
+        }
+      />
+
+      <Card padding="none" className="overflow-hidden max-w-3xl">
+        <form onSubmit={handleSubmit}>
+          <div className="px-6 py-4 border-b" style={{ borderColor: "var(--border-default)" }}>
+            <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+              내용 수정
+            </div>
+          </div>
+
+          <div className="px-6 py-5 space-y-5">
+            <div className="space-y-2">
+              <label className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+                질문
+              </label>
+              <input
+                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-all"
+                style={{
+                  borderColor: "var(--border-default)",
+                  backgroundColor: "var(--bg-card)",
+                  color: "var(--text-primary)",
+                }}
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                placeholder="질문을 입력하세요."
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+                답변
+              </label>
+              <RichTextEditor value={answer} onChange={setAnswer} onError={setErr} placeholder="답변을 입력하세요." />
+            </div>
+
+            {err && (
+              <div
+                className="rounded-lg border px-4 py-3 text-sm"
+                style={{
+                  backgroundColor: "var(--color-danger-50)",
+                  borderColor: "var(--color-danger-200)",
+                  color: "var(--color-danger-700)",
+                }}
+              >
+                {err}
+              </div>
+            )}
+          </div>
+
+          <div
+            className="px-6 py-4 border-t flex items-center justify-end gap-2"
+            style={{ borderColor: "var(--border-default)" }}
           >
-            저장
-          </button>
-        </div>
-      </form>
+            <button
+              type="submit"
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition-all"
+              style={{
+                background: "linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%)",
+                color: "white",
+              }}
+              disabled={saving}
+            >
+              <Save className="h-4 w-4" />
+              저장
+            </button>
+          </div>
+        </form>
+      </Card>
     </div>
   );
 }

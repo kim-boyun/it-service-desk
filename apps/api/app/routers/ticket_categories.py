@@ -8,7 +8,6 @@ from ..models.user import User
 from ..core.current_user import get_current_user
 from ..schemas.category import TicketCategoryOut, TicketCategoryCreateIn, TicketCategoryUpdateIn
 from ..models.ticket import Ticket
-from ..models.draft_ticket import DraftTicket
 from ..models.knowledge_item import KnowledgeItem
 from ..models.contact_assignment_member import ContactAssignmentMember
 
@@ -74,13 +73,10 @@ def delete_category(
     has_ticket = session.scalar(
         select(Ticket.id).where(Ticket.category_id == category_id).limit(1)
     )
-    has_draft = session.scalar(
-        select(DraftTicket.id).where(DraftTicket.category_id == category_id).limit(1)
-    )
     has_knowledge = session.scalar(
         select(KnowledgeItem.id).where(KnowledgeItem.category_id == category_id).limit(1)
     )
-    if has_ticket or has_draft or has_knowledge:
+    if has_ticket or has_knowledge:
         raise HTTPException(
             status_code=409,
             detail="Category is in use and cannot be deleted",

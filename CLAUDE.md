@@ -117,7 +117,7 @@ npm run lint
 - `app/(auth)/`: Authentication routes (login)
 - `app/(app)/`: Main application routes (requires auth)
   - `home/`: Dashboard with statistics and recent tickets
-  - `tickets/`: Ticket list, detail, creation, drafts
+  - `tickets/`: Ticket list, detail, creation
   - `admin/`: Admin dashboard, user management, ticket management
   - `notices/`: Notice list and detail
   - `faq/`: FAQ list and detail

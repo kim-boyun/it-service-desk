@@ -8,6 +8,8 @@ import { api } from "@/lib/api";
 import { EMPTY_DOC, isEmptyDoc, TiptapDoc } from "@/lib/tiptap";
 import PageHeader from "@/components/PageHeader";
 import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes";
+import { Card } from "@/components/ui";
+import { HelpCircle, ArrowLeft, Save } from "lucide-react";
 
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), { ssr: false });
 
@@ -68,60 +70,117 @@ export default function NewFaqPage() {
   if (!canEdit) return null;
 
   return (
-    <div className="p-5 space-y-5">
-      <PageHeader title="FAQ 등록" />
-      <form onSubmit={handleSubmit} className="max-w-3xl space-y-4 border rounded-lg bg-white p-4 shadow-sm">
-        <div className="space-y-1">
-          <div className="flex items-center justify-between">
-            <label className="text-sm text-slate-700">질문</label>
-            <span className="text-xs text-slate-500">{question.length}/255</span>
-          </div>
-          <input
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
-            value={question}
-            onChange={(e) => {
-              setQuestion(e.target.value);
-              setIsDirty(true);
-            }}
-            placeholder="질문을 입력하세요."
-            maxLength={255}
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm text-slate-700">답변</label>
-          <RichTextEditor
-            value={answer}
-            onChange={(next) => {
-              setAnswer(next);
-              setIsDirty(true);
-            }}
-            onError={setErr}
-            placeholder="답변을 입력하세요."
-          />
-        </div>
-
-        {err && <div className="text-sm text-red-600">{err}</div>}
-        <div className="flex items-center justify-end gap-2">
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title="FAQ 등록"
+        subtitle="자주 묻는 질문을 추가합니다."
+        icon={<HelpCircle className="h-7 w-7" strokeWidth={2} />}
+        actions={
           <button
             type="button"
-            className="px-4 py-2 text-sm rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition"
+            className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+            style={{
+              borderColor: "var(--border-default)",
+              backgroundColor: "var(--bg-card)",
+              color: "var(--text-secondary)",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-hover)")}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-card)")}
             onClick={() => {
               if (isDirty && !confirm(UNSAVED_MESSAGE)) return;
               router.back();
             }}
             disabled={saving}
           >
-            취소
+            <ArrowLeft className="h-4 w-4" />
+            돌아가기
           </button>
-          <button
-            type="submit"
-            className="px-4 py-2 text-sm rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition"
-            disabled={saving}
+        }
+      />
+
+      <Card padding="none" className="overflow-hidden max-w-3xl">
+        <form onSubmit={handleSubmit}>
+          <div className="px-6 py-4 border-b" style={{ borderColor: "var(--border-default)" }}>
+            <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+              기본 정보
+            </div>
+          </div>
+
+          <div className="px-6 py-5 space-y-5">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+                  질문
+                </label>
+                <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+                  {question.length}/255
+                </span>
+              </div>
+              <input
+                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-all"
+                style={{
+                  borderColor: "var(--border-default)",
+                  backgroundColor: "var(--bg-card)",
+                  color: "var(--text-primary)",
+                }}
+                value={question}
+                onChange={(e) => {
+                  setQuestion(e.target.value);
+                  setIsDirty(true);
+                }}
+                placeholder="질문을 입력하세요."
+                maxLength={255}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+                답변
+              </label>
+              <RichTextEditor
+                value={answer}
+                onChange={(next) => {
+                  setAnswer(next);
+                  setIsDirty(true);
+                }}
+                onError={setErr}
+                placeholder="답변을 입력하세요."
+              />
+            </div>
+
+            {err && (
+              <div
+                className="rounded-lg border px-4 py-3 text-sm"
+                style={{
+                  backgroundColor: "var(--color-danger-50)",
+                  borderColor: "var(--color-danger-200)",
+                  color: "var(--color-danger-700)",
+                }}
+              >
+                {err}
+              </div>
+            )}
+          </div>
+
+          <div
+            className="px-6 py-4 border-t flex items-center justify-end gap-2"
+            style={{ borderColor: "var(--border-default)" }}
           >
-            등록
-          </button>
-        </div>
-      </form>
+            <button
+              type="submit"
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition-all"
+              style={{
+                background: "linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%)",
+                color: "white",
+              }}
+              disabled={saving}
+            >
+              <Save className="h-4 w-4" />
+              등록
+            </button>
+          </div>
+        </form>
+      </Card>
     </div>
   );
 }

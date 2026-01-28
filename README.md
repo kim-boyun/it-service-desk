@@ -88,7 +88,6 @@ it-service-desk/
 │   │       │   ├── ticket_assignees → tickets 라우터에서 사용
 │   │       │   ├── comment.py, event.py, attachment.py
 │   │       │   ├── project.py, project_member.py
-│   │       │   ├── draft_ticket.py
 │   │       │   ├── knowledge_item.py   # notices + faqs (kind로 구분)
 │   │       │   ├── contact_assignment.py, contact_assignment_member.py
 │   │       │   ├── mail_log.py, sync_state.py
@@ -101,7 +100,6 @@ it-service-desk/
 │   │       │   ├── comments.py      # 댓글 목록/생성
 │   │       │   ├── attachments.py  # 티켓·공지 첨부 업로드/다운로드URL/삭제
 │   │       │   ├── uploads.py       # presign, images (에디터 이미지)
-│   │       │   ├── draft_tickets.py # 임시저장 CRUD, publish → tickets
 │   │       │   ├── ticket_categories.py
 │   │       │   ├── projects.py      # 프로젝트 CRUD, reorder
 │   │       │   ├── admin_users.py   # 관리자 목록, role 변경
@@ -237,12 +235,7 @@ it-service-desk/
 - **알림 API**: `GET /notifications`. 웹 TopBar 종 아이콘에서 드롭다운으로 최근 N건 표시, “모두 읽음” 처리.
 - **메일**: SMTP 설정 시 동일 조건으로 이메일 발송(별도 워커).
 
-### 4.7 임시저장(Draft)
-
-- **draft_tickets**: 작성 중인 요청을 저장. `title`, `description`, `priority`, `category_id`, `work_type`, `project_id` 등.
-- **발행**: `POST /draft-tickets/{id}/publish` → 티켓 생성 후 draft 삭제.
-
-### 4.8 담당자 매핑(Contact Assignments)
+### 4.7 담당자 매핑(Contact Assignments)
 
 - **contact_assignments** / **contact_assignment_members**: 카테고리별 담당자(emp_no) 매핑. 관리자가 설정하며, 배정·알림 정책에서 참고할 수 있음.
 
@@ -280,7 +273,6 @@ it-service-desk/
 | `/tickets/…/comments` | comments | `GET/POST /tickets/{id}/comments` |
 | `/uploads` | uploads | `POST /presign`, `POST /images` |
 | `/attachments` | attachments | 티켓/공지 첨부 업로드, `GET …/download-url`, `GET …/download`, `DELETE …` |
-| `/draft-tickets` | draft_tickets | CRUD, `POST …/{id}/publish` |
 | `/ticket-categories` | ticket_categories | CRUD |
 | `/projects` | projects | CRUD, `POST /reorder` |
 | `/admin/users` | admin_users | `GET`, `PATCH …/{emp_no}/role` |
