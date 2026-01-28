@@ -576,17 +576,17 @@ export default function HomePage() {
                     3단계 / 5단계
                   </p>
                   <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
-                    사업/요청카테고리를 선택하세요
+                    프로젝트/요청카테고리를 선택하세요
                   </h2>
                   <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
-                    요청과 관련된 사업과 유형에 맞는 카테고리를 선택해주세요
+                    요청과 관련된 프로젝트와 유형에 맞는 카테고리를 선택해주세요
                   </p>
                 </div>
 
                 <div className="space-y-6">
                   <div className="space-y-2">
                     <div className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                      프로젝트 선택
+                      프로젝트 선택(프로젝트와 무관하면 현재년도 선택)
                     </div>
                   </div>
 
@@ -638,7 +638,7 @@ export default function HomePage() {
                   </div>
 
                   <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
-                    프로젝트 추가는 문의 부탁드립니다.
+                    프로젝트 추가는 IT DESK 담당자(전산2팀)에게 문의 부탁드립니다.
                   </p>
 
                   {project ? (
