@@ -147,15 +147,13 @@ function DonutChart({ data }: { data: { label: string; value: number }[] }) {
           </div>
         )}
       </div>
-      <div className="min-w-[180px] flex-1 space-y-2 max-h-[300px] overflow-auto">
+      <div className="min-w-[180px] flex-1 space-y-2.5 max-h-[300px] overflow-auto">
         {chartData.map((s) => (
-          <div key={s.label} className="flex items-center justify-between gap-3 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.fill }} />
-              <span style={{ color: "var(--text-secondary)" }}>{s.label}</span>
-            </div>
-            <span className="font-semibold shrink-0" style={{ color: "var(--text-primary)" }}>
-              {s.value}
+          <div key={s.label} className="flex items-center gap-2 text-base">
+            <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: s.fill }} />
+            <span style={{ color: "var(--text-secondary)" }}>{s.label}</span>
+            <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
+              {s.value}건
             </span>
           </div>
         ))}
