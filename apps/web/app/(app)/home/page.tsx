@@ -588,6 +588,9 @@ export default function HomePage() {
                     <div className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
                       프로젝트 선택(프로젝트와 무관하면 현재년도 선택)
                     </div>
+                    <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+                      프로젝트 추가는 IT DESK 담당자(전산2팀)에게 문의 부탁드립니다.
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-1 gap-3">
@@ -636,10 +639,6 @@ export default function HomePage() {
                       );
                     })}
                   </div>
-
-                  <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
-                    프로젝트 추가는 IT DESK 담당자(전산2팀)에게 문의 부탁드립니다.
-                  </p>
 
                   {project ? (
                     <div className="space-y-3">
