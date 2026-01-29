@@ -3,10 +3,6 @@ import { ThemeProvider } from "@/lib/theme-context";
 
 export const metadata = {
   title: "IT DESK",
-  icons: {
-    icon: "/favicon.ico",
-    apple: "/favicon.ico",
-  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
