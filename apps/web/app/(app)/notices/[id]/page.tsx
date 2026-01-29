@@ -253,18 +253,8 @@ export default function NoticeDetailPage() {
     <div className="space-y-6 animate-fadeIn">
       <PageHeader
         title={editing ? "공지사항 수정" : notice.title}
-        subtitle={editing ? "내용과 첨부파일을 수정할 수 있습니다." : "공지 상세 내용을 확인하세요."}
+        subtitle={editing ? "내용과 첨부파일을 수정할 수 있습니다." : undefined}
         icon={<Megaphone className="h-7 w-7" strokeWidth={2} />}
-        meta={
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="neutral" size="sm">
-              NOTICE #{notice.id}
-            </Badge>
-            <span className="text-sm" style={{ color: "var(--text-tertiary)" }}>
-              생성일 {formatDate(notice.created_at)}
-            </span>
-          </div>
-        }
         actions={
           <div className="flex items-center gap-2">
             <button
