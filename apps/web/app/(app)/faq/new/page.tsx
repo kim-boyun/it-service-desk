@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { EMPTY_DOC, isEmptyDoc, TiptapDoc } from "@/lib/tiptap";
 import PageHeader from "@/components/PageHeader";
 import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes";
+import { useTicketCategories } from "@/lib/use-ticket-categories";
 import { Card } from "@/components/ui";
 import { HelpCircle, ArrowLeft, Save } from "lucide-react";
 
@@ -19,9 +20,11 @@ const UNSAVED_MESSAGE = "이 페이지를 떠나시겠습니까?\n변경사항�
 export default function NewFaqPage() {
   const me = useMe();
   const router = useRouter();
+  const { categories, loading: categoryLoading } = useTicketCategories();
 
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<TiptapDoc>(EMPTY_DOC);
+  const [categoryId, setCategoryId] = useState<string>("none");
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -49,7 +52,7 @@ export default function NewFaqPage() {
 
     setSaving(true);
     try {
-      const resolvedCategoryId = null;
+      const resolvedCategoryId = categoryId !== "none" ? Number(categoryId) : null;
       await api("/faqs", {
         method: "POST",
         body: {
@@ -131,6 +134,38 @@ export default function NewFaqPage() {
                 placeholder="질문을 입력하세요."
                 maxLength={255}
               />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+                카테고리
+              </label>
+              <select
+                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-all"
+                style={{
+                  borderColor: "var(--border-default)",
+                  backgroundColor: "var(--bg-card)",
+                  color: "var(--text-primary)",
+                }}
+                value={categoryId}
+                onChange={(e) => {
+                  setCategoryId(e.target.value);
+                  setIsDirty(true);
+                }}
+                disabled={categoryLoading}
+              >
+                <option value="none">카테고리 선택 안 함</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+              {categoryLoading && (
+                <div className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+                  카테고리를 불러오는 중...
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">

@@ -7,6 +7,7 @@ import PageHeader from "@/components/PageHeader";
 import { useMe } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import { EMPTY_DOC, isEmptyDoc, TiptapDoc } from "@/lib/tiptap";
+import { useTicketCategories } from "@/lib/use-ticket-categories";
 import { Card, Badge } from "@/components/ui";
 import { HelpCircle, ArrowLeft, Save } from "lucide-react";
 
@@ -28,6 +29,7 @@ export default function EditFaqPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const faqId = Number(params.id);
+  const { categories, loading: categoryLoading } = useTicketCategories();
 
   const [faq, setFaq] = useState<Faq | null>(null);
   const [question, setQuestion] = useState("");
@@ -192,6 +194,35 @@ export default function EditFaqPage() {
                 onChange={(e) => setQuestion(e.target.value)}
                 placeholder="질문을 입력하세요."
               />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+                카테고리
+              </label>
+              <select
+                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-all"
+                style={{
+                  borderColor: "var(--border-default)",
+                  backgroundColor: "var(--bg-card)",
+                  color: "var(--text-primary)",
+                }}
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                disabled={categoryLoading}
+              >
+                <option value="none">카테고리 선택 안 함</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+              {categoryLoading && (
+                <div className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+                  카테고리를 불러오는 중...
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
