@@ -14,7 +14,7 @@ type PageHeaderProps = {
 export default function PageHeader({ eyebrow, title, subtitle, meta, actions, icon }: PageHeaderProps) {
   return (
     <div
-      className="rounded-2xl border p-6 mb-6 transition-colors"
+      className="rounded-2xl border p-4 sm:p-6 mb-4 sm:mb-6 transition-colors"
       style={{
         backgroundColor: "var(--bg-card)",
         borderColor: "var(--border-default)",
@@ -22,19 +22,19 @@ export default function PageHeader({ eyebrow, title, subtitle, meta, actions, ic
       }}
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-start gap-4 min-w-0 flex-1">
+        <div className="flex items-start gap-3 sm:gap-4 min-w-0 flex-1">
           {icon != null && (
             <div
-              className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl"
+              className="flex h-12 w-12 sm:h-14 sm:w-14 flex-shrink-0 items-center justify-center rounded-xl"
               style={{
                 backgroundColor: "var(--color-primary-100)",
                 color: "var(--color-primary-700)",
               }}
             >
-              {typeof icon === "string" ? <span className="text-3xl">{icon}</span> : icon}
+              {typeof icon === "string" ? <span className="text-2xl sm:text-3xl">{icon}</span> : icon}
             </div>
           )}
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 overflow-hidden">
             {eyebrow && (
               <div
                 className="mb-2 inline-flex items-center gap-2 rounded-full px-3 py-1 border"
@@ -49,11 +49,11 @@ export default function PageHeader({ eyebrow, title, subtitle, meta, actions, ic
                 </span>
               </div>
             )}
-            <h1 className="text-3xl font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight break-words" style={{ color: "var(--text-primary)" }}>
               {title}
             </h1>
             {subtitle && (
-              <p className="mt-2 text-base" style={{ color: "var(--text-secondary)" }}>
+              <p className="mt-2 text-sm sm:text-base break-words" style={{ color: "var(--text-secondary)" }}>
                 {subtitle}
               </p>
             )}

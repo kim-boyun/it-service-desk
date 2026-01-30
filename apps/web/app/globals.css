@@ -65,31 +65,85 @@ nextjs-portal,
   pointer-events: none !important;
 }
 
-/* App content utilities */
+/* App content utilities: 반응형 폰트·줄바꿈 */
 .app-content {
-  font-size: 20px;
-  line-height: 1.75;
+  font-size: clamp(0.9375rem, 2.5vw + 0.75rem, 1.25rem);
+  line-height: 1.65;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+@media (min-width: 640px) {
+  .app-content {
+    font-size: 1.125rem;
+    line-height: 1.7;
+  }
+}
+@media (min-width: 1024px) {
+  .app-content {
+    font-size: 1.25rem;
+    line-height: 1.75;
+  }
 }
 .app-content .text-xs {
-  font-size: 1rem;
+  font-size: 0.875rem;
+}
+@media (min-width: 640px) {
+  .app-content .text-xs {
+    font-size: 1rem;
+  }
 }
 .app-content .text-sm {
-  font-size: 1.1rem;
+  font-size: 0.9375rem;
+}
+@media (min-width: 640px) {
+  .app-content .text-sm {
+    font-size: 1.1rem;
+  }
 }
 .app-content .text-base {
-  font-size: 1.2rem;
+  font-size: 1rem;
+}
+@media (min-width: 640px) {
+  .app-content .text-base {
+    font-size: 1.15rem;
+  }
+}
+@media (min-width: 1024px) {
+  .app-content .text-base {
+    font-size: 1.2rem;
+  }
 }
 .app-content .text-lg {
-  font-size: 1.35rem;
+  font-size: 1.125rem;
+}
+@media (min-width: 1024px) {
+  .app-content .text-lg {
+    font-size: 1.35rem;
+  }
 }
 .app-content .text-xl {
-  font-size: 1.6rem;
+  font-size: 1.25rem;
+}
+@media (min-width: 1024px) {
+  .app-content .text-xl {
+    font-size: 1.6rem;
+  }
 }
 .app-content .text-2xl {
-  font-size: 2rem;
+  font-size: 1.5rem;
+}
+@media (min-width: 1024px) {
+  .app-content .text-2xl {
+    font-size: 2rem;
+  }
 }
 .app-content .text-3xl {
-  font-size: 2.35rem;
+  font-size: 1.75rem;
+}
+@media (min-width: 1024px) {
+  .app-content .text-3xl {
+    font-size: 2.35rem;
+  }
 }
 
 /* === TIPTAP EDITOR STYLES === */

@@ -21,6 +21,7 @@ import {
   UserCog,
   ChevronLeft,
   ChevronRight,
+  X,
 } from "lucide-react";
 
 interface NavItem {
@@ -42,6 +43,7 @@ function NavLink({
   collapsed,
   badge,
   onClick,
+  onNavigate,
 }: {
   href: string;
   label: string;
@@ -50,6 +52,7 @@ function NavLink({
   collapsed?: boolean;
   badge?: number;
   onClick?: () => void;
+  onNavigate?: () => void;
 }) {
   const content = (
     <>
@@ -102,7 +105,7 @@ function NavLink({
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200"
+      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 min-w-0"
       style={{
         backgroundColor: active ? "var(--sidebar-item-active)" : "transparent",
         color: active ? "var(--sidebar-text-active)" : "var(--sidebar-text)",
@@ -117,6 +120,7 @@ function NavLink({
           e.currentTarget.style.backgroundColor = "transparent";
         }
       }}
+      onClick={onNavigate}
     >
       {content}
     </Link>
@@ -130,6 +134,7 @@ function ExpandableNavItem({
   expanded,
   onToggle,
   subItems,
+  onNavigate,
 }: {
   item: NavItem;
   active: boolean;
@@ -137,6 +142,7 @@ function ExpandableNavItem({
   expanded: boolean;
   onToggle: () => void;
   subItems: NavItem[];
+  onNavigate?: () => void;
 }) {
   const Icon = item.icon;
 
@@ -182,7 +188,7 @@ function ExpandableNavItem({
               <Link
                 key={sub.href}
                 href={sub.href}
-                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200"
+                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 min-w-0"
                 style={{
                   backgroundColor: "transparent",
                   color: "var(--sidebar-text)",
@@ -193,6 +199,7 @@ function ExpandableNavItem({
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = "transparent";
                 }}
+                onClick={onNavigate}
               >
                 <SubIcon className="w-4 h-4" />
                 <span className="font-medium">{sub.label}</span>
@@ -205,11 +212,26 @@ function ExpandableNavItem({
   );
 }
 
-export default function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+}
+
+export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const me = useMe();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [adminExpanded, setAdminExpanded] = useState(false);
+  const [isLg, setIsLg] = useState(true);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const m = window.matchMedia("(min-width: 1024px)");
+    setIsLg(m.matches);
+    const fn = () => setIsLg(m.matches);
+    m.addEventListener("change", fn);
+    return () => m.removeEventListener("change", fn);
+  }, []);
 
   useEffect(() => {
     if (pathname.startsWith("/admin")) {
@@ -239,19 +261,41 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="relative lg:fixed lg:inset-y-0 lg:left-0 flex flex-col border-r z-20 transition-all duration-300"
+      className={`fixed inset-y-0 left-0 flex flex-col border-r z-30 transition-transform duration-300 ease-out lg:translate-x-0 ${
+        mobileOpen ? "translate-x-0" : "-translate-x-full"
+      }`}
       style={{
-        width: collapsed ? "80px" : "280px",
+        width: isLg ? (collapsed ? "80px" : "280px") : "280px",
         backgroundColor: "var(--sidebar-bg)",
         borderColor: "var(--sidebar-border)",
       }}
     >
-      <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: "var(--sidebar-border)" }}>
+      <div className="flex items-center justify-between p-4 border-b shrink-0" style={{ borderColor: "var(--sidebar-border)" }}>
+        {/* 모바일: 닫기 버튼 */}
+        {mobileOpen && onMobileClose && (
+          <button
+            type="button"
+            className="lg:hidden flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
+            style={{
+              color: "var(--text-secondary)",
+            }}
+            onClick={onMobileClose}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "var(--sidebar-item-hover)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "transparent";
+            }}
+            aria-label="메뉴 닫기"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
         {!collapsed ? (
           <div className="flex-1 flex justify-center min-w-0">
-            <Link href="/home" className="flex items-center justify-center">
+            <Link href="/home" className="flex items-center justify-center" onClick={onMobileClose}>
               <div
-                className="text-2xl font-black tracking-tight"
+                className="text-xl sm:text-2xl font-black tracking-tight break-keep"
                 style={{
                   color: "var(--text-primary)",
                 }}
@@ -261,9 +305,9 @@ export default function Sidebar() {
             </Link>
           </div>
         ) : (
-          <Link href="/home" className="flex items-center justify-center w-full">
+          <Link href="/home" className="flex items-center justify-center w-full" onClick={onMobileClose}>
             <div
-              className="text-xl font-black"
+              className="text-lg sm:text-xl font-black break-keep"
               style={{
                 color: "var(--text-primary)",
               }}
@@ -277,7 +321,7 @@ export default function Sidebar() {
           <button
             type="button"
             onClick={() => setCollapsed(true)}
-            className="p-1.5 rounded-lg transition-colors"
+            className="hidden lg:flex p-1.5 rounded-lg transition-colors"
             style={{
               color: "var(--text-secondary)",
             }}
@@ -294,7 +338,7 @@ export default function Sidebar() {
         )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-1">
         {mainNav.map((item) => {
           const isTicketDetail = item.href === "/tickets" && /^\/tickets\/\d+(\/|$)/.test(pathname);
           return (
@@ -307,6 +351,7 @@ export default function Sidebar() {
                 isTicketDetail
               }
               collapsed={collapsed}
+              onNavigate={onMobileClose}
             />
           );
         })}
@@ -321,17 +366,18 @@ export default function Sidebar() {
               expanded={adminExpanded}
               onToggle={() => setAdminExpanded(!adminExpanded)}
               subItems={adminSubNav}
+              onNavigate={onMobileClose}
             />
           </>
         )}
       </nav>
 
-      <div className="p-3 border-t" style={{ borderColor: "var(--sidebar-border)" }}>
+      <div className="p-3 border-t shrink-0" style={{ borderColor: "var(--sidebar-border)" }}>
         {collapsed ? (
           <button
             type="button"
             onClick={() => setCollapsed(false)}
-            className="flex items-center justify-center w-full p-2.5 rounded-lg transition-colors"
+            className="hidden lg:flex items-center justify-center w-full p-2.5 rounded-lg transition-colors"
             style={{
               color: "var(--text-secondary)",
             }}

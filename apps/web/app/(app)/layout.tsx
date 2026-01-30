@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { makeQueryClient } from "@/lib/queryClient";
 import AuthGuard from "@/components/AuthGuard";
 import Sidebar from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
+import { Menu } from "lucide-react";
 
 function resolvePageTitle(pathname: string) {
   if (pathname === "/home") return "홈";
@@ -30,10 +31,15 @@ function resolvePageTitle(pathname: string) {
 function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isHomePage = pathname === "/home";
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+  }, [pathname]);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
   }, [pathname]);
 
   useEffect(() => {
@@ -47,7 +53,19 @@ function AppShell({ children }: { children: React.ReactNode }) {
       className="min-h-screen transition-colors duration-200"
       style={{ backgroundColor: "var(--bg-page)" }}
     >
-      <Sidebar />
+      {/* 모바일: 메뉴 열렸을 때만 백드롭 표시 */}
+      {mobileMenuOpen && (
+        <button
+          type="button"
+          className="fixed inset-0 z-20 bg-black/50 lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+          aria-label="메뉴 닫기"
+        />
+      )}
+      <Sidebar
+        mobileOpen={mobileMenuOpen}
+        onMobileClose={() => setMobileMenuOpen(false)}
+      />
       <div className="lg:ml-[280px] flex flex-col min-h-screen transition-all duration-300">
         <header
           className="sticky top-0 z-10 border-b"
@@ -56,14 +74,31 @@ function AppShell({ children }: { children: React.ReactNode }) {
             borderColor: "var(--topbar-border)",
           }}
         >
-          <div className="px-6 py-3.5">
-            <div className="mx-auto w-full max-w-[1800px] flex justify-end">
-              <TopBar />
+          <div className="px-4 sm:px-6 py-3.5">
+            <div className="mx-auto w-full max-w-[1800px] flex items-center justify-between gap-4">
+              <button
+                type="button"
+                className="lg:hidden flex items-center justify-center w-10 h-10 rounded-lg border transition-colors"
+                style={{
+                  backgroundColor: "var(--bg-elevated)",
+                  borderColor: "var(--border-default)",
+                  color: "var(--text-secondary)",
+                }}
+                onClick={() => setMobileMenuOpen(true)}
+                aria-label="메뉴 열기"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+              <div className="flex-1 min-w-0 flex justify-end">
+                <TopBar />
+              </div>
             </div>
           </div>
         </header>
-        <main className="flex-1 px-6 py-6 app-content">
-          <div className={`mx-auto w-full ${isHomePage ? "max-w-[1400px]" : "max-w-[1800px]"}`}>{children}</div>
+        <main className="flex-1 px-4 sm:px-6 py-4 sm:py-6 app-content min-w-0">
+          <div className={`mx-auto w-full min-w-0 ${isHomePage ? "max-w-[1400px]" : "max-w-[1800px]"}`}>
+            {children}
+          </div>
         </main>
       </div>
     </div>
