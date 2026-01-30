@@ -12,7 +12,7 @@ from ..core.current_user import get_current_user
 from ..core.tiptap import dump_tiptap, is_empty_doc, load_tiptap
 from ..models.user import User
 from ..models.ticket_category import TicketCategory
-from ..services.assignment_service import get_category_admins
+from ..services.assignment_service import get_category_admins_for_categories, get_ticket_category_ids, get_ticket_category_labels
 from ..services.mail_events import notify_admin_commented, notify_requester_commented
 
 router = APIRouter(tags=["comments"])
@@ -103,15 +103,16 @@ def create_comment(
         try:
             requester = session.get(User, ticket.requester_emp_no)
             if requester:
-                category_label = get_category_label(session, ticket.category_id)
+                category_label = get_ticket_category_labels(session, ticket)
                 if user.emp_no == ticket.requester_emp_no:
                     admins: list[User] = []
                     if ticket.assignee_emp_no:
                         assignee = session.get(User, ticket.assignee_emp_no)
                         if assignee and assignee.role == "admin":
                             admins = [assignee]
-                    if not admins and ticket.category_id:
-                        admins = get_category_admins(session, ticket.category_id)
+                    if not admins:
+                        category_ids = get_ticket_category_ids(session, ticket)
+                        admins = get_category_admins_for_categories(session, category_ids)
                     notify_requester_commented(
                         ticket,
                         comment,

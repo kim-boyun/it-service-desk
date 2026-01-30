@@ -27,7 +27,7 @@ from ..core.tiptap import dump_tiptap, load_tiptap, is_empty_doc, extract_image_
 from ..core.settings import settings
 from ..core.storage import delete_object, extract_key_from_url, move_object
 from ..core.storage_keys import ticket_editor_key_from_src_key
-from ..services.assignment_service import get_category_admins
+from ..services.assignment_service import get_category_admins, get_category_admins_for_categories, get_ticket_category_labels
 from ..services.mail_events import (
     notify_admins_ticket_created,
     notify_requester_status_changed,
@@ -276,10 +276,10 @@ def create_ticket(
     assignee_map = {t.id: assignee_emp_nos} if assignee_emp_nos else {}
 
     try:
-        category_label = categories[0].name
+        category_label = ", ".join(c.name or str(c.id) for c in categories)
         notify_requester_ticket_created(t, user, category_label=category_label)
-        if t.category_id:
-            admins = get_category_admins(session, t.category_id)
+        if category_ids:
+            admins = get_category_admins_for_categories(session, category_ids)
             notify_admins_ticket_created(t, user, admins, category_label=category_label)
     except Exception:
         logger = logging.getLogger(__name__)
@@ -610,7 +610,7 @@ def update_status(
         try:
             requester = session.get(User, ticket.requester_emp_no)
             if requester:
-                category_label = get_category_label(session, ticket.category_id)
+                category_label = get_ticket_category_labels(session, ticket)
                 notify_requester_status_changed(ticket, requester, new, category_label=category_label)
         except Exception:
             logger = logging.getLogger(__name__)
