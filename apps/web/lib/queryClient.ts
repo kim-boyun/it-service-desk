@@ -10,7 +10,6 @@ export function makeQueryClient() {
         refetchOnWindowFocus: false,
         staleTime: 5_000, // 기본 5초간 캐시 유지 (fresh 상태)
         gcTime: 10 * 60 * 1000, // 10분간 메모리에 캐시 보관 (이전 cacheTime)
-        refetchOnMount: "stale", // stale 상태일 때만 refetch
       },
     },
   });
