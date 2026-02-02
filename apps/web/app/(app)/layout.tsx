@@ -23,6 +23,7 @@ function resolvePageTitle(pathname: string) {
   if (pathname.startsWith("/admin/tickets/all")) return "모든 요청 관리";
   if (pathname.startsWith("/admin/tickets")) return "요청 관리";
   if (pathname.startsWith("/admin/manager")) return "카테고리 관리";
+  if (pathname.startsWith("/admin/data")) return "데이터 추출";
   if (pathname.startsWith("/notices")) return "공지사항";
   if (pathname.startsWith("/faq")) return "FAQ";
   return "IT DESK";

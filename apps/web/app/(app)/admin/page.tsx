@@ -21,8 +21,6 @@ import {
   ClipboardList,
   PieChart as PieChartIcon,
   BarChart3,
-  Users,
-  Bookmark,
   FolderOpen,
   ArrowRight,
   Building2,
@@ -759,70 +757,52 @@ export default function AdminDashboard() {
           <DonutChart data={categoryChartData} />
         </ChartCard>
 
-        <Card padding="lg" className="flex h-full flex-col lg:col-span-1">
-          <div className="mb-1 flex items-center gap-2">
-            <div
-              className="flex h-8 w-8 items-center justify-center rounded-lg"
-              style={{
-                backgroundColor: "var(--color-accent-100)",
-                color: "var(--color-accent-700)",
-              }}
-            >
-              <ArrowRight className="w-4 h-4" />
-            </div>
-            <h3 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
-              빠른 이동
-            </h3>
-          </div>
-          <p className="mb-6 text-sm" style={{ color: "var(--text-secondary)" }}>
-            자주 사용하는 관리자 기능
-          </p>
-          <div className="space-y-2">
-            {[
-              { title: "사용자 관리", href: "/admin/users", icon: Users },
-              { title: "요청 관리", href: "/admin/tickets", icon: Bookmark },
-              { title: "모든 요청 관리", href: "/admin/tickets/all", icon: FolderOpen },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="group flex items-center gap-3 rounded-xl border p-3 transition-all"
-                  style={{
-                    borderColor: "var(--border-default)",
-                    backgroundColor: "var(--bg-card)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = "var(--color-primary-500)";
-                    e.currentTarget.style.backgroundColor = "var(--bg-hover)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "var(--border-default)";
-                    e.currentTarget.style.backgroundColor = "var(--bg-card)";
-                  }}
-                >
-                  <div
-                    className="flex h-8 w-8 items-center justify-center rounded-lg"
-                    style={{
-                      backgroundColor: "var(--color-primary-100)",
-                      color: "var(--color-primary-700)",
-                    }}
-                  >
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <span className="flex-1 text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                    {item.title}
-                  </span>
-                  <ArrowRight
-                    className="h-4 w-4 transition-all group-hover:translate-x-1"
-                    style={{ color: "var(--text-tertiary)" }}
-                  />
-                </Link>
-              );
-            })}
-          </div>
-        </Card>
+        <div className="flex flex-col gap-3 lg:col-span-1">
+          <Link
+            href="/admin/tickets/all"
+            className="flex items-center justify-center gap-2 rounded-xl border-2 p-4 transition-all"
+            style={{
+              borderColor: "var(--border-default)",
+              backgroundColor: "var(--bg-card)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "var(--color-primary-500)";
+              e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "var(--border-default)";
+              e.currentTarget.style.backgroundColor = "var(--bg-card)";
+            }}
+          >
+            <FolderOpen className="h-5 w-5" style={{ color: "var(--color-primary-600)" }} />
+            <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
+              모든 요청 보기
+            </span>
+            <ArrowRight className="h-4 w-4" style={{ color: "var(--text-tertiary)" }} />
+          </Link>
+          <Link
+            href="/admin/data"
+            className="flex items-center justify-center gap-2 rounded-xl border-2 p-4 transition-all"
+            style={{
+              borderColor: "var(--border-default)",
+              backgroundColor: "var(--bg-card)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "var(--color-primary-500)";
+              e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "var(--border-default)";
+              e.currentTarget.style.backgroundColor = "var(--bg-card)";
+            }}
+          >
+            <BarChart3 className="h-5 w-5" style={{ color: "var(--color-primary-600)" }} />
+            <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
+              통계페이지로 이동
+            </span>
+            <ArrowRight className="h-4 w-4" style={{ color: "var(--text-tertiary)" }} />
+          </Link>
+        </div>
       </div>
     </div>
   );
