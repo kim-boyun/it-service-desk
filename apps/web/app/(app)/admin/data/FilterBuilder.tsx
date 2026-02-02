@@ -261,10 +261,10 @@ export function FilterBuilder({
         필터 설정
       </h3>
 
-      {/* 생성일시: 고정 최상단 */}
-      <div className="mb-4 shrink-0">
+      {/* 작성일시: 고정 최상단 */}
+        <div className="mb-4 shrink-0">
         <div className="text-xs font-medium mb-1.5" style={{ color: "var(--text-tertiary)" }}>
-          생성일시 (기본 필터)
+          작성일시 (기본 필터)
         </div>
         <div className="mb-2">
           <div className="text-xs mb-1.5" style={{ color: "var(--text-tertiary)" }}>

@@ -43,7 +43,7 @@ export const COLUMN_DEFS: ColDef[] = [
   { key: "requester_title", label: "요청자 직급", section: "요청자", hasDataFilter: true },
   { key: "requester_department", label: "요청자 부서", section: "요청자", hasDataFilter: true },
   { key: "assignee_display", label: "담당자", section: "담당", hasDataFilter: true },
-  { key: "created_at", label: "생성일시", section: "일시·재요청", hasDataFilter: "created_at" },
+  { key: "created_at", label: "작성일시", section: "일시·재요청", hasDataFilter: "created_at" },
   { key: "updated_at", label: "완료일시", section: "일시·재요청", hasDataFilter: false },
   { key: "reopen_count", label: "재요청 횟수", section: "일시·재요청", hasDataFilter: false },
 ];

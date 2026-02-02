@@ -924,7 +924,7 @@ export default function AdminTicketDetailPage() {
                 }
               />
               <FieldRow 
-                label={bodyTab === "initial" ? "생성일" : "재요청 생성일"} 
+                label={bodyTab === "initial" ? "작성일시" : "재요청 작성일시"} 
                 value={formatDate(bodyTab === "initial" ? t.created_at : currentReopenCreatedAt)} 
               />
             </div>
@@ -1025,7 +1025,7 @@ export default function AdminTicketDetailPage() {
                 }
               />
               <FieldRow
-                label={bodyTab === "initial" ? "완료일" : "재요청 완료일"}
+                label={bodyTab === "initial" ? "완료일시" : "재요청 완료일시"}
                 value={completedAt ? formatDate(completedAt) : "-"}
               />
             </div>
@@ -1647,7 +1647,7 @@ export default function AdminTicketDetailPage() {
                                                 borderColor: "var(--border-default)"
                                               }}
                                             >
-                                              생성일
+                                              작성일시
                                             </div>
                                             <div 
                                               className="col-span-9 px-2 py-2"

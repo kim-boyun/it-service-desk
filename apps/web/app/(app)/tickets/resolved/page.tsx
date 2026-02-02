@@ -309,7 +309,7 @@ export default function ResolvedTicketsPage() {
                       className="text-center px-6 py-3 font-semibold w-44 whitespace-nowrap"
                       style={{ color: "var(--text-secondary)" }}
                     >
-                      {renderSortLabel("created_at", "작성일")}
+                      {renderSortLabel("created_at", "작성일시")}
                     </th>
                   </tr>
                 </thead>

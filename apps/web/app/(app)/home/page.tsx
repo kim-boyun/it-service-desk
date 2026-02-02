@@ -985,7 +985,7 @@ export default function HomePage() {
                                 {t.title}
                               </div>
                               <div className="text-xs mt-1" style={{ color: "var(--text-tertiary)" }}>
-                                작성일: {formatDate(t.created_at)}
+                                작성일시: {formatDate(t.created_at)}
                               </div>
                             </div>
                           </div>
