@@ -16,6 +16,8 @@ export type Ticket = {
   assignee_emp_no?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
+  resolved_at?: string | null;
+  closed_at?: string | null;
   reopen_count?: number;
   requester?: { kor_name?: string | null; title?: string | null; department?: string | null } | null;
   assignee?: { kor_name?: string | null } | null;
@@ -42,7 +44,7 @@ export const COLUMN_DEFS: ColDef[] = [
   { key: "requester_department", label: "요청자 부서", section: "요청자", hasDataFilter: true },
   { key: "assignee_display", label: "담당자", section: "담당", hasDataFilter: true },
   { key: "created_at", label: "생성일시", section: "일시·재요청", hasDataFilter: "created_at" },
-  { key: "updated_at", label: "수정일시", section: "일시·재요청", hasDataFilter: false },
+  { key: "updated_at", label: "완료일시", section: "일시·재요청", hasDataFilter: false },
   { key: "reopen_count", label: "재요청 횟수", section: "일시·재요청", hasDataFilter: false },
 ];
 
@@ -73,6 +75,20 @@ export function getDisplayLabel(key: string, value: string): string {
   return value;
 }
 
+/** admin/data 전용: YYYY-MM-DD HH:mm:ss */
+function formatDateTimeISO(raw: string | null | undefined): string {
+  if (raw == null) return "-";
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return "-";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const h = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  const s = String(d.getSeconds()).padStart(2, "0");
+  return `${y}-${m}-${day} ${h}:${min}:${s}`;
+}
+
 export function getValue(
   t: Ticket,
   key: string,
@@ -97,12 +113,14 @@ export function getValue(
     if (raw == null || raw === "") return "-";
     return WORK_TYPE_LABELS[raw] ?? raw;
   }
+  if (key === "created_at") {
+    return formatDateTimeISO(t.created_at);
+  }
   if (key === "updated_at") {
-    const raw = t.updated_at;
-    if (raw == null) return "-";
-    const d = new Date(raw);
-    if (Number.isNaN(d.getTime())) return "-";
-    return d.toLocaleString("ko-KR", { dateStyle: "short", timeStyle: "short" });
+    // 완료일시: resolved_at(완료) 또는 closed_at(사업검토)
+    if (t.status === "resolved" && t.resolved_at) return formatDateTimeISO(t.resolved_at);
+    if (t.status === "closed" && t.closed_at) return formatDateTimeISO(t.closed_at);
+    return "-";
   }
   if (key === "reopen_count") return String(t.reopen_count ?? 0);
   const v = (t as Record<string, unknown>)[key];

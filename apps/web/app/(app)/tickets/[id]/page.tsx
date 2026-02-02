@@ -68,6 +68,8 @@ type Ticket = {
   assignees?: UserSummary[];
   created_at: string;
   updated_at?: string | null;
+  resolved_at?: string | null;
+  closed_at?: string | null;
 };
 
 type UserSummary = {
@@ -311,23 +313,14 @@ export default function TicketDetailPage() {
     return data.comments.filter((c) => c.reopen_id === currentReopenId);
   }, [data?.comments, bodyTab, currentReopenId, reopens.length]);
 
-  // 완료일: 최초 요청 완료 = 첫 번째 resolved 이벤트, 재요청별 완료 = 그 다음 resolved 이벤트들 (시간순)
-  const { initialResolvedAt, reopenResolvedAts } = useMemo(() => {
-    const evs = (data?.events ?? []).filter(
-      (e) => e.type === "status_changed" && e.to_value === "resolved"
-    );
-    const sorted = [...evs].sort(
-      (a, b) =>
-        new Date((a as { created_at?: string }).created_at ?? 0).getTime() -
-        new Date((b as { created_at?: string }).created_at ?? 0).getTime()
-    );
-    const initial = sorted[0]?.created_at ?? null;
-    const reopenAts: (string | null)[] = [];
-    for (let i = 1; i < sorted.length; i++) {
-      reopenAts.push(sorted[i]?.created_at ?? null);
-    }
-    return { initialResolvedAt: initial, reopenResolvedAts: reopenAts };
-  }, [data?.events]);
+  // 완료일: API의 resolved_at(완료) 또는 closed_at(사업검토)
+  const completedAt = useMemo(() => {
+    const t = data?.ticket;
+    if (!t) return null;
+    if (t.status === "resolved" && t.resolved_at) return t.resolved_at;
+    if (t.status === "closed" && t.closed_at) return t.closed_at;
+    return null;
+  }, [data?.ticket?.status, data?.ticket?.resolved_at, data?.ticket?.closed_at]);
 
   const currentReopenCreatedAt = bodyTab === "initial" ? null : reopens[bodyTab]?.created_at ?? null;
 
@@ -647,11 +640,7 @@ export default function TicketDetailPage() {
               />
               <FieldRow
                 label={bodyTab === "initial" ? "완료일" : "재요청 완료일"}
-                value={
-                  bodyTab === "initial"
-                    ? (initialResolvedAt ? formatDate(initialResolvedAt) : "-")
-                    : (reopenResolvedAts[bodyTab] ? formatDate(reopenResolvedAts[bodyTab]) : "-")
-                }
+                value={completedAt ? formatDate(completedAt) : "-"}
               />
             </div>
         </div>

@@ -182,6 +182,7 @@ export function FilterBuilder({
   filterRules,
   setFilterRules,
   distinctValues,
+  className,
 }: {
   createdYearInclude: string[];
   setCreatedYearInclude: (v: string[]) => void;
@@ -190,6 +191,7 @@ export function FilterBuilder({
   filterRules: FilterRule[];
   setFilterRules: (v: FilterRule[] | ((prev: FilterRule[]) => FilterRule[])) => void;
   distinctValues: Record<string, string[]>;
+  className?: string;
 }) {
   const yearOptions = distinctValues.created_at_year ?? [];
   const toggleYear = (yearStr: string) => {
@@ -220,16 +222,16 @@ export function FilterBuilder({
   };
 
   return (
-    <Card padding="lg">
+    <Card padding="lg" className={`flex flex-col min-h-0 ${className ?? ""}`}>
       <h3
-        className="text-sm font-semibold mb-3 pb-2 border-b"
+        className="text-sm font-semibold mb-3 pb-2 border-b shrink-0"
         style={{ color: "var(--text-secondary)", borderColor: "var(--border-default)" }}
       >
         필터 설정
       </h3>
 
       {/* 생성일시: 고정 최상단 */}
-      <div className="mb-4">
+      <div className="mb-4 shrink-0">
         <div className="text-xs font-medium mb-1.5" style={{ color: "var(--text-tertiary)" }}>
           생성일시 (기본 필터)
         </div>
@@ -272,11 +274,11 @@ export function FilterBuilder({
       </div>
 
       {/* 동적 조건 행 */}
-      <div className="border-t pt-3" style={{ borderColor: "var(--border-default)" }}>
-        <div className="text-xs font-medium mb-2" style={{ color: "var(--text-tertiary)" }}>
+      <div className="border-t pt-3 flex-1 min-h-0 flex flex-col overflow-hidden" style={{ borderColor: "var(--border-default)" }}>
+        <div className="text-xs font-medium mb-2 shrink-0" style={{ color: "var(--text-tertiary)" }}>
           추가 조건 (항목 · 포함/제외 · 값)
         </div>
-        <div className="space-y-0">
+        <div className="space-y-0 min-h-0 overflow-y-auto flex-1">
           {filterRules.map((rule, index) => (
             <FilterRuleRow
               key={rule.id}
@@ -290,7 +292,7 @@ export function FilterBuilder({
         <button
           type="button"
           onClick={addRule}
-          className="mt-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+          className="mt-2 shrink-0 inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
           style={{
             borderColor: "var(--border-default)",
             backgroundColor: "var(--bg-card)",

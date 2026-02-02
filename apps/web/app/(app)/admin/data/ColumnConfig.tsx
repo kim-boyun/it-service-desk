@@ -14,11 +14,13 @@ export function ColumnConfig({
   setColumnOrder,
   selectedColumns,
   setSelectedColumns,
+  className,
 }: {
   columnOrder: string[];
   setColumnOrder: (v: string[] | ((prev: string[]) => string[])) => void;
   selectedColumns: Set<string>;
   setSelectedColumns: (v: Set<string> | ((prev: Set<string>) => Set<string>)) => void;
+  className?: string;
 }) {
   const [draggedKey, setDraggedKey] = useState<string | null>(null);
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
@@ -98,17 +100,17 @@ export function ColumnConfig({
   }, [columnOrder, keyToDef]);
 
   return (
-    <Card padding="lg">
+    <Card padding="lg" className={`flex flex-col min-h-0 ${className ?? ""}`}>
       <h3
-        className="text-sm font-semibold mb-3 pb-2 border-b"
+        className="text-sm font-semibold mb-3 pb-2 border-b shrink-0"
         style={{ color: "var(--text-secondary)", borderColor: "var(--border-default)" }}
       >
         출력 열 구성
       </h3>
-      <p className="text-xs mb-3" style={{ color: "var(--text-tertiary)" }}>
+      <p className="text-xs mb-3 shrink-0" style={{ color: "var(--text-tertiary)" }}>
         CSV/테이블에 포함할 컬럼을 선택하세요. 드래그하여 순서를 변경할 수 있습니다.
       </p>
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-3 shrink-0">
         <button
           type="button"
           onClick={selectAll}
@@ -134,7 +136,7 @@ export function ColumnConfig({
           전체 해제
         </button>
       </div>
-      <div className="space-y-4 max-h-[360px] overflow-y-auto">
+      <div className="space-y-4 flex-1 min-h-0 overflow-y-auto">
         {bySection().map(({ section, keys }) => (
           <div key={section}>
             <div

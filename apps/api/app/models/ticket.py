@@ -26,6 +26,9 @@ class Ticket(Base):
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
+    resolved_at: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    closed_at: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     reopen_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
 

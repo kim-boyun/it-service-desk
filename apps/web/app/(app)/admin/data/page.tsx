@@ -7,7 +7,8 @@ import { api } from "@/lib/api";
 import { useTicketCategories } from "@/lib/use-ticket-categories";
 import PageHeader from "@/components/PageHeader";
 import { Card } from "@/components/ui";
-import { Download, BarChart3, ArrowLeft } from "lucide-react";
+import { Download, BarChart3, ArrowLeft, FileSpreadsheet } from "lucide-react";
+import * as XLSX from "xlsx";
 import {
   COLUMN_DEFS,
   getValue,
@@ -189,6 +190,19 @@ export default function AdminDataPage() {
     URL.revokeObjectURL(url);
   };
 
+  const handleExportXlsx = () => {
+    const cols = visibleColDefs;
+    const headers = cols.map((c) => c.label);
+    const rows = filteredTickets.map((t) =>
+      cols.map((c) => getValue(t, c.key, { categoryMap }))
+    );
+    const data = [headers, ...rows];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "티켓");
+    XLSX.writeFile(wb, `it-desk-tickets-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
   const primaryBtnStyle = {
     background: "linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%)",
   };
@@ -237,10 +251,11 @@ export default function AdminDataPage() {
         onSaveCurrent={saveCurrentPreset}
       />
 
-      {/* 2컬럼: 좌측 필터 설정 / 우측 출력 열 설정 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="min-w-0">
+      {/* 2컬럼: 좌측 필터 설정 / 우측 출력 열 설정 (높이 맞춤, 조건 추가 시 함께 늘어남) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        <div className="min-w-0 flex">
           <FilterBuilder
+            className="flex-1 min-h-0"
             createdYearInclude={createdYearInclude}
             setCreatedYearInclude={setCreatedYearInclude}
             createdDayRangePercent={createdDayRangePercent}
@@ -250,8 +265,9 @@ export default function AdminDataPage() {
             distinctValues={distinctValues}
           />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex">
           <ColumnConfig
+            className="flex-1 min-h-0"
             columnOrder={columnOrder}
             setColumnOrder={setColumnOrder}
             selectedColumns={selectedColumns}
@@ -272,16 +288,32 @@ export default function AdminDataPage() {
           Total: <strong style={{ color: "var(--text-primary)" }}>{filteredTickets.length}</strong>건
           {filteredTickets.length !== tickets.length && ` (전체 ${tickets.length}건 중 필터 적용)`}
         </p>
-        <button
-          type="button"
-          onClick={handleExportCsv}
-          disabled={visibleColDefs.length === 0 || filteredTickets.length === 0}
-          className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50"
-          style={primaryBtnStyle}
-        >
-          <Download className="h-4 w-4" />
-          CSV 다운로드
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleExportCsv}
+            disabled={visibleColDefs.length === 0 || filteredTickets.length === 0}
+            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50"
+            style={primaryBtnStyle}
+          >
+            <Download className="h-4 w-4" />
+            CSV 다운로드
+          </button>
+          <button
+            type="button"
+            onClick={handleExportXlsx}
+            disabled={visibleColDefs.length === 0 || filteredTickets.length === 0}
+            className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50"
+            style={{
+              ...secondaryBtnStyle,
+              borderColor: "var(--color-primary-500)",
+              color: "var(--color-primary-600)",
+            }}
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            XLSX 다운로드
+          </button>
+        </div>
       </div>
 
       {/* 테이블 미리보기 */}

@@ -192,6 +192,8 @@ def serialize_ticket(
         "assignee_emp_nos": assignee_emp_nos,
         "created_at": t.created_at,
         "updated_at": t.updated_at,
+        "resolved_at": getattr(t, "resolved_at", None),
+        "closed_at": getattr(t, "closed_at", None),
         "requester": requester,
         "assignee": users.get(t.assignee_emp_no) if t.assignee_emp_no else None,
         "assignees": assignees,
@@ -689,7 +691,12 @@ def update_status(
         )
 
     ticket.status = new
-    ticket.updated_at = datetime.utcnow()
+    now = datetime.utcnow()
+    ticket.updated_at = now
+    if new == "resolved":
+        ticket.resolved_at = now
+    elif new == "closed":
+        ticket.closed_at = now
 
     # Map status to Korean labels
     status_labels = {
