@@ -1,18 +1,5 @@
 import "./globals.css";
 import { ThemeProvider } from "@/lib/theme-context";
-import { Inter, Noto_Sans_KR } from "next/font/google";
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
-const notoSansKr = Noto_Sans_KR({
-  subsets: ["latin"],
-  variable: "--font-noto-sans-kr",
-  display: "swap",
-});
 
 export const metadata = {
   title: "IT DESK",
@@ -20,8 +7,12 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko" suppressHydrationWarning className={`${inter.variable} ${notoSansKr.variable}`}>
+    <html lang="ko" suppressHydrationWarning>
       <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
+          rel="stylesheet"
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `
