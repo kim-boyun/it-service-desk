@@ -576,12 +576,13 @@ export default function AdminTicketDetailPage() {
 
   // 제목 표시: 최초 요청 탭이면 [재요청] 제거, 재요청 탭이면 [재요청] 추가
   const displayTitle = useMemo(() => {
-    const baseTitle = t.title.replace(/^\[재요청\]\s*/, "");
+    const raw = t?.title ?? "";
+    const baseTitle = raw.replace(/^\[재요청\]\s*/, "");
     if (bodyTab === "initial") {
       return baseTitle;
     }
     return `[재요청] ${baseTitle}`;
-  }, [t.title, bodyTab]);
+  }, [t?.title, bodyTab]);
 
   return (
     <>
