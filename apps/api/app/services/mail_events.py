@@ -266,8 +266,8 @@ def notify_assignees_reopen_received(
     category_label: str | None = None,
     work_type_label: str | None = None,
 ) -> None:
-    """재요청 접수 시 담당자들에게 '재요청이 접수되었습니다 - #{ticket_id}' 메일 발송."""
-    summary = f"재요청이 접수되었습니다 - #{ticket.id}"
+    """재요청 접수 시 담당자들에게 '재요청이 접수되었습니다' 메일 발송."""
+    summary = "재요청이 접수되었습니다"
     subject = _build_subject(summary)
     requester_label = _user_label(requester, requester.emp_no)
     for admin in assignees:

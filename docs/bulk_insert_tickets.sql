@@ -23,8 +23,8 @@ SELECT
   '요청 내용 ' || n || E'입니다.\n상세 설명을 여기에 기록합니다. 필요 시 추가 문의 드리겠습니다.',
   (ARRAY['open', 'in_progress', 'resolved', 'closed'])[1 + (n % 4)],
   (ARRAY['low', 'medium', 'high'])[1 + (n % 3)],
-  (SELECT id FROM ticket.ticket_categories ORDER BY random() LIMIT 1),
-  (ARRAY['일반문의', '장애신고', '개선요청', '기타'])[1 + (n % 4)],
+  (SELECT id FROM ticket.ticket_categories ORDER BY random() LIMIT 1),  -- 카테고리 랜덤
+  (ARRAY['incident', 'request', 'change', 'other'])[1 + floor(random() * 4)::int],  -- 작업구분 랜덤
   NULL,
   (SELECT emp_no FROM ticket.users LIMIT 1),
   NULL,

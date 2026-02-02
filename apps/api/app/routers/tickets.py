@@ -387,6 +387,10 @@ def reopen_ticket(
     t.status = "open"
     t.reopen_count = getattr(t, "reopen_count", 0) + 1
     t.updated_at = now
+    
+    # 제목 앞에 [재요청] 추가 (이미 있으면 추가하지 않음)
+    if not t.title.startswith("[재요청]"):
+        t.title = f"[재요청] {t.title}"
     ev = TicketEvent(
         ticket_id=ticket_id,
         actor_emp_no=user.emp_no,

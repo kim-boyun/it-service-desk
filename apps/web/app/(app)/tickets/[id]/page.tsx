@@ -448,6 +448,15 @@ export default function TicketDetailPage() {
   const statusInfo = statusMeta(t.status);
   const priorityInfo = priorityMeta(t.priority);
 
+  // 제목 표시: 최초 요청 탭이면 [재요청] 제거, 재요청 탭이면 [재요청] 추가
+  const displayTitle = useMemo(() => {
+    const baseTitle = t.title.replace(/^\[재요청\]\s*/, "");
+    if (bodyTab === "initial") {
+      return baseTitle;
+    }
+    return `[재요청] ${baseTitle}`;
+  }, [t.title, bodyTab]);
+
   return (
     <>
       <div className="space-y-6 animate-fadeIn">
@@ -459,7 +468,7 @@ export default function TicketDetailPage() {
                   className="text-2xl font-semibold"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  {t.title}
+                  {displayTitle}
                 </h1>
               </div>
               <div className="flex items-center gap-2">

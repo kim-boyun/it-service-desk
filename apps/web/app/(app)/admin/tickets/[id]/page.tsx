@@ -22,6 +22,7 @@ type Attachment = {
   size: number;
   ticket_id: number | null;
   comment_id: number | null;
+  reopen_id: number | null;
   uploaded_emp_no: string;
   created_at?: string | null;
 };
@@ -29,6 +30,7 @@ type Attachment = {
 type Comment = {
   id: number;
   ticket_id: number;
+  reopen_id: number | null;
   author_emp_no: string;
   author?: UserSummary | null;
   title: string;
@@ -76,11 +78,20 @@ type UserSummary = {
   role?: string | null;
 };
 
+type Reopen = {
+  id: number;
+  ticket_id: number;
+  description: TiptapDoc;
+  requester_emp_no: string;
+  created_at: string;
+};
+
 type TicketDetail = {
   ticket: Ticket;
   comments: Comment[];
   events: Event[];
   attachments: Attachment[];
+  reopens: Reopen[];
 };
 
 const WORK_TYPE_OPTIONS = [
@@ -279,6 +290,7 @@ export default function AdminTicketDetailPage() {
   const [isEditingAssignees, setIsEditingAssignees] = useState(false);
   const [isEditingCategories, setIsEditingCategories] = useState(false);
   const [isEditingWorkType, setIsEditingWorkType] = useState(false);
+  const [bodyTab, setBodyTab] = useState<"initial" | number>("initial");
   const commentFileInputRef = useRef<HTMLInputElement | null>(null);
   const commentsEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -415,6 +427,7 @@ export default function AdminTicketDetailPage() {
           title: "답변",
           body: commentBody,
           notify_email: commentNotifyEmail,
+          reopen_id: currentReopenId,
         },
       });
 
@@ -422,7 +435,8 @@ export default function AdminTicketDetailPage() {
         for (const file of commentFiles) {
           const fd = new FormData();
           fd.append("file", file);
-          await apiForm(`/tickets/${ticketId}/attachments/upload?comment_id=${created.id}`, fd);
+          const reopenParam = currentReopenId ? `&reopen_id=${currentReopenId}` : "";
+          await apiForm(`/tickets/${ticketId}/attachments/upload?comment_id=${created.id}${reopenParam}`, fd);
         }
       }
 
@@ -464,12 +478,31 @@ export default function AdminTicketDetailPage() {
     setCommentFiles((prev) => prev.filter((_, i) => i != idx));
   }
 
+  const reopens = data?.reopens ?? [];
+  const currentReopenId = bodyTab === "initial" ? null : reopens[bodyTab]?.id ?? null;
+  const currentReopenCreatedAt = bodyTab === "initial" ? null : reopens[bodyTab]?.created_at ?? null;
+
   const filteredEvents = useMemo(() => {
     const evs = data?.events ?? [];
     return evs.filter((e) =>
       ["ticket_created", "assignee_assigned", "assignee_changed", "status_changed"].includes(e.type)
     );
   }, [data?.events]);
+
+  const ticketAttachmentsFiltered = useMemo(() => {
+    if (!data?.attachments) return [];
+    const list = data.attachments.filter((a) => !a.comment_id);
+    if (reopens.length === 0) return list;
+    if (bodyTab === "initial") return list.filter((a) => !a.reopen_id);
+    return list.filter((a) => a.reopen_id === currentReopenId);
+  }, [data?.attachments, bodyTab, currentReopenId, reopens.length]);
+
+  const commentsFiltered = useMemo(() => {
+    if (!data?.comments) return [];
+    if (reopens.length === 0) return data.comments;
+    if (bodyTab === "initial") return data.comments.filter((c) => !c.reopen_id);
+    return data.comments.filter((c) => c.reopen_id === currentReopenId);
+  }, [data?.comments, bodyTab, currentReopenId, reopens.length]);
 
   const resolvedAt = useMemo(() => {
     const evs = (data?.events ?? []).filter(
@@ -540,6 +573,15 @@ export default function AdminTicketDetailPage() {
   const comments = data.comments ?? [];
   const ticketAttachments = attachments.filter((a) => !a.comment_id);
 
+  // 제목 표시: 최초 요청 탭이면 [재요청] 제거, 재요청 탭이면 [재요청] 추가
+  const displayTitle = useMemo(() => {
+    const baseTitle = t.title.replace(/^\[재요청\]\s*/, "");
+    if (bodyTab === "initial") {
+      return baseTitle;
+    }
+    return `[재요청] ${baseTitle}`;
+  }, [t.title, bodyTab]);
+
   return (
     <>
       <div className="flex gap-6 animate-fadeIn relative">
@@ -552,7 +594,7 @@ export default function AdminTicketDetailPage() {
                   className="text-2xl font-semibold" 
                   style={{ color: "var(--text-primary)" }}
                 >
-                  {t.title}
+                  {displayTitle}
                 </h1>
               </div>
               <div className="flex items-center gap-2">
@@ -883,21 +925,26 @@ export default function AdminTicketDetailPage() {
                   </div>
                 }
               />
-              <FieldRow label="생성일" value={formatDate(t.created_at)} />
+              <FieldRow 
+                label={bodyTab === "initial" ? "생성일" : "재요청 생성일"} 
+                value={formatDate(bodyTab === "initial" ? t.created_at : currentReopenCreatedAt)} 
+              />
             </div>
-            {t.status === "resolved" && resolvedAt && (
+            <div 
+              className="relative grid grid-cols-1 md:grid-cols-2"
+              style={{ borderTop: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
+            >
               <div
-                className="relative grid grid-cols-1 md:grid-cols-2"
-                style={{ borderTop: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
-              >
-                <div
-                  className="hidden md:block absolute inset-y-0 left-1/2 w-px"
-                  style={{ backgroundColor: "var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
-                />
+                className="hidden md:block absolute inset-y-0 left-1/2 w-px"
+                style={{ backgroundColor: "var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
+              />
+              <FieldRow label="" value="" />
+              {t.status === "resolved" && resolvedAt ? (
                 <FieldRow label="완료일" value={formatDate(resolvedAt)} />
+              ) : (
                 <FieldRow label="" value="" />
-              </div>
-            )}
+              )}
+            </div>
             <div 
               className="relative grid grid-cols-1 md:grid-cols-2"
               style={{ borderTop: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
@@ -998,6 +1045,38 @@ export default function AdminTicketDetailPage() {
             </div>
         </div>
 
+        {reopens.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setBodyTab("initial")}
+              className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+              style={{
+                backgroundColor: bodyTab === "initial" ? "var(--color-primary-100)" : "var(--bg-subtle)",
+                color: bodyTab === "initial" ? "var(--color-primary-700)" : "var(--text-secondary)",
+                border: bodyTab === "initial" ? "2px solid var(--color-primary-500)" : "1px solid var(--border-default)",
+              }}
+            >
+              최초 요청
+            </button>
+            {reopens.map((_, idx) => (
+              <button
+                key={reopens[idx].id}
+                type="button"
+                onClick={() => setBodyTab(idx)}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                style={{
+                  backgroundColor: bodyTab === idx ? "var(--color-success-100)" : "var(--bg-subtle)",
+                  color: bodyTab === idx ? "var(--color-success-700)" : "var(--text-secondary)",
+                  border: bodyTab === idx ? "2px solid var(--color-success-500)" : "1px solid var(--border-default)",
+                }}
+              >
+                재요청 #{idx + 1}
+              </button>
+            ))}
+          </div>
+        )}
+
         <Card>
           <CardHeader>
             <h2 
@@ -1009,9 +1088,9 @@ export default function AdminTicketDetailPage() {
           </CardHeader>
           <CardBody padding="lg">
             <div className="prose max-w-none text-sm" style={{ color: "var(--text-primary)" }}>
-              <TiptapViewer value={t.description} />
+              <TiptapViewer value={bodyTab === "initial" ? t.description : (reopens[bodyTab]?.description ?? EMPTY_DOC)} />
             </div>
-            {ticketAttachments.length > 0 && (
+            {ticketAttachmentsFiltered.length > 0 && (
               <>
                 <div 
                   className="my-4"
@@ -1030,7 +1109,7 @@ export default function AdminTicketDetailPage() {
                     className="border rounded-lg"
                     style={{ borderColor: "var(--border-default)" }}
                   >
-                    {ticketAttachments.map((a, idx) => (
+                    {ticketAttachmentsFiltered.map((a, idx) => (
                       <div 
                         key={a.id} 
                         className="flex items-center justify-between px-4 py-3 transition-colors"
@@ -1079,7 +1158,7 @@ export default function AdminTicketDetailPage() {
           </CardBody>
         </Card>
 
-        {comments.length === 0 ? (
+        {commentsFiltered.length === 0 ? (
           <Card>
             <CardBody padding="lg">
               <div 
@@ -1092,7 +1171,7 @@ export default function AdminTicketDetailPage() {
           </Card>
         ) : (
           <>
-            {comments.map((c, index) => {
+            {commentsFiltered.map((c, index) => {
               const isMyComment = me.emp_no === c.author_emp_no;
               const commentAttachments = attachments.filter((a) => a.comment_id === c.id);
               return (

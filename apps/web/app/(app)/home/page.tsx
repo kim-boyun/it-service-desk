@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), { ssr: false });
+const TiptapViewer = dynamic(() => import("@/components/TiptapViewer"), { ssr: false });
 
 type TicketCreateIn = {
   title: string;
@@ -69,6 +70,19 @@ type StepId =
 
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 
+function formatDate(v?: string | null) {
+  if (!v) return "-";
+  const d = new Date(v);
+  return Number.isNaN(d.getTime())
+    ? "-"
+    : d.toLocaleString("ko-KR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+}
 
 const workTypeOptions = [
   {
@@ -150,6 +164,7 @@ export default function HomePage() {
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [reopenDescription, setReopenDescription] = useState<TiptapDoc>(EMPTY_DOC);
   const [reopenAttachments, setReopenAttachments] = useState<File[]>([]);
+  const [reopenSearchQuery, setReopenSearchQuery] = useState("");
 
   const { data: completedTickets = [], isLoading: completedLoading } = useQuery({
     queryKey: ["tickets", "my-completed"],
@@ -911,6 +926,23 @@ export default function HomePage() {
                     완료 또는 사업검토된 요청 중 재요청할 항목을 선택하세요
                   </p>
                 </div>
+                {!completedLoading && completedTickets.length > 0 && (
+                  <div className="flex justify-end">
+                    <input
+                      type="text"
+                      placeholder="제목 검색..."
+                      value={reopenSearchQuery}
+                      onChange={(e) => setReopenSearchQuery(e.target.value)}
+                      className="px-4 py-2 rounded-lg border text-sm"
+                      style={{
+                        borderColor: "var(--border-default)",
+                        backgroundColor: "var(--bg-card)",
+                        color: "var(--text-primary)",
+                        width: "240px",
+                      }}
+                    />
+                  </div>
+                )}
                 {completedLoading && (
                   <div className="py-8 text-center text-sm" style={{ color: "var(--text-tertiary)" }}>
                     목록을 불러오는 중...
@@ -926,7 +958,9 @@ export default function HomePage() {
                 )}
                 {!completedLoading && completedTickets.length > 0 && (
                   <div className="grid grid-cols-1 gap-3 max-h-[360px] overflow-y-auto pr-1">
-                    {completedTickets.map((t) => {
+                    {completedTickets
+                      .filter((t) => !reopenSearchQuery || t.title.toLowerCase().includes(reopenSearchQuery.toLowerCase()))
+                      .map((t) => {
                       const isSelected = selectedTicketId === t.id;
                       return (
                         <button
@@ -948,13 +982,11 @@ export default function HomePage() {
                             )}
                             <div>
                               <div className="text-base font-medium" style={{ color: "var(--text-primary)" }}>
-                                #{t.id} {t.title}
+                                {t.title}
                               </div>
-                              {t.project_name && (
-                                <div className="text-xs mt-1" style={{ color: "var(--text-tertiary)" }}>
-                                  {t.project_name}
-                                </div>
-                              )}
+                              <div className="text-xs mt-1" style={{ color: "var(--text-tertiary)" }}>
+                                작성일: {formatDate(t.created_at)}
+                              </div>
                             </div>
                           </div>
                           <ChevronRight className="w-5 h-5 shrink-0" style={{ color: "var(--text-tertiary)" }} />
@@ -987,7 +1019,6 @@ export default function HomePage() {
                     선택한 요청
                   </p>
                   <p className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
-                    #{selectedTicketId}{" "}
                     {completedTickets.find((t) => t.id === selectedTicketId)?.title ?? ""}
                   </p>
                 </div>
@@ -1072,8 +1103,7 @@ export default function HomePage() {
                       요청
                     </p>
                     <p className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-                      #{selectedTicketId}{" "}
-                      {completedTickets.find((t) => t.id === selectedTicketId)?.title ?? ""}
+                      [재요청] {completedTickets.find((t) => t.id === selectedTicketId)?.title ?? ""}
                     </p>
                   </div>
                   <div className="h-px" style={{ backgroundColor: "var(--border-subtle)" }} />
@@ -1081,9 +1111,13 @@ export default function HomePage() {
                     <p className="text-sm font-medium mb-2" style={{ color: "var(--text-tertiary)" }}>
                       재요청 사유
                     </p>
-                    <p className="text-sm" style={{ color: "var(--text-primary)" }}>
-                      {isEmptyDoc(reopenDescription) ? "-" : "작성된 내용이 등록됩니다."}
-                    </p>
+                    <div className="text-sm prose max-w-none" style={{ color: "var(--text-primary)" }}>
+                      {isEmptyDoc(reopenDescription) ? (
+                        <p>-</p>
+                      ) : (
+                        <TiptapViewer value={reopenDescription} />
+                      )}
+                    </div>
                   </div>
                   {reopenAttachments.length > 0 && (
                     <>

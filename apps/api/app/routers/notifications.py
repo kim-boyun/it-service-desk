@@ -132,7 +132,7 @@ def list_notifications(
                     ticket_id=ticket.id,
                     ticket_title=ticket.title,
                     type="reopened",
-                    message=f"재요청이 접수되었습니다 - #{ticket.id}",
+                    message="재요청이 접수되었습니다",
                     created_at=created_at,
                 )
             )
