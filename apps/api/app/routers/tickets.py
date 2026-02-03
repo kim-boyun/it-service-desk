@@ -405,7 +405,7 @@ def reopen_as_new_ticket(
         notify_requester_ticket_created(t, user, category_label=category_label)
         if assignee_map.get(t.id):
             assignees = [u for u in users.values() if u.emp_no in assignee_map.get(t.id, [])]
-            notify_assignees_reopen_received(t, user, assignees)
+            notify_assignees_reopen_received(t, user, assignees, category_label=category_label)
     except Exception:
         logging.getLogger(__name__).exception("reopen-as-new 메일 발송 실패 ticket_id=%s", t.id)
 
@@ -507,7 +507,7 @@ def reopen_ticket(
         notify_requester_ticket_created(t, user, category_label=category_label)
         if assignee_emp_nos:
             assignees = [u for u in users.values() if u.emp_no in assignee_emp_nos]
-            notify_assignees_reopen_received(t, user, assignees)
+            notify_assignees_reopen_received(t, user, assignees, category_label=category_label)
     except Exception:
         logging.getLogger(__name__).exception("재요청 메일 발송 실패 ticket_id=%s", ticket_id)
 
@@ -816,7 +816,9 @@ def update_status(
             requester = session.get(User, ticket.requester_emp_no)
             if requester:
                 category_label = get_ticket_category_labels(session, ticket)
-                notify_requester_status_changed(ticket, requester, new, category_label=category_label)
+                notify_requester_status_changed(
+                    ticket, requester, new, old_status=old, category_label=category_label
+                )
         except Exception:
             logger = logging.getLogger(__name__)
             logger.exception("상태 변경 메일 발송 처리 실패 (ticket_id=%s)", ticket_id)

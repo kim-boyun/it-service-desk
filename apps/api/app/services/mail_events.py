@@ -159,10 +159,13 @@ def notify_requester_status_changed(
     ticket: Ticket,
     requester: User,
     new_status: str,
+    old_status: str | None = None,
     category_label: str | None = None,
     work_type_label: str | None = None,
 ) -> None:
-    status_label = _status_label(new_status)
+    new_label = _status_label(new_status)
+    old_label = _status_label(old_status) if old_status else "-"
+    status_change_display = f"{old_label} -> {new_label}"
     priority_label = _priority_label(ticket.priority)
     summary = "요청 상태가 변경되었습니다."
     subject = _build_subject(summary)
@@ -170,7 +173,7 @@ def notify_requester_status_changed(
         ("요청 제목", ticket.title),
         ("카테고리", _category_value(ticket, category_label)),
         ("작업 구분", _work_type_value(ticket, work_type_label)),
-        ("변경된 상태", status_label),
+        ("변경된 상태", status_change_display),
     ]
     enqueue_ticket_mail(
         event_key=f"status_changed:requester:{ticket.id}:{requester.emp_no}:{new_status}",
@@ -181,7 +184,7 @@ def notify_requester_status_changed(
         alert_type="상태 변경",
         summary=summary,
         fields=fields,
-        status_label=status_label,
+        status_label=new_label,
         priority_label=priority_label,
         is_admin_link=False,
     )
@@ -206,7 +209,6 @@ def notify_requester_commented(
             ("카테고리", _category_value(ticket, category_label)),
             ("작업 구분", _work_type_value(ticket, work_type_label)),
             ("요청자", requester_label),
-            ("답변 제목", comment.title or "-"),
         ]
         enqueue_comment_mail(
             event_key=f"comment_requester:admin:{ticket.id}:{comment.id}:{admin.emp_no}",
@@ -241,7 +243,6 @@ def notify_admin_commented(
         ("카테고리", _category_value(ticket, category_label)),
         ("작업 구분", _work_type_value(ticket, work_type_label)),
         ("담당자", _user_label(author, author.emp_no)),
-        ("답변 제목", comment.title or "-"),
     ]
     enqueue_comment_mail(
         event_key=f"comment_admin:requester:{ticket.id}:{comment.id}:{requester.emp_no}",

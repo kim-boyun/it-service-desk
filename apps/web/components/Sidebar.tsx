@@ -244,7 +244,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
     { href: "/notices", label: "공지사항", icon: Megaphone },
     { href: "/faq", label: "FAQ", icon: HelpCircle },
     { href: "/tickets", label: "처리 현황", icon: Ticket },
-    { href: "/tickets/resolved", label: "처리 완료", icon: CheckCircle },
+    { href: "/tickets?status=resolved", label: "처리 완료", icon: CheckCircle },
     { href: "/tickets/review", label: "사업 검토", icon: ClipboardCheck },
   ];
 

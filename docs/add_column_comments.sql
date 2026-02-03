@@ -63,6 +63,7 @@ COMMENT ON COLUMN ticket.tickets.updated_at IS '수정 시각';
 COMMENT ON COLUMN ticket.tickets.resolved_at IS '처리완료 시각 (status=resolved 된 시점)';
 COMMENT ON COLUMN ticket.tickets.closed_at IS '사업검토 시각 (status=closed 된 시점)';
 COMMENT ON COLUMN ticket.tickets.reopen_count IS '재요청 횟수';
+COMMENT ON COLUMN ticket.tickets.parent_ticket_id IS '재요청 시 부모 티켓 ID (nullable)';
 
 -- 7. ticket_reopens
 COMMENT ON COLUMN ticket.ticket_reopens.id IS '재요청 ID (PK)';
@@ -84,6 +85,7 @@ COMMENT ON COLUMN ticket.ticket_assignees.created_at IS '등록 시각';
 -- 10. ticket_comments
 COMMENT ON COLUMN ticket.ticket_comments.id IS '댓글 ID (PK)';
 COMMENT ON COLUMN ticket.ticket_comments.ticket_id IS '티켓 ID';
+COMMENT ON COLUMN ticket.ticket_comments.reopen_id IS '재요청 ID (해당 재요청에 대한 댓글일 때, nullable)';
 COMMENT ON COLUMN ticket.ticket_comments.author_emp_no IS '작성자 사번';
 COMMENT ON COLUMN ticket.ticket_comments.title IS '댓글 제목';
 COMMENT ON COLUMN ticket.ticket_comments.body IS '댓글 본문';
@@ -107,6 +109,7 @@ COMMENT ON COLUMN ticket.attachments.content_type IS 'MIME 타입';
 COMMENT ON COLUMN ticket.attachments.size IS '파일 크기(바이트)';
 COMMENT ON COLUMN ticket.attachments.ticket_id IS '연결된 티켓 ID (nullable)';
 COMMENT ON COLUMN ticket.attachments.comment_id IS '연결된 댓글 ID (nullable)';
+COMMENT ON COLUMN ticket.attachments.reopen_id IS '연결된 재요청 ID (nullable)';
 COMMENT ON COLUMN ticket.attachments.notice_id IS '연결된 공지/FAQ ID (nullable)';
 COMMENT ON COLUMN ticket.attachments.uploaded_emp_no IS '업로드한 사용자 사번';
 COMMENT ON COLUMN ticket.attachments.created_at IS '업로드 시각';

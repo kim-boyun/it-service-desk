@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useTicketCategories } from "@/lib/use-ticket-categories";
@@ -47,6 +47,7 @@ const STATUS_OPTIONS = [
   { value: "all", label: "전체" },
   { value: "open", label: "대기" },
   { value: "in_progress", label: "진행" },
+  { value: "resolved", label: "완료" },
 ];
 
 const STATUS_SORT: Record<string, number> = {
@@ -128,14 +129,24 @@ function workTypeLabel(value?: string | null) {
   return map[value] ?? value;
 }
 
+const VALID_STATUS_FILTERS = ["all", "open", "in_progress", "resolved"];
+
 export default function TicketsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { map: categoryMap } = useTicketCategories();
 
   const limit = 1000;
   const offset = 0;
 
-  const [status, setStatus] = useState<string>("all");
+  const statusFromUrl = searchParams.get("status");
+  const initialStatus = statusFromUrl && VALID_STATUS_FILTERS.includes(statusFromUrl) ? statusFromUrl : "all";
+  const [status, setStatus] = useState<string>(initialStatus);
+
+  useEffect(() => {
+    const q = searchParams.get("status");
+    if (q && VALID_STATUS_FILTERS.includes(q) && status !== q) setStatus(q);
+  }, [searchParams]);
   const [search, setSearch] = useState("");
   const [projectFilter, setProjectFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
@@ -164,7 +175,7 @@ export default function TicketsPage() {
   const norm = normalize(data ?? []);
 
   const base = useMemo(() => {
-    let list = norm.items.filter((t) => !["resolved", "closed"].includes(t.status.toLowerCase()));
+    const list = norm.items.filter((t) => t.status.toLowerCase() !== "closed");
     return list;
   }, [norm.items]);
 

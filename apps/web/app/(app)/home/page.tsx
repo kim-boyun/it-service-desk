@@ -508,14 +508,6 @@ export default function HomePage() {
             {currentStep === "welcome" && (
               <div className="space-y-8 text-center">
                 <div className="space-y-4">
-                  <div
-                    className="inline-flex items-center justify-center w-20 h-20 rounded-2xl mb-4"
-                    style={{
-                      background: "linear-gradient(135deg, var(--color-primary-500) 0%, var(--color-accent-500) 100%)",
-                    }}
-                  >
-                    <FileText className="w-10 h-10 text-white" />
-                  </div>
                   <h1 className="text-5xl font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>
                     요청하기
                   </h1>
