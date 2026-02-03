@@ -264,11 +264,11 @@ export default function AdminDataPage() {
         onSaveCurrent={saveCurrentPreset}
       />
 
-      {/* 2컬럼: 좌측 필터 설정 / 우측 출력 열 설정. 각각 독립 스크롤 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="min-w-0 min-h-[280px] max-h-[420px] overflow-y-auto rounded-lg border" style={{ borderColor: "var(--border-default)" }}>
+      {/* 2컬럼: 필터 설정(높이 자동 증가, 스크롤 없음) / 출력 열 구성(필터와 동일 높이, 스크롤 가능) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        <div className="min-w-0 min-h-[280px] overflow-x-hidden rounded-lg border flex flex-col" style={{ borderColor: "var(--border-default)" }}>
           <FilterBuilder
-            className="min-h-full"
+            className="min-h-[280px] flex-1"
             createdYearInclude={createdYearInclude}
             setCreatedYearInclude={setCreatedYearInclude}
             createdDayRangePercent={createdDayRangePercent}
@@ -278,7 +278,7 @@ export default function AdminDataPage() {
             distinctValues={distinctValues}
           />
         </div>
-        <div className="min-w-0 min-h-[280px] max-h-[420px] overflow-y-auto rounded-lg border" style={{ borderColor: "var(--border-default)" }}>
+        <div className="min-w-0 min-h-[280px] overflow-y-auto rounded-lg border flex flex-col" style={{ borderColor: "var(--border-default)" }}>
           <ColumnConfig
             className="min-h-full"
             columnOrder={columnOrder}

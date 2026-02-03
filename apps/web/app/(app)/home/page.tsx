@@ -153,6 +153,7 @@ export default function HomePage() {
   const [projectError, setProjectError] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const reopenTitleInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [dragActive, setDragActive] = useState(false);
 
@@ -462,10 +463,13 @@ export default function HomePage() {
     });
   }
 
-  // Auto-focus title input when step changes to title
+  // Auto-focus title input when step changes to title or reopen_title
   useEffect(() => {
     if (currentStep === "title" && titleInputRef.current) {
       setTimeout(() => titleInputRef.current?.focus(), 100);
+    }
+    if (currentStep === "reopen_title" && reopenTitleInputRef.current) {
+      setTimeout(() => reopenTitleInputRef.current?.focus(), 100);
     }
   }, [currentStep]);
 
@@ -1112,34 +1116,33 @@ export default function HomePage() {
                     재요청할 요청의 제목을 입력하세요
                   </p>
                 </div>
-                <div
-                  className="rounded-xl border p-4"
-                  style={{ borderColor: "var(--border-default)", backgroundColor: "var(--bg-subtle)" }}
-                >
-                  <p className="text-sm font-medium mb-1" style={{ color: "var(--text-tertiary)" }}>
-                    선택한 요청
-                  </p>
-                  <p className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
-                    {completedTickets.find((t) => t.id === selectedTicketId)?.title ?? ""}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
-                    제목
-                  </label>
+                <div className="space-y-3">
                   <input
+                    ref={reopenTitleInputRef}
                     type="text"
                     value={reopenTitle}
                     onChange={(e) => setReopenTitle(e.target.value)}
-                    placeholder="재요청 제목을 입력하세요 (3자 이상)"
-                    className="w-full px-4 py-2 rounded-lg border text-sm"
+                    placeholder="예: 프린터 연결이 안 됩니다"
+                    className="no-focus-ring w-full text-2xl font-medium px-6 py-4 rounded-xl border focus:outline-none focus:ring-0 transition-colors bg-transparent"
                     style={{
                       borderColor: "var(--border-default)",
-                      backgroundColor: "var(--bg-card)",
                       color: "var(--text-primary)",
                     }}
                     maxLength={200}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && reopenTitle.trim().length >= 3) {
+                        nextStep();
+                      }
+                    }}
                   />
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+                      Enter를 눌러 다음 단계로 이동
+                    </p>
+                    <span className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+                      {reopenTitle.length}/200
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
@@ -1155,20 +1158,6 @@ export default function HomePage() {
                   </h2>
                   <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
                     재요청하는 이유와 상황을 작성해주세요
-                  </p>
-                </div>
-                <div
-                  className="rounded-xl border p-4"
-                  style={{ borderColor: "var(--border-default)", backgroundColor: "var(--bg-subtle)" }}
-                >
-                  <p className="text-sm font-medium mb-1" style={{ color: "var(--text-tertiary)" }}>
-                    선택한 요청
-                  </p>
-                  <p className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
-                    {completedTickets.find((t) => t.id === selectedTicketId)?.title ?? ""}
-                  </p>
-                  <p className="text-sm mt-1" style={{ color: "var(--text-tertiary)" }}>
-                    재요청 제목: {reopenTitle.trim() || "-"}
                   </p>
                 </div>
                 <div className="space-y-3">

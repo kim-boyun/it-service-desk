@@ -253,7 +253,7 @@ export function FilterBuilder({
   };
 
   return (
-    <Card padding="lg" className={`flex flex-col min-h-0 overflow-hidden ${className ?? ""}`}>
+    <Card padding="lg" className={`flex flex-col ${className ?? ""}`}>
       <h3
         className="text-sm font-semibold mb-3 pb-2 border-b shrink-0"
         style={{ color: "var(--text-secondary)", borderColor: "var(--border-default)" }}
@@ -261,7 +261,7 @@ export function FilterBuilder({
         필터 설정
       </h3>
 
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <div>
       {/* 작성일시: 기본 필터 */}
         <div className="mb-4">
         <div className="text-xs font-medium mb-1.5" style={{ color: "var(--text-tertiary)" }}>
@@ -297,7 +297,7 @@ export function FilterBuilder({
             )}
           </div>
         </div>
-        <div>
+        <div className="max-w-md">
           <div className="text-xs mb-1.5" style={{ color: "var(--text-tertiary)" }}>
             월·일 범위 (바 드래그 또는 직접 입력: M/d, M-d, 1~366)
           </div>
@@ -343,7 +343,7 @@ export function FilterBuilder({
       </div>
 
       {/* 동적 조건 행 */}
-      <div className="border-t pt-3" style={{ borderColor: "var(--border-default)" }}>
+      <div className="border-t pt-3 mt-0" style={{ borderColor: "var(--border-default)" }}>
         <div className="text-xs font-medium mb-2" style={{ color: "var(--text-tertiary)" }}>
           추가 조건 (항목 · 포함/제외 · 값)
         </div>

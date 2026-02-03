@@ -318,7 +318,7 @@ export default function AdminAllTicketsPage() {
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn relative pb-16">
+    <div className="space-y-6 animate-fadeIn">
       <ErrorDialog message={errorMessage} onClose={() => setErrorMessage(null)} />
       <PageHeader
         title="모든 요청 관리"
@@ -592,24 +592,24 @@ export default function AdminAllTicketsPage() {
             <div className="px-6 py-4 border-t flex flex-wrap items-center justify-end gap-4" style={{ borderColor: "var(--border-default)" }}>
               <Pagination page={page} total={sorted.length} pageSize={pageSize} onChange={setPage} />
             </div>
+            <div className="px-6 py-3 border-t flex flex-wrap items-center justify-end" style={{ borderColor: "var(--border-default)", backgroundColor: "var(--bg-subtle)" }}>
+              <Link
+                href="/admin/data"
+                className="inline-flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors"
+                style={{
+                  borderColor: "var(--border-default)",
+                  backgroundColor: "var(--bg-card)",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                <Download className="h-4 w-4" />
+                내보내기
+              </Link>
+            </div>
           </CardBody>
         </Card>
       )}
 
-      <div className="fixed bottom-6 right-6 z-10">
-        <Link
-          href="/admin/data"
-          className="inline-flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors shadow-md"
-          style={{
-            borderColor: "var(--border-default)",
-            backgroundColor: "var(--bg-card)",
-            color: "var(--text-secondary)",
-          }}
-        >
-          <Download className="h-4 w-4" />
-          내보내기
-        </Link>
-      </div>
     </div>
   );
 }
