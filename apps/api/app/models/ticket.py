@@ -30,6 +30,7 @@ class Ticket(Base):
     closed_at: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     reopen_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    parent_ticket_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("tickets.id", ondelete="SET NULL"), nullable=True)
 
 
 class TicketReopen(Base):

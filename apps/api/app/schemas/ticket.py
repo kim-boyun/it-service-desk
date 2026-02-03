@@ -49,6 +49,7 @@ class TicketOut(BaseModel):
     resolved_at: datetime | None = None
     closed_at: datetime | None = None
     reopen_count: int = 0
+    parent_ticket_id: int | None = None
 
     class Config:
         from_attributes = True

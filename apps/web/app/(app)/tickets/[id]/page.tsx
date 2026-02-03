@@ -70,6 +70,13 @@ type Ticket = {
   updated_at?: string | null;
   resolved_at?: string | null;
   closed_at?: string | null;
+  parent_ticket_id?: number | null;
+};
+
+type ParentTicketSummary = {
+  id: number;
+  title: string;
+  description: TiptapDoc;
 };
 
 type UserSummary = {
@@ -94,6 +101,7 @@ type TicketDetail = {
   events: Event[];
   attachments: Attachment[];
   reopens: Reopen[];
+  parent_ticket_summary?: ParentTicketSummary | null;
 };
 
 const MAX_COMMENT_FILE_BYTES = 25 * 1024 * 1024;
@@ -263,7 +271,7 @@ export default function TicketDetailPage() {
   const [commentError, setCommentError] = useState<string | null>(null);
   const [commentNotifyEmail, setCommentNotifyEmail] = useState(true);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [bodyTab, setBodyTab] = useState<"initial" | number>("initial");
+  const [bodyTab, setBodyTab] = useState<"initial" | number | "parent">("initial");
   const initialTabSetForTicket = useRef<number | null>(null);
   const commentFileInputRef = useRef<HTMLInputElement | null>(null);
   const commentsEndRef = useRef<HTMLDivElement | null>(null);
@@ -278,12 +286,14 @@ export default function TicketDetailPage() {
     if (!data?.ticket?.id) return;
     if (initialTabSetForTicket.current === data.ticket.id) return;
     initialTabSetForTicket.current = data.ticket.id;
-    if ((data.reopens?.length ?? 0) > 0 && data.ticket.status === "open") {
+    if (data.parent_ticket_summary) {
+      setBodyTab("initial");
+    } else if ((data.reopens?.length ?? 0) > 0 && data.ticket.status === "open") {
       setBodyTab(data.reopens.length - 1);
     } else {
       setBodyTab("initial");
     }
-  }, [data?.ticket?.id, data?.reopens?.length, data?.ticket?.status]);
+  }, [data?.ticket?.id, data?.reopens?.length, data?.ticket?.status, data?.parent_ticket_summary]);
 
   // 처리이력: 요청 접수·상태 변경·재요청만, 시간순(과거 → 현재) 정렬
   const filteredEvents = useMemo(() => {
@@ -293,25 +303,36 @@ export default function TicketDetailPage() {
       .sort((a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime());
   }, [data?.events]);
 
+  const parentSummary = data?.parent_ticket_summary ?? null;
   const reopens = data?.reopens ?? [];
-  const currentReopenId = bodyTab === "initial" ? null : reopens[bodyTab]?.id ?? null;
+  const currentReopenId =
+    bodyTab === "initial" || bodyTab === "parent" ? null : reopens[bodyTab]?.id ?? null;
   const bodyContent =
-    bodyTab === "initial"
-      ? data?.ticket?.description
-      : reopens[bodyTab]?.description;
+    parentSummary && bodyTab === "parent"
+      ? parentSummary.description
+      : bodyTab === "initial"
+        ? data?.ticket?.description
+        : typeof bodyTab === "number"
+          ? reopens[bodyTab]?.description
+          : data?.ticket?.description;
   const ticketAttachmentsFiltered = useMemo(() => {
     if (!data?.attachments) return [];
     const list = data.attachments.filter((a) => !a.comment_id);
+    if (parentSummary) {
+      if (bodyTab === "parent") return [];
+      return list;
+    }
     if (reopens.length === 0) return list;
     if (bodyTab === "initial") return list.filter((a) => !(a as Attachment).reopen_id);
     return list.filter((a) => (a as Attachment).reopen_id === currentReopenId);
-  }, [data?.attachments, bodyTab, currentReopenId, reopens.length]);
+  }, [data?.attachments, bodyTab, currentReopenId, reopens.length, parentSummary]);
   const commentsFiltered = useMemo(() => {
     if (!data?.comments) return [];
+    if (parentSummary) return data.comments;
     if (reopens.length === 0) return data.comments;
     if (bodyTab === "initial") return data.comments.filter((c) => !c.reopen_id);
     return data.comments.filter((c) => c.reopen_id === currentReopenId);
-  }, [data?.comments, bodyTab, currentReopenId, reopens.length]);
+  }, [data?.comments, bodyTab, currentReopenId, reopens.length, parentSummary]);
 
   // 완료일: API의 resolved_at(완료) 또는 closed_at(사업검토)
   const completedAt = useMemo(() => {
@@ -322,15 +343,17 @@ export default function TicketDetailPage() {
     return null;
   }, [data?.ticket?.status, data?.ticket?.resolved_at, data?.ticket?.closed_at]);
 
-  const currentReopenCreatedAt = bodyTab === "initial" ? null : reopens[bodyTab]?.created_at ?? null;
+  const currentReopenCreatedAt =
+    bodyTab === "initial" || bodyTab === "parent" ? null : reopens[bodyTab]?.created_at ?? null;
 
-  // 제목 표시: 최초 요청 탭이면 [재요청] 제거, 재요청 탭이면 [재요청] 추가 (훅은 early return 이전에 호출)
+  // 제목 표시: 재요청건(부모 참조)이면 이전 요청 탭에서 부모 제목, 그 외는 기존 로직
   const displayTitle = useMemo(() => {
+    if (parentSummary && bodyTab === "parent") return parentSummary.title;
     const title = data?.ticket?.title ?? "";
     const baseTitle = title.replace(/^\[재요청\]\s*/, "");
     if (bodyTab === "initial") return baseTitle;
     return `[재요청] ${baseTitle}`;
-  }, [data?.ticket?.title, bodyTab]);
+  }, [data?.ticket?.title, bodyTab, parentSummary]);
 
   const downloadAttachmentM = useMutation({
     mutationFn: async (attachmentId: number) => {
@@ -647,33 +670,62 @@ export default function TicketDetailPage() {
 
         <Card>
           <CardHeader>
-            {reopens.length > 0 && (
+            {(parentSummary || reopens.length > 0) && (
               <div className="flex flex-wrap gap-2 border-b pb-3 mb-3" style={{ borderColor: "var(--border-default)" }}>
-                <button
-                  type="button"
-                  onClick={() => setBodyTab("initial")}
-                  className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-                  style={{
-                    backgroundColor: bodyTab === "initial" ? "var(--color-primary-100)" : "var(--bg-subtle)",
-                    color: bodyTab === "initial" ? "var(--color-primary-700)" : "var(--text-secondary)",
-                  }}
-                >
-                  최초 요청
-                </button>
-                {reopens.map((_, idx) => (
-                  <button
-                    key={reopens[idx].id}
-                    type="button"
-                    onClick={() => setBodyTab(idx)}
-                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-                    style={{
-                      backgroundColor: bodyTab === idx ? "var(--color-primary-100)" : "var(--bg-subtle)",
-                      color: bodyTab === idx ? "var(--color-primary-700)" : "var(--text-secondary)",
-                    }}
-                  >
-                    재요청 #{idx + 1}
-                  </button>
-                ))}
+                {parentSummary ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setBodyTab("initial")}
+                      className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                      style={{
+                        backgroundColor: bodyTab === "initial" ? "var(--color-primary-100)" : "var(--bg-subtle)",
+                        color: bodyTab === "initial" ? "var(--color-primary-700)" : "var(--text-secondary)",
+                      }}
+                    >
+                      현재 요청
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBodyTab("parent")}
+                      className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                      style={{
+                        backgroundColor: bodyTab === "parent" ? "var(--color-primary-100)" : "var(--bg-subtle)",
+                        color: bodyTab === "parent" ? "var(--color-primary-700)" : "var(--text-secondary)",
+                      }}
+                    >
+                      이전 요청
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setBodyTab("initial")}
+                      className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                      style={{
+                        backgroundColor: bodyTab === "initial" ? "var(--color-primary-100)" : "var(--bg-subtle)",
+                        color: bodyTab === "initial" ? "var(--color-primary-700)" : "var(--text-secondary)",
+                      }}
+                    >
+                      최초 요청
+                    </button>
+                    {reopens.map((_, idx) => (
+                      <button
+                        key={reopens[idx].id}
+                        type="button"
+                        onClick={() => setBodyTab(idx)}
+                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                        style={{
+                          backgroundColor: bodyTab === idx ? "var(--color-primary-100)" : "var(--bg-subtle)",
+                          color: bodyTab === idx ? "var(--color-primary-700)" : "var(--text-secondary)",
+                        }}
+                      >
+                        재요청 #{idx + 1}
+                      </button>
+                    ))}
+                  </>
+                )}
               </div>
             )}
             <h2

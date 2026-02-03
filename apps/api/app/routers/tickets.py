@@ -11,7 +11,7 @@ from ..models.project import Project
 from ..models.project_member import ProjectMember
 from ..models.ticket_category import TicketCategory
 from ..schemas.ticket import TicketCreateIn, TicketOut, TicketUpdateIn, TicketAdminMetaUpdateIn
-from ..schemas.reopen import ReopenCreateIn, ReopenOut
+from ..schemas.reopen import ReopenCreateIn, ReopenOut, ReopenAsNewCreateIn
 from ..core.current_user import get_current_user
 from ..models.user import User
 from ..models.event import TicketEvent
@@ -198,6 +198,7 @@ def serialize_ticket(
         "assignee": users.get(t.assignee_emp_no) if t.assignee_emp_no else None,
         "assignees": assignees,
         "reopen_count": getattr(t, "reopen_count", 0) or 0,
+        "parent_ticket_id": getattr(t, "parent_ticket_id", None),
     }
 
 
@@ -322,6 +323,95 @@ def get_my_completed(
     project_ids = {t.project_id for t in tickets if t.project_id}
     projects = build_project_map(session, list(project_ids))
     return [serialize_ticket(t, users, projects, category_map, assignee_map) for t in tickets]
+
+
+@router.post("/reopen-as-new")
+def reopen_as_new_ticket(
+    payload: ReopenAsNewCreateIn,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    """재요청을 새 티켓으로 생성한다. 부모 티켓은 그대로 두고, 새 티켓에 parent_ticket_id로 연결한다."""
+    parent = session.get(Ticket, payload.parent_ticket_id)
+    if not parent:
+        raise HTTPException(status_code=404, detail="Not found")
+    if parent.requester_emp_no != user.emp_no:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    if parent.status not in ("resolved", "closed"):
+        raise HTTPException(status_code=422, detail="완료 또는 사업검토 상태인 요청만 재요청할 수 있습니다.")
+    if is_empty_doc(payload.description):
+        raise HTTPException(status_code=422, detail="재요청 사유를 입력해주세요.")
+
+    category_map = load_ticket_category_map(session, [parent.id])
+    category_ids = category_map.get(parent.id, []) or ([parent.category_id] if parent.category_id else [])
+    if not category_ids:
+        raise HTTPException(status_code=422, detail="부모 요청에 카테고리가 없습니다.")
+
+    now = datetime.utcnow()
+    t = Ticket(
+        title=payload.title.strip(),
+        description=dump_tiptap(payload.description),
+        priority=parent.priority,
+        category_id=category_ids[0],
+        work_type=parent.work_type,
+        project_id=parent.project_id,
+        requester_emp_no=user.emp_no,
+        requester_kor_name=user.kor_name,
+        requester_title=user.title,
+        requester_department=user.department,
+        parent_ticket_id=parent.id,
+        updated_at=now,
+    )
+    session.add(t)
+    session.flush()
+    try:
+        next_doc = finalize_ticket_editor_images(payload.description, ticket=t)
+        t.description = dump_tiptap(next_doc)
+    except Exception:
+        logging.getLogger(__name__).exception("reopen-as-new finalize images ticket_id=%s", t.id)
+    for cid in category_ids:
+        session.add(TicketCategoryLink(ticket_id=t.id, category_id=cid))
+    assignee_emp_nos: list[str] = []
+    seen: set[str] = set()
+    for cid in category_ids:
+        for admin_user in get_category_admins(session, cid):
+            if admin_user.emp_no not in seen:
+                seen.add(admin_user.emp_no)
+                assignee_emp_nos.append(admin_user.emp_no)
+    for emp_no in assignee_emp_nos:
+        session.add(TicketAssignee(ticket_id=t.id, emp_no=emp_no))
+    if assignee_emp_nos:
+        t.assignee_emp_no = assignee_emp_nos[0]
+    session.add(
+        TicketEvent(
+            ticket_id=t.id,
+            actor_emp_no=user.emp_no,
+            type="ticket_created",
+            from_value=None,
+            to_value=None,
+            note=None,
+        )
+    )
+    session.commit()
+    session.refresh(t)
+
+    category_map_out = load_ticket_category_map(session, [t.id])
+    assignee_map = load_ticket_assignee_map(session, [t.id])
+    user_ids = {t.requester_emp_no} | set(assignee_map.get(t.id, []))
+    users = build_user_map(session, user_ids)
+    projects = build_project_map(session, [t.project_id] if t.project_id else [])
+    try:
+        category_label = get_ticket_category_labels(session, t) or "-"
+        notify_requester_ticket_created(t, user, category_label=category_label)
+        if assignee_map.get(t.id):
+            assignees = [u for u in users.values() if u.emp_no in assignee_map.get(t.id, [])]
+            notify_assignees_reopen_received(t, user, assignees)
+    except Exception:
+        logging.getLogger(__name__).exception("reopen-as-new 메일 발송 실패 ticket_id=%s", t.id)
+
+    return {
+        "ticket": serialize_ticket(t, users, projects, category_map_out, assignee_map),
+    }
 
 
 @router.get("/{ticket_id}", response_model=TicketOut)
@@ -1081,12 +1171,23 @@ def get_ticket_detail(
     ]
 
     category_map = load_ticket_category_map(session, [ticket.id])
+    parent_ticket_summary = None
+    parent_id = getattr(ticket, "parent_ticket_id", None)
+    if parent_id:
+        parent = session.get(Ticket, parent_id)
+        if parent:
+            parent_ticket_summary = {
+                "id": parent.id,
+                "title": parent.title,
+                "description": load_tiptap(parent.description),
+            }
     return {
         "ticket": serialize_ticket(ticket, users, projects, category_map, assignee_map),
         "comments": comment_payload,
         "events": events,
         "attachments": attachments,
         "reopens": reopens_payload,
+        "parent_ticket_summary": parent_ticket_summary,
     }
 
 

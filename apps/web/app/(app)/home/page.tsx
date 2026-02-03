@@ -20,6 +20,7 @@ import {
   X,
   ChevronRight,
   RotateCcw,
+  Eye,
 } from "lucide-react";
 
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), { ssr: false });
@@ -44,10 +45,13 @@ type TicketFormState = {
 type TicketOut = {
   id: number;
   title: string;
+  description?: TiptapDoc;
   status?: string;
   created_at?: string;
   updated_at?: string;
   project_name?: string | null;
+  category_id?: number | null;
+  category_ids?: number[];
 };
 
 type Project = {
@@ -165,6 +169,9 @@ export default function HomePage() {
   const [reopenDescription, setReopenDescription] = useState<TiptapDoc>(EMPTY_DOC);
   const [reopenAttachments, setReopenAttachments] = useState<File[]>([]);
   const [reopenSearchQuery, setReopenSearchQuery] = useState("");
+  const [reopenCategoryFilter, setReopenCategoryFilter] = useState<number | "">("");
+  const [reopenViewBodyTicketId, setReopenViewBodyTicketId] = useState<number | null>(null);
+  const [reopenTitle, setReopenTitle] = useState("");
 
   const { data: completedTickets = [], isLoading: completedLoading } = useQuery({
     queryKey: ["tickets", "my-completed"],
@@ -271,28 +278,31 @@ export default function HomePage() {
   const reopenTicket = useMutation({
     mutationFn: async ({
       ticketId,
+      title,
       description,
       files,
     }: {
       ticketId: number;
+      title: string;
       description: TiptapDoc;
       files: File[];
     }) => {
-      const res = await api<{ ticket: TicketOut; reopen_id: number }>(`/tickets/${ticketId}/reopen`, {
+      const res = await api<{ ticket: TicketOut }>("/tickets/reopen-as-new", {
         method: "POST",
-        body: { description },
+        body: { parent_ticket_id: ticketId, title: title.trim(), description },
       });
       if (files.length) {
         for (const file of files) {
           const fd = new FormData();
           fd.append("file", file);
-          await apiForm(`/tickets/${ticketId}/attachments/upload?reopen_id=${res.reopen_id}`, fd);
+          await apiForm(`/tickets/${res.ticket.id}/attachments/upload`, fd);
         }
       }
       return res;
     },
     onSuccess: (res) => {
       setSelectedTicketId(null);
+      setReopenTitle("");
       setReopenDescription(EMPTY_DOC);
       setReopenAttachments([]);
       router.replace(`/tickets/${res.ticket.id}`);
@@ -405,9 +415,9 @@ export default function HomePage() {
       case "reopen_list":
         return selectedTicketId != null;
       case "reopen_description":
-        return !isEmptyDoc(reopenDescription);
+        return reopenTitle.trim().length >= 3 && !isEmptyDoc(reopenDescription);
       case "reopen_review":
-        return true;
+        return reopenTitle.trim().length >= 3;
       default:
         return false;
     }
@@ -927,7 +937,25 @@ export default function HomePage() {
                   </p>
                 </div>
                 {!completedLoading && completedTickets.length > 0 && (
-                  <div className="flex justify-end">
+                  <div className="flex flex-wrap items-center gap-3 justify-end">
+                    <select
+                      value={reopenCategoryFilter === "" ? "" : String(reopenCategoryFilter)}
+                      onChange={(e) => setReopenCategoryFilter(e.target.value === "" ? "" : Number(e.target.value))}
+                      className="px-4 py-2 rounded-lg border text-sm"
+                      style={{
+                        borderColor: "var(--border-default)",
+                        backgroundColor: "var(--bg-card)",
+                        color: "var(--text-primary)",
+                        minWidth: "140px",
+                      }}
+                    >
+                      <option value="">카테고리 전체</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={String(c.id)}>
+                          {c.name ?? String(c.id)}
+                        </option>
+                      ))}
+                    </select>
                     <input
                       type="text"
                       placeholder="제목 검색..."
@@ -957,44 +985,128 @@ export default function HomePage() {
                   </div>
                 )}
                 {!completedLoading && completedTickets.length > 0 && (
-                  <div className="grid grid-cols-1 gap-3 max-h-[360px] overflow-y-auto pr-1">
-                    {completedTickets
-                      .filter((t) => !reopenSearchQuery || t.title.toLowerCase().includes(reopenSearchQuery.toLowerCase()))
-                      .map((t) => {
-                      const isSelected = selectedTicketId === t.id;
-                      return (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedTicketId(t.id);
-                            setTimeout(nextStep, 200);
-                          }}
-                          className="group p-4 rounded-xl border-2 transition-all text-left flex items-center justify-between"
-                          style={{
-                            borderColor: isSelected ? "var(--color-primary-500)" : "var(--border-default)",
-                            backgroundColor: isSelected ? "var(--bg-selected)" : "var(--bg-card)",
-                          }}
-                        >
-                          <div className="flex items-center gap-3">
-                            {isSelected && (
-                              <CheckCircle2 className="w-5 h-5 shrink-0" style={{ color: "var(--color-primary-600)" }} />
-                            )}
-                            <div>
-                              <div className="text-base font-medium" style={{ color: "var(--text-primary)" }}>
-                                {t.title}
-                              </div>
-                              <div className="text-xs mt-1" style={{ color: "var(--text-tertiary)" }}>
-                                작성일시: {formatDate(t.created_at)}
+                  <>
+                    <div className="grid grid-cols-1 gap-3 max-h-[360px] overflow-y-auto pr-1">
+                      {completedTickets
+                        .filter((t) => {
+                          if (reopenCategoryFilter !== "" && t.category_ids?.indexOf(reopenCategoryFilter) === -1 && t.category_id !== reopenCategoryFilter) return false;
+                          if (reopenSearchQuery && !t.title.toLowerCase().includes(reopenSearchQuery.toLowerCase())) return false;
+                          return true;
+                        })
+                        .map((t) => {
+                          const isSelected = selectedTicketId === t.id;
+                          return (
+                            <div
+                              key={t.id}
+                              className="group p-4 rounded-xl border-2 transition-all text-left flex items-center justify-between"
+                              style={{
+                                borderColor: isSelected ? "var(--color-primary-500)" : "var(--border-default)",
+                                backgroundColor: isSelected ? "var(--bg-selected)" : "var(--bg-card)",
+                              }}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => setSelectedTicketId(t.id)}
+                                className="flex-1 flex items-center gap-3 text-left min-w-0"
+                              >
+                                {isSelected && (
+                                  <CheckCircle2 className="w-5 h-5 shrink-0" style={{ color: "var(--color-primary-600)" }} />
+                                )}
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-base font-medium truncate" style={{ color: "var(--text-primary)" }}>
+                                    {t.title}
+                                  </div>
+                                  <div className="text-xs mt-1" style={{ color: "var(--text-tertiary)" }}>
+                                    작성일시: {formatDate(t.created_at)}
+                                  </div>
+                                </div>
+                              </button>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setReopenViewBodyTicketId(t.id);
+                                  }}
+                                  className="px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5"
+                                  style={{
+                                    backgroundColor: "var(--bg-subtle)",
+                                    color: "var(--text-secondary)",
+                                    border: "1px solid var(--border-default)",
+                                  }}
+                                >
+                                  <Eye className="w-4 h-4" />
+                                  요청보기
+                                </button>
+                                <ChevronRight className="w-5 h-5 shrink-0" style={{ color: "var(--text-tertiary)" }} />
                               </div>
                             </div>
-                          </div>
-                          <ChevronRight className="w-5 h-5 shrink-0" style={{ color: "var(--text-tertiary)" }} />
-                        </button>
-                      );
-                    })}
-                  </div>
+                          );
+                        })}
+                    </div>
+                    <div className="flex justify-end pt-2">
+                      <button
+                        type="button"
+                        onClick={nextStep}
+                        disabled={selectedTicketId == null}
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{
+                          background: "linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%)",
+                        }}
+                      >
+                        다음
+                        <ArrowRight className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </>
                 )}
+
+                {/* 요청보기 팝업 */}
+                {reopenViewBodyTicketId != null && (() => {
+                  const t = completedTickets.find((x) => x.id === reopenViewBodyTicketId);
+                  return (
+                    <div
+                      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                      style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+                      onClick={() => setReopenViewBodyTicketId(null)}
+                    >
+                      <div
+                        className="rounded-2xl border shadow-xl max-w-2xl w-full max-h-[85vh] flex flex-col"
+                        style={{
+                          backgroundColor: "var(--bg-card)",
+                          borderColor: "var(--border-default)",
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: "var(--border-default)" }}>
+                          <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                            이전 요청 본문
+                          </h3>
+                          <button
+                            type="button"
+                            onClick={() => setReopenViewBodyTicketId(null)}
+                            className="p-2 rounded-lg"
+                            style={{ color: "var(--text-tertiary)" }}
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+                        <div className="p-4 overflow-y-auto flex-1">
+                          {t && (
+                            <>
+                              <p className="text-sm font-medium mb-2" style={{ color: "var(--text-tertiary)" }}>
+                                {t.title}
+                              </p>
+                              <div className="prose max-w-none text-sm" style={{ color: "var(--text-primary)" }}>
+                                {t.description ? <TiptapViewer value={t.description} /> : <p>-</p>}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
@@ -1023,6 +1135,24 @@ export default function HomePage() {
                   </p>
                 </div>
                 <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
+                      제목
+                    </label>
+                    <input
+                      type="text"
+                      value={reopenTitle}
+                      onChange={(e) => setReopenTitle(e.target.value)}
+                      placeholder="재요청 제목을 입력하세요 (3자 이상)"
+                      className="w-full px-4 py-2 rounded-lg border text-sm"
+                      style={{
+                        borderColor: "var(--border-default)",
+                        backgroundColor: "var(--bg-card)",
+                        color: "var(--text-primary)",
+                      }}
+                      maxLength={200}
+                    />
+                  </div>
                   <RichTextEditor
                     value={reopenDescription}
                     onChange={setReopenDescription}
@@ -1100,10 +1230,10 @@ export default function HomePage() {
                 >
                   <div>
                     <p className="text-sm font-medium mb-1" style={{ color: "var(--text-tertiary)" }}>
-                      요청
+                      제목
                     </p>
                     <p className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-                      [재요청] {completedTickets.find((t) => t.id === selectedTicketId)?.title ?? ""}
+                      {reopenTitle.trim() || "(제목 없음)"}
                     </p>
                   </div>
                   <div className="h-px" style={{ backgroundColor: "var(--border-subtle)" }} />
@@ -1144,6 +1274,7 @@ export default function HomePage() {
                   onClick={() =>
                     reopenTicket.mutate({
                       ticketId: selectedTicketId,
+                      title: reopenTitle.trim(),
                       description: reopenDescription,
                       files: reopenAttachments,
                     })
