@@ -755,7 +755,7 @@ export default function HomePage() {
                       <div className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
                         카테고리 (복수 선택 가능)
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[280px] overflow-y-auto pr-1">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {sortedCategories.map((category) => {
                           const isSelected = form.category_ids.includes(category.id);
                           return (

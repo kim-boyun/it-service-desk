@@ -699,65 +699,7 @@ export default function TicketDetailPage() {
         </div>
 
         <Card>
-          <CardHeader>
-            {(parentSummary || reopens.length > 0) && (
-              <div className="flex flex-wrap gap-2 border-b pb-3 mb-3" style={{ borderColor: "var(--border-default)" }}>
-                {parentSummary ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setBodyTab("initial")}
-                      className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-                      style={{
-                        backgroundColor: bodyTab === "initial" ? "var(--color-primary-100)" : "var(--bg-subtle)",
-                        color: bodyTab === "initial" ? "var(--color-primary-700)" : "var(--text-secondary)",
-                      }}
-                    >
-                      현재 요청
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setBodyTab("parent")}
-                      className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-                      style={{
-                        backgroundColor: bodyTab === "parent" ? "var(--color-primary-100)" : "var(--bg-subtle)",
-                        color: bodyTab === "parent" ? "var(--color-primary-700)" : "var(--text-secondary)",
-                      }}
-                    >
-                      이전 요청
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setBodyTab("initial")}
-                      className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-                      style={{
-                        backgroundColor: bodyTab === "initial" ? "var(--color-primary-100)" : "var(--bg-subtle)",
-                        color: bodyTab === "initial" ? "var(--color-primary-700)" : "var(--text-secondary)",
-                      }}
-                    >
-                      최초 요청
-                    </button>
-                    {reopens.map((_, idx) => (
-                      <button
-                        key={reopens[idx].id}
-                        type="button"
-                        onClick={() => setBodyTab(idx)}
-                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-                        style={{
-                          backgroundColor: bodyTab === idx ? "var(--color-primary-100)" : "var(--bg-subtle)",
-                          color: bodyTab === idx ? "var(--color-primary-700)" : "var(--text-secondary)",
-                        }}
-                      >
-                        재요청 #{idx + 1}
-                      </button>
-                    ))}
-                  </>
-                )}
-              </div>
-            )}
+          <CardHeader className="!justify-start">
             <h2
               className="text-base font-semibold"
               style={{ color: "var(--text-primary)" }}
@@ -765,6 +707,64 @@ export default function TicketDetailPage() {
               요청 상세
             </h2>
           </CardHeader>
+          {(parentSummary || reopens.length > 0) && (
+            <div className="px-6 pt-0 pb-3 flex flex-wrap gap-2" style={{ borderColor: "var(--border-default)" }}>
+              {parentSummary ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setBodyTab("initial")}
+                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                    style={{
+                      backgroundColor: bodyTab === "initial" ? "var(--color-primary-100)" : "var(--bg-subtle)",
+                      color: bodyTab === "initial" ? "var(--color-primary-700)" : "var(--text-secondary)",
+                    }}
+                  >
+                    현재 요청
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBodyTab("parent")}
+                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                    style={{
+                      backgroundColor: bodyTab === "parent" ? "var(--color-primary-100)" : "var(--bg-subtle)",
+                      color: bodyTab === "parent" ? "var(--color-primary-700)" : "var(--text-secondary)",
+                    }}
+                  >
+                    이전 요청
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setBodyTab("initial")}
+                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                    style={{
+                      backgroundColor: bodyTab === "initial" ? "var(--color-primary-100)" : "var(--bg-subtle)",
+                      color: bodyTab === "initial" ? "var(--color-primary-700)" : "var(--text-secondary)",
+                    }}
+                  >
+                    최초 요청
+                  </button>
+                  {reopens.map((_, idx) => (
+                    <button
+                      key={reopens[idx].id}
+                      type="button"
+                      onClick={() => setBodyTab(idx)}
+                      className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                      style={{
+                        backgroundColor: bodyTab === idx ? "var(--color-primary-100)" : "var(--bg-subtle)",
+                        color: bodyTab === idx ? "var(--color-primary-700)" : "var(--text-secondary)",
+                      }}
+                    >
+                      재요청 #{idx + 1}
+                    </button>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
           <CardBody padding="lg">
             <div className="prose max-w-none text-sm" style={{ color: "var(--text-primary)" }}>
               <TiptapViewer value={bodyContent ?? EMPTY_DOC} />
@@ -844,13 +844,7 @@ export default function TicketDetailPage() {
           </CardBody>
         </Card>
 
-        <Card style={{ marginTop: 0 }}>
-          <CardHeader>
-            <h2 className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
-              답변
-            </h2>
-          </CardHeader>
-          <CardBody padding="lg" className="pt-0">
+        <div className="pt-4">
             <RichTextEditor
               value={commentBody}
               onChange={(doc) => setCommentBody(doc)}
@@ -1032,8 +1026,7 @@ export default function TicketDetailPage() {
                 </div>
               )}
             </div>
-          </CardBody>
-        </Card>
+        </div>
         <div ref={commentsEndRef} />
 
         <Card>
