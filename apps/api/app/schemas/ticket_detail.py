@@ -27,3 +27,4 @@ class TicketDetailOut(BaseModel):
     reopens: list[ReopenOut] = []
     parent_ticket_summary: Optional[ParentTicketSummary] = None
     parent_ticket_events: Optional[list[EventOut]] = None
+    parent_ticket_comments: Optional[list[CommentOut]] = None

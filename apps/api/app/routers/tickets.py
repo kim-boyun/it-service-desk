@@ -1185,6 +1185,7 @@ def get_ticket_detail(
     category_map = load_ticket_category_map(session, [ticket.id])
     parent_ticket_summary = None
     parent_ticket_events = None
+    parent_ticket_comments = None
     parent_id = getattr(ticket, "parent_ticket_id", None)
     if parent_id:
         parent = session.get(Ticket, parent_id)
@@ -1203,6 +1204,26 @@ def get_ticket_detail(
                 .order_by(desc(TicketEvent.created_at), desc(TicketEvent.id))
             )
             parent_ticket_events = list(session.scalars(parent_events_stmt).all())
+            parent_comments_stmt = (
+                select(TicketComment).where(TicketComment.ticket_id == parent_id).order_by(TicketComment.id.asc())
+            )
+            parent_comments = list(session.scalars(parent_comments_stmt).all())
+            for c in parent_comments:
+                user_ids.add(c.author_emp_no)
+            users = build_user_map(session, user_ids)
+            parent_ticket_comments = [
+                {
+                    "id": c.id,
+                    "ticket_id": c.ticket_id,
+                    "reopen_id": getattr(c, "reopen_id", None),
+                    "author_emp_no": c.author_emp_no,
+                    "author": users.get(c.author_emp_no),
+                    "title": c.title or "",
+                    "body": load_tiptap(c.body),
+                    "created_at": c.created_at,
+                }
+                for c in parent_comments
+            ]
     return {
         "ticket": serialize_ticket(ticket, users, projects, category_map, assignee_map),
         "comments": comment_payload,
@@ -1211,6 +1232,7 @@ def get_ticket_detail(
         "reopens": reopens_payload,
         "parent_ticket_summary": parent_ticket_summary,
         "parent_ticket_events": parent_ticket_events,
+        "parent_ticket_comments": parent_ticket_comments,
     }
 
 

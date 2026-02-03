@@ -679,7 +679,7 @@ export default function HomePage() {
             )}
 
             {currentStep === "category" && (
-              <div className="space-y-8">
+              <div className="space-y-8 min-h-[580px]">
                 <div className="space-y-2">
                   <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
                     3단계 / 5단계
@@ -751,11 +751,11 @@ export default function HomePage() {
                   </div>
 
                   {project ? (
-                    <div className="space-y-3">
+                    <div className="space-y-3 min-h-[380px]">
                       <div className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
                         카테고리 (복수 선택 가능)
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 min-h-[320px]">
                         {sortedCategories.map((category) => {
                           const isSelected = form.category_ids.includes(category.id);
                           return (

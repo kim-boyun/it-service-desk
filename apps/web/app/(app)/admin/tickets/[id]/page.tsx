@@ -106,6 +106,7 @@ type TicketDetail = {
   reopens: Reopen[];
   parent_ticket_summary?: ParentTicketSummary | null;
   parent_ticket_events?: Event[] | null;
+  parent_ticket_comments?: Comment[] | null;
 };
 
 type BodyTabId = "initial" | number | "parent";
@@ -533,12 +534,13 @@ export default function AdminTicketDetailPage() {
   }, [data?.attachments, bodyTab, currentReopenId, reopens.length, parentSummary]);
 
   const commentsFiltered = useMemo(() => {
+    if (parentSummary && bodyTab === "parent") return data?.parent_ticket_comments ?? [];
     if (!data?.comments) return [];
     if (parentSummary) return data.comments;
     if (reopens.length === 0) return data.comments;
     if (bodyTab === "initial") return data.comments.filter((c) => !c.reopen_id);
     return data.comments.filter((c) => c.reopen_id === currentReopenId);
-  }, [data?.comments, bodyTab, currentReopenId, reopens.length, parentSummary]);
+  }, [data?.comments, data?.parent_ticket_comments, bodyTab, currentReopenId, reopens.length, parentSummary]);
 
   // 완료일: API의 resolved_at(완료) 또는 closed_at(사업검토)
   const completedAt = useMemo(() => {
@@ -1089,6 +1091,69 @@ export default function AdminTicketDetailPage() {
             </div>
         </div>
 
+        {(parentSummary || reopens.length > 0) && (
+          <div className="flex flex-wrap gap-2">
+            {parentSummary ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setBodyTab("initial")}
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                  style={{
+                    backgroundColor: bodyTab === "initial" ? "var(--color-primary-100)" : "var(--bg-subtle)",
+                    color: bodyTab === "initial" ? "var(--color-primary-700)" : "var(--text-secondary)",
+                    border: bodyTab === "initial" ? "2px solid var(--color-primary-500)" : "1px solid var(--border-default)",
+                  }}
+                >
+                  현재 요청
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBodyTab("parent")}
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                  style={{
+                    backgroundColor: bodyTab === "parent" ? "var(--color-success-100)" : "var(--bg-subtle)",
+                    color: bodyTab === "parent" ? "var(--color-success-700)" : "var(--text-secondary)",
+                    border: bodyTab === "parent" ? "2px solid var(--color-success-500)" : "1px solid var(--border-default)",
+                  }}
+                >
+                  이전 요청
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setBodyTab("initial")}
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                  style={{
+                    backgroundColor: bodyTab === "initial" ? "var(--color-primary-100)" : "var(--bg-subtle)",
+                    color: bodyTab === "initial" ? "var(--color-primary-700)" : "var(--text-secondary)",
+                    border: bodyTab === "initial" ? "2px solid var(--color-primary-500)" : "1px solid var(--border-default)",
+                  }}
+                >
+                  최초 요청
+                </button>
+                {reopens.map((_, idx) => (
+                  <button
+                    key={reopens[idx].id}
+                    type="button"
+                    onClick={() => setBodyTab(idx)}
+                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                    style={{
+                      backgroundColor: bodyTab === idx ? "var(--color-success-100)" : "var(--bg-subtle)",
+                      color: bodyTab === idx ? "var(--color-success-700)" : "var(--text-secondary)",
+                      border: bodyTab === idx ? "2px solid var(--color-success-500)" : "1px solid var(--border-default)",
+                    }}
+                  >
+                    재요청 #{idx + 1}
+                  </button>
+                ))}
+              </>
+            )}
+          </div>
+        )}
+
         <Card>
           <CardHeader className="!justify-start">
             <h2 
@@ -1098,68 +1163,6 @@ export default function AdminTicketDetailPage() {
               요청 상세
             </h2>
           </CardHeader>
-          {(parentSummary || reopens.length > 0) && (
-            <div className="px-6 pt-0 pb-3 flex flex-wrap gap-2" style={{ borderColor: "var(--border-default)" }}>
-              {parentSummary ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setBodyTab("initial")}
-                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-                    style={{
-                      backgroundColor: bodyTab === "initial" ? "var(--color-primary-100)" : "var(--bg-subtle)",
-                      color: bodyTab === "initial" ? "var(--color-primary-700)" : "var(--text-secondary)",
-                      border: bodyTab === "initial" ? "2px solid var(--color-primary-500)" : "1px solid var(--border-default)",
-                    }}
-                  >
-                    현재 요청
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBodyTab("parent")}
-                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-                    style={{
-                      backgroundColor: bodyTab === "parent" ? "var(--color-success-100)" : "var(--bg-subtle)",
-                      color: bodyTab === "parent" ? "var(--color-success-700)" : "var(--text-secondary)",
-                      border: bodyTab === "parent" ? "2px solid var(--color-success-500)" : "1px solid var(--border-default)",
-                    }}
-                  >
-                    이전 요청
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setBodyTab("initial")}
-                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-                    style={{
-                      backgroundColor: bodyTab === "initial" ? "var(--color-primary-100)" : "var(--bg-subtle)",
-                      color: bodyTab === "initial" ? "var(--color-primary-700)" : "var(--text-secondary)",
-                      border: bodyTab === "initial" ? "2px solid var(--color-primary-500)" : "1px solid var(--border-default)",
-                    }}
-                  >
-                    최초 요청
-                  </button>
-                  {reopens.map((_, idx) => (
-                    <button
-                      key={reopens[idx].id}
-                      type="button"
-                      onClick={() => setBodyTab(idx)}
-                      className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-                      style={{
-                        backgroundColor: bodyTab === idx ? "var(--color-success-100)" : "var(--bg-subtle)",
-                        color: bodyTab === idx ? "var(--color-success-700)" : "var(--text-secondary)",
-                        border: bodyTab === idx ? "2px solid var(--color-success-500)" : "1px solid var(--border-default)",
-                      }}
-                    >
-                      재요청 #{idx + 1}
-                    </button>
-                  ))}
-                </>
-              )}
-            </div>
-          )}
           <CardBody padding="lg">
             <div className="prose max-w-none text-sm" style={{ color: "var(--text-primary)" }}>
               <TiptapViewer value={bodyContent ?? EMPTY_DOC} />
@@ -1233,6 +1236,8 @@ export default function AdminTicketDetailPage() {
         </Card>
 
         <div className="pt-4">
+            {bodyTab !== "parent" && (
+              <>
             <RichTextEditor
               value={commentBody}
               onChange={(doc) => setCommentBody(doc)}
@@ -1329,6 +1334,8 @@ export default function AdminTicketDetailPage() {
                 {commentError}
               </div>
             )}
+              </>
+            )}
 
             <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--border-default)" }}>
               {commentsFiltered.length === 0 ? (
@@ -1336,17 +1343,17 @@ export default function AdminTicketDetailPage() {
                   아직 답변이 없습니다. 첫 번째 답변을 작성해보세요.
                 </div>
               ) : (
-                <div className="space-y-0">
-                  {[...commentsFiltered].reverse().map((c, idx) => {
+                <div className="space-y-3">
+                  {[...commentsFiltered].reverse().map((c) => {
                     const isMyComment = me.emp_no === c.author_emp_no;
                     const commentAttachments = attachments.filter((a) => a.comment_id === c.id);
                     return (
                       <div
                         key={c.id}
-                        className="py-4"
+                        className="rounded-xl border p-4"
                         style={{
-                          borderBottom:
-                            idx < commentsFiltered.length - 1 ? "1px solid var(--border-default)" : undefined,
+                          borderColor: "var(--border-default)",
+                          backgroundColor: "var(--bg-card)",
                         }}
                       >
                         <div className="flex items-center justify-between mb-2">
