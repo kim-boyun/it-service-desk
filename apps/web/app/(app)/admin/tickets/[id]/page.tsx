@@ -1029,7 +1029,7 @@ export default function AdminTicketDetailPage() {
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
                           {WORK_TYPE_OPTIONS.map((o) => (
                             <label key={o.value} className="inline-flex items-center gap-2 text-sm cursor-pointer">
                               <input

@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -167,6 +168,41 @@ export default function AdminTicketsPage() {
   const [sortKey, setSortKey] = useState<SortKey | "default">("default");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [editingTicketId, setEditingTicketId] = useState<number | null>(null);
+  const [assigneePopoverAnchor, setAssigneePopoverAnchor] = useState<{ ticketId: number; rect: DOMRect } | null>(null);
+  const assigneePopoverRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!assigneePopoverAnchor) return;
+    const onScroll = (e: Event) => {
+      if (assigneePopoverRef.current?.contains(e.target as Node)) return;
+      setAssigneePopoverAnchor(null);
+      setEditingTicketId(null);
+    };
+    const onResize = () => {
+      setAssigneePopoverAnchor(null);
+      setEditingTicketId(null);
+    };
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [assigneePopoverAnchor]);
+
+  useEffect(() => {
+    if (!assigneePopoverAnchor) return;
+    const handler = (e: MouseEvent) => {
+      const el = assigneePopoverRef.current;
+      const target = e.target as Node;
+      if (el && !el.contains(target) && !(e.target as Element)?.closest?.("[data-assignee-edit-trigger]")) {
+        setAssigneePopoverAnchor(null);
+        setEditingTicketId(null);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [assigneePopoverAnchor]);
 
   if (me.role !== "admin") {
     router.replace("/home");
@@ -502,74 +538,20 @@ export default function AdminTicketsPage() {
                               }}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setEditingTicketId(editingTicketId === t.id ? null : t.id);
+                                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                if (editingTicketId === t.id) {
+                                  setEditingTicketId(null);
+                                  setAssigneePopoverAnchor(null);
+                                } else {
+                                  setEditingTicketId(t.id);
+                                  setAssigneePopoverAnchor({ ticketId: t.id, rect });
+                                }
                               }}
+                              data-assignee-edit-trigger
                             >
                               편집
                             </button>
                           </div>
-                          {editingTicketId === t.id && (
-                            <div 
-                              className="absolute z-50 mt-1 p-3 rounded-lg shadow-lg"
-                              style={{
-                                backgroundColor: "var(--bg-elevated)",
-                                border: "1px solid var(--border-default)",
-                                top: "100%",
-                                right: "0",
-                                minWidth: "280px",
-                                maxHeight: "300px",
-                                overflowY: "auto",
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <div className="space-y-2">
-                                {staffOptions.length === 0 && (
-                                  <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>
-                                    관리자 계정이 없습니다.
-                                  </span>
-                                )}
-                                {staffOptions.map((u) => {
-                                  const currentAssignees = t.assignee_emp_nos || (t.assignee_emp_no ? [t.assignee_emp_no] : []);
-                                  const checked = currentAssignees.includes(u.emp_no);
-                                  return (
-                                    <label key={u.emp_no} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-opacity-50 p-1 rounded">
-                                      <input
-                                        type="checkbox"
-                                        className="h-4 w-4 rounded"
-                                        style={{ accentColor: "var(--color-primary-600)" }}
-                                        checked={checked}
-                                        onChange={() => {
-                                          const next = checked
-                                            ? currentAssignees.filter((empNo) => empNo !== u.emp_no)
-                                            : [...currentAssignees, u.emp_no];
-                                          assignM.mutate({ ticketId: t.id, assigneeEmpNos: next });
-                                        }}
-                                      />
-                                      <span>{formatUser(u, u.emp_no)}</span>
-                                    </label>
-                                  );
-                                })}
-                              </div>
-                              <div className="mt-3 pt-2" style={{ borderTop: "1px solid var(--border-default)" }}>
-                                <button
-                                  className="w-full text-xs px-3 py-1.5 rounded transition-colors font-medium"
-                                  style={{
-                                    color: "white",
-                                    backgroundColor: "var(--color-primary-600)",
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
-                                  }}
-                                  onClick={() => setEditingTicketId(null)}
-                                >
-                                  완료
-                                </button>
-                              </div>
-                            </div>
-                          )}
                         </td>
                         <td className="px-6 py-4 text-center" style={{ color: "var(--text-secondary)" }}>
                           {workTypeLabel(t.work_type)}
@@ -599,6 +581,90 @@ export default function AdminTicketsPage() {
           </CardBody>
         </Card>
       )}
+
+      {typeof document !== "undefined" &&
+        assigneePopoverAnchor &&
+        (() => {
+          const t = pageItems.find((x) => x.id === assigneePopoverAnchor!.ticketId);
+          if (!t) return null;
+          const rect = assigneePopoverAnchor.rect;
+          const popupMaxH = 280;
+          const openAbove = rect.bottom + popupMaxH > window.innerHeight;
+          return createPortal(
+            <div
+              ref={assigneePopoverRef}
+              className="rounded-lg shadow-lg border flex flex-col p-3 z-[100]"
+              style={{
+                position: "fixed",
+                minWidth: "280px",
+                maxHeight: `${popupMaxH}px`,
+                ...(openAbove
+                  ? { bottom: window.innerHeight - rect.top + 4, left: Math.max(8, Math.min(rect.left, window.innerWidth - 288)) }
+                  : { top: rect.bottom + 4, left: Math.max(8, Math.min(rect.left, window.innerWidth - 288)) }),
+                backgroundColor: "var(--bg-elevated)",
+                borderColor: "var(--border-default)",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="overflow-y-auto flex-1 min-h-0 space-y-2 pr-1" style={{ maxHeight: "220px" }}>
+                {staffOptions.length === 0 ? (
+                  <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+                    관리자 계정이 없습니다.
+                  </span>
+                ) : (
+                  staffOptions.map((u) => {
+                    const currentAssignees = t.assignee_emp_nos ?? (t.assignee_emp_no ? [t.assignee_emp_no] : []);
+                    const checked = currentAssignees.includes(u.emp_no);
+                    return (
+                      <label
+                        key={u.emp_no}
+                        className="flex items-center gap-2 text-xs cursor-pointer hover:bg-opacity-50 p-1 rounded"
+                      >
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded"
+                          style={{ accentColor: "var(--color-primary-600)" }}
+                          checked={checked}
+                          onChange={() => {
+                            const next = checked
+                              ? currentAssignees.filter((empNo) => empNo !== u.emp_no)
+                              : [...currentAssignees, u.emp_no];
+                            assignM.mutate({ ticketId: t.id, assigneeEmpNos: next });
+                          }}
+                        />
+                        <span>{formatUser(u, u.emp_no)}</span>
+                      </label>
+                    );
+                  })
+                )}
+              </div>
+              <div className="flex-shrink-0 mt-3 pt-2 border-t" style={{ borderColor: "var(--border-default)" }}>
+                <button
+                  type="button"
+                  className="w-full text-xs px-3 py-1.5 rounded transition-colors font-medium"
+                  style={{
+                    color: "white",
+                    backgroundColor: "var(--color-primary-600)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
+                  }}
+                  onClick={() => {
+                    setEditingTicketId(null);
+                    setAssigneePopoverAnchor(null);
+                  }}
+                >
+                  완료
+                </button>
+              </div>
+            </div>,
+            document.body
+          );
+        })()}
+
     </div>
   );
 }
