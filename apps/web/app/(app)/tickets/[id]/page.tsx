@@ -968,7 +968,7 @@ export default function TicketDetailPage() {
                           backgroundColor: "var(--bg-card)",
                         }}
                       >
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center gap-3">
                             <span
                               className="text-sm font-semibold"
