@@ -165,11 +165,14 @@ export default function AdminAllTicketsPage() {
   const [editingTicketId, setEditingTicketId] = useState<number | null>(null);
   const [assigneePopoverAnchor, setAssigneePopoverAnchor] = useState<{ ticketId: number; rect: DOMRect } | null>(null);
   const assigneePopoverRef = useRef<HTMLDivElement>(null);
+  const assigneePopoverOpenedAtRef = useRef<number>(0);
 
   useEffect(() => {
     if (!assigneePopoverAnchor) return;
+    assigneePopoverOpenedAtRef.current = Date.now();
     const onScroll = (e: Event) => {
       if (assigneePopoverRef.current?.contains(e.target as Node)) return;
+      if (Date.now() - assigneePopoverOpenedAtRef.current < 200) return;
       setAssigneePopoverAnchor(null);
       setEditingTicketId(null);
     };
@@ -177,9 +180,12 @@ export default function AdminAllTicketsPage() {
       setAssigneePopoverAnchor(null);
       setEditingTicketId(null);
     };
-    window.addEventListener("scroll", onScroll, true);
+    const t = setTimeout(() => {
+      window.addEventListener("scroll", onScroll, true);
+    }, 200);
     window.addEventListener("resize", onResize);
     return () => {
+      clearTimeout(t);
       window.removeEventListener("scroll", onScroll, true);
       window.removeEventListener("resize", onResize);
     };
@@ -205,7 +211,7 @@ export default function AdminAllTicketsPage() {
     return null;
   }
 
-  const limit = 100;
+  const limit = 1000;
   const offset = 0;
 
   const { data, isLoading, error } = useQuery({
@@ -618,7 +624,7 @@ export default function AdminAllTicketsPage() {
             >
               <div className="overflow-y-auto flex-1 min-h-0 space-y-2 pr-1" style={{ maxHeight: "220px" }}>
                 {staffOptions.length === 0 ? (
-                  <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+                  <span className="text-sm" style={{ color: "var(--text-tertiary)" }}>
                     관리자 계정이 없습니다.
                   </span>
                 ) : (
@@ -628,7 +634,7 @@ export default function AdminAllTicketsPage() {
                     return (
                       <label
                         key={u.emp_no}
-                        className="flex items-center gap-2 text-xs cursor-pointer hover:bg-opacity-50 p-1 rounded"
+                        className="flex items-center gap-2 text-sm cursor-pointer hover:bg-opacity-50 p-1 rounded"
                       >
                         <input
                           type="checkbox"
@@ -651,7 +657,7 @@ export default function AdminAllTicketsPage() {
               <div className="flex-shrink-0 mt-3 pt-2 border-t" style={{ borderColor: "var(--border-default)" }}>
                 <button
                   type="button"
-                  className="w-full text-xs px-3 py-1.5 rounded transition-colors font-medium"
+                  className="w-full text-sm px-3 py-2 rounded transition-colors font-medium"
                   style={{
                     color: "white",
                     backgroundColor: "var(--color-primary-600)",

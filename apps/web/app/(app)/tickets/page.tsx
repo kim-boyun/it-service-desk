@@ -132,7 +132,7 @@ export default function TicketsPage() {
   const router = useRouter();
   const { map: categoryMap } = useTicketCategories();
 
-  const limit = 100;
+  const limit = 1000;
   const offset = 0;
 
   const [status, setStatus] = useState<string>("all");

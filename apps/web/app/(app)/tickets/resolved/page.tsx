@@ -129,7 +129,7 @@ export default function ResolvedTicketsPage() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["resolved-tickets"],
-    queryFn: () => api<Ticket[]>(`/tickets?status=${status}&limit=100&offset=0`),
+    queryFn: () => api<Ticket[]>(`/tickets?status=${status}&limit=1000&offset=0`),
     staleTime: 5_000,
   });
 

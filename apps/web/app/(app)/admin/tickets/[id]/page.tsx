@@ -1356,7 +1356,7 @@ export default function AdminTicketDetailPage() {
                           backgroundColor: "var(--bg-card)",
                         }}
                       >
-                        <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-3">
                             <span
                               className="text-sm font-semibold"

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo } from "react";
 import Link from "next/link";
@@ -65,7 +65,7 @@ export default function HomePage() {
   // 최근 요청 목록(필요하면 limit/offset 사용)
   const { data: tickets, isLoading } = useQuery({
     queryKey: ["tickets", "home"],
-    queryFn: () => api<Ticket[]>("/tickets?limit=50&offset=0"),
+    queryFn: () => api<Ticket[]>("/tickets?limit=1000&offset=0"),
   });
 
   const stats = useMemo(() => {
