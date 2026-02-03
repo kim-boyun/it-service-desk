@@ -257,8 +257,13 @@ export default function AdminTicketsPage() {
 
   const norm = normalize(data ?? []);
 
+  const isAssignee = (t: Ticket) => {
+    const empNos = t.assignee_emp_nos ?? (t.assignee_emp_no ? [t.assignee_emp_no] : []);
+    return empNos.includes(me.emp_no);
+  };
+
   const filtered = useMemo(() => {
-    let list = norm.items.filter((t) => t.assignee_emp_no === me.emp_no);
+    let list = norm.items.filter(isAssignee);
     list = list.filter((t) => passesStatusFilter(t, statusFilter));
     if (search.trim()) {
       list = list.filter((t) => matchesSearch(t, search.trim()));

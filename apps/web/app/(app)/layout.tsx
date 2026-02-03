@@ -13,7 +13,6 @@ function resolvePageTitle(pathname: string) {
   if (pathname === "/home") return "홈";
   if (pathname === "/tickets/new") return "요청 작성";
   if (pathname === "/tickets") return "요청 목록";
-  if (pathname.startsWith("/tickets/resolved")) return "처리 완료";
   if (pathname.startsWith("/tickets/review")) return "사업 검토";
   if (/^\/tickets\/\d+\/edit$/.test(pathname)) return "요청 수정";
   if (/^\/tickets\/\d+\/comments\/new$/.test(pathname)) return "답변 등록";
