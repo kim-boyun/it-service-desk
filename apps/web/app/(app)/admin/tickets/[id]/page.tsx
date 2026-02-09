@@ -1347,6 +1347,8 @@ export default function AdminTicketDetailPage() {
                   {[...commentsFiltered].reverse().map((c) => {
                     const isMyComment = me.emp_no === c.author_emp_no;
                     const commentAttachments = attachments.filter((a) => a.comment_id === c.id);
+                    const ticket = data?.ticket;
+                    const commentLabel = ticket && c.author_emp_no === ticket.requester_emp_no ? "요청자" : "담당자";
                     return (
                       <div
                         key={c.id}
@@ -1362,7 +1364,7 @@ export default function AdminTicketDetailPage() {
                               className="text-sm font-semibold"
                               style={{ color: "var(--text-primary)" }}
                             >
-                              답변
+                              {commentLabel}
                             </span>
                             <span
                               className="text-xs px-2 py-0.5 rounded"

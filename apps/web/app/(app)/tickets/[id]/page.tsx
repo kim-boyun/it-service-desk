@@ -959,6 +959,8 @@ export default function TicketDetailPage() {
                   {[...commentsFiltered].reverse().map((c) => {
                     const isMyComment = me.emp_no === c.author_emp_no;
                     const commentAttachments = bodyTab === "parent" ? [] : data!.attachments.filter((a) => a.comment_id === c.id);
+                    const ticket = data!.ticket;
+                    const commentLabel = c.author_emp_no === ticket.requester_emp_no ? "요청자" : "담당자";
                     return (
                       <div
                         key={c.id}
@@ -974,7 +976,7 @@ export default function TicketDetailPage() {
                               className="text-sm font-semibold"
                               style={{ color: "var(--text-primary)" }}
                             >
-                              답변
+                              {commentLabel}
                             </span>
                             <span
                               className="text-xs px-2 py-0.5 rounded"
