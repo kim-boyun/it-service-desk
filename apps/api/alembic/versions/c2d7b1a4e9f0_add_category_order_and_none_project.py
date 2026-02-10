@@ -136,11 +136,11 @@ def upgrade() -> None:
     ordered = [
         ("mis_academic", "MIS(학사)", 10),
         ("mis_admin", "MIS(일반행정)", 20),
-        ("portal", "포탈 (전자결재)", 30),
-        ("dooray", "두레이 (메일)", 40),
+        ("portal", "포탈(전자결재)", 30),
+        ("dooray", "두레이(메일)", 40),
         ("vdi_gabia_daas", "VDI(Gabia DaaS)", 50),
-        ("it_service", "IT 서비스 (컴퓨터, 프린터 등)", 60),
-        ("infra", "인프라 (인터넷)", 70),
+        ("it_service", "IT 서비스(컴퓨터, 프린터 등)", 60),
+        ("infra", "인프라(인터넷)", 70),
         ("etc", "기타", 80),
     ]
     for code, name, order in ordered:
