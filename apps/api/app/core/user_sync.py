@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 import logging
 import re
 import threading
@@ -15,7 +16,9 @@ from ..db import SessionLocal
 from ..models.sync_state import SyncState
 
 
-SYNC_KEY = "users_from_misdb"
+SYNC_KEY_PASSWORD = "users_password_sync"
+SYNC_KEY_PROFILE = "users_profile_sync"
+KST = ZoneInfo("Asia/Seoul")
 _force_full_done = False
 logger = logging.getLogger(__name__)
 
@@ -25,7 +28,9 @@ class SyncConfig:
     source_url: str
     source_schema: str
     emp_no_prefix: str
-    interval_seconds: int
+    password_interval_seconds: int
+    full_at_hour_kst: int
+    full_at_minute_kst: int
 
 
 def _safe_schema_name(raw: str) -> str:
@@ -43,11 +48,28 @@ def _load_config() -> SyncConfig | None:
         source_url=settings.sync_source_database_url,
         source_schema=_safe_schema_name(settings.sync_source_schema),
         emp_no_prefix=settings.sync_emp_no_prefix,
-        interval_seconds=settings.sync_interval_seconds,
+        password_interval_seconds=max(60, settings.sync_password_interval_seconds),
+        full_at_hour_kst=settings.sync_full_at_hour_kst,
+        full_at_minute_kst=settings.sync_full_at_minute_kst,
     )
 
 
-def _source_query(schema: str) -> str:
+def _source_query_password(schema: str) -> str:
+    """Rows from ca_user_m (and gp_master for filter) where password was updated after last_sync."""
+    return f"""
+        SELECT cu.user_id AS emp_no, cu.password, cu.update_dtime AS updated_at
+        FROM {schema}.ca_user_m AS cu
+        JOIN {schema}.gp_master AS gm ON gm.emp_no = cu.user_id
+        WHERE gm.emp_no LIKE :emp_like
+          AND gm.work_tp IN ('1', '3')
+          AND gm.emp_tp IN ('1', '2')
+          AND cu.password IS NOT NULL
+          AND cu.update_dtime > :last_sync
+    """
+
+
+def _source_query_profile(schema: str) -> str:
+    """Full profile (name, title, dept, email); password in SELECT for INSERT of new users only."""
     return f"""
         SELECT
             gm.emp_no,
@@ -94,10 +116,11 @@ def _source_query(schema: str) -> str:
     """
 
 
-def sync_users_once() -> int:
+def sync_password_once() -> int:
+    """Sync only password from source; runs every sync_password_interval_seconds."""
     cfg = _load_config()
     if not cfg:
-        logger.info("user sync skipped (disabled or missing source URL)")
+        logger.info("user password sync skipped (disabled or missing source URL)")
         return 0
 
     source_engine = create_engine(cfg.source_url, pool_pre_ping=True)
@@ -105,15 +128,11 @@ def sync_users_once() -> int:
     affected = 0
 
     with source_engine.connect() as source_conn, SessionLocal() as session:
-        state = session.get(SyncState, SYNC_KEY)
-        global _force_full_done
-        if settings.sync_force_full and not _force_full_done:
-            last_sync = datetime(1970, 1, 1, tzinfo=timezone.utc)
-        else:
-            last_sync = state.last_synced_at if state and state.last_synced_at else datetime(1970, 1, 1, tzinfo=timezone.utc)
+        state = session.get(SyncState, SYNC_KEY_PASSWORD)
+        last_sync = state.last_synced_at if state and state.last_synced_at else datetime(1970, 1, 1, tzinfo=timezone.utc)
 
         rows = source_conn.execute(
-            text(_source_query(cfg.source_schema)),
+            text(_source_query_password(cfg.source_schema)),
             {"emp_like": f"{cfg.emp_no_prefix}%", "last_sync": last_sync},
         ).mappings()
 
@@ -122,7 +141,62 @@ def sync_users_once() -> int:
             updated_at = row.get("updated_at")
             if updated_at and (max_updated is None or updated_at > max_updated):
                 max_updated = updated_at
+            session.execute(
+                text(
+                    """
+                    UPDATE users
+                    SET password = :password, updated_at = NOW()
+                    WHERE emp_no = :emp_no
+                    """
+                ),
+                {"emp_no": row.get("emp_no"), "password": row.get("password")},
+            )
 
+        if affected:
+            if not state:
+                state = SyncState(key=SYNC_KEY_PASSWORD)
+                session.add(state)
+            state.last_synced_at = max_updated or datetime.now(timezone.utc)
+        session.commit()
+
+    if affected:
+        logger.info("user password sync completed; rows=%d", affected)
+    return affected
+
+
+def sync_profile_once() -> int:
+    """Sync profile (name, title, department, email) only; intended to run once per day at midnight KST."""
+    cfg = _load_config()
+    if not cfg:
+        logger.info("user profile sync skipped (disabled or missing source URL)")
+        return 0
+
+    source_engine = create_engine(cfg.source_url, pool_pre_ping=True)
+    max_updated = None
+    affected = 0
+
+    with source_engine.connect() as source_conn, SessionLocal() as session:
+        state = session.get(SyncState, SYNC_KEY_PROFILE)
+        global _force_full_done
+        if settings.sync_force_full and not _force_full_done:
+            last_sync = datetime(1970, 1, 1, tzinfo=timezone.utc)
+        else:
+            last_sync = (
+                state.last_synced_at
+                if state and state.last_synced_at
+                else datetime(1970, 1, 1, tzinfo=timezone.utc)
+            )
+
+        rows = source_conn.execute(
+            text(_source_query_profile(cfg.source_schema)),
+            {"emp_like": f"{cfg.emp_no_prefix}%", "last_sync": last_sync},
+        ).mappings()
+
+        for row in rows:
+            affected += 1
+            updated_at = row.get("updated_at")
+            if updated_at and (max_updated is None or updated_at > max_updated):
+                max_updated = updated_at
             session.execute(
                 text(
                     """
@@ -157,7 +231,6 @@ def sync_users_once() -> int:
                         eng_name = EXCLUDED.eng_name,
                         title = EXCLUDED.title,
                         department = EXCLUDED.department,
-                        password = EXCLUDED.password,
                         email = EXCLUDED.email,
                         updated_at = NOW()
                     """
@@ -175,7 +248,7 @@ def sync_users_once() -> int:
 
         if affected:
             if not state:
-                state = SyncState(key=SYNC_KEY)
+                state = SyncState(key=SYNC_KEY_PROFILE)
                 session.add(state)
             state.last_synced_at = max_updated or datetime.now(timezone.utc)
         session.commit()
@@ -183,21 +256,44 @@ def sync_users_once() -> int:
         if settings.sync_force_full:
             _force_full_done = True
 
-    logger.info("user sync completed; rows=%d", affected)
-
+    logger.info("user profile sync completed; rows=%d", affected)
     return affected
+
+
+def _is_midnight_kst(cfg: SyncConfig) -> bool:
+    now = datetime.now(KST)
+    return now.hour == cfg.full_at_hour_kst and now.minute == cfg.full_at_minute_kst
 
 
 def _sync_loop() -> None:
     cfg = _load_config()
     if not cfg:
         return
+
+    last_password_run = 0.0
+    last_profile_date_kst: datetime | None = None
+    check_interval = 60
+
     while True:
         try:
-            sync_users_once()
+            now_ts = time.time()
+            now_kst = datetime.now(KST)
+
+            # Password: every sync_password_interval_seconds
+            if now_ts - last_password_run >= cfg.password_interval_seconds:
+                sync_password_once()
+                last_password_run = now_ts
+
+            # Profile: once per day when we're in the configured hour (KST)
+            if now_kst.hour == cfg.full_at_hour_kst and (
+                last_profile_date_kst is None or now_kst.date() > last_profile_date_kst.date()
+            ):
+                sync_profile_once()
+                last_profile_date_kst = now_kst
         except Exception:
             logger.exception("user sync failed")
-        time.sleep(max(10, cfg.interval_seconds))
+
+        time.sleep(check_interval)
 
 
 def start_user_sync_thread() -> None:
@@ -206,3 +302,9 @@ def start_user_sync_thread() -> None:
         return
     t = threading.Thread(target=_sync_loop, name="user-sync", daemon=True)
     t.start()
+    logger.info(
+        "user sync started: password every %ds, profile at %02d:%02d KST",
+        cfg.password_interval_seconds,
+        cfg.full_at_hour_kst,
+        cfg.full_at_minute_kst,
+    )

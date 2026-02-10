@@ -11,7 +11,10 @@ class Settings(BaseModel):
         if d.strip()
     ]
     sync_enabled: bool = os.getenv("SYNC_ENABLED", "false").lower() == "true"
-    sync_interval_seconds: int = int(os.getenv("SYNC_INTERVAL_SECONDS", "300"))
+    sync_interval_seconds: int = int(os.getenv("SYNC_INTERVAL_SECONDS", "300"))  # legacy; prefer password/profile intervals
+    sync_password_interval_seconds: int = int(os.getenv("SYNC_PASSWORD_INTERVAL_SECONDS", "3600"))  # 1h
+    sync_full_at_hour_kst: int = int(os.getenv("SYNC_FULL_AT_HOUR_KST", "0"))  # 0 = midnight KST
+    sync_full_at_minute_kst: int = int(os.getenv("SYNC_FULL_AT_MINUTE_KST", "0"))
     sync_source_database_url: str = os.getenv("SYNC_SOURCE_DATABASE_URL", "")
     sync_source_schema: str = os.getenv("SYNC_SOURCE_SCHEMA", "kdis")
     sync_emp_no_prefix: str = os.getenv("SYNC_EMP_NO_PREFIX", "3")
