@@ -180,16 +180,16 @@ nextjs-portal,
 
 .tiptap .ProseMirror {
   /* 공통 에디터: 티켓 본문·답글·FAQ·공지 모두 동일 간격 */
-  min-height: 140px;
+  min-height: 120px;
   outline: none;
-  font-size: 0.9rem;
-  line-height: 1.5;
+  font-size: 0.875rem;
+  line-height: 1.45;
   color: var(--text-primary);
   background-color: transparent;
 }
 
 .tiptap .ProseMirror > * + * {
-  margin-top: 0.5rem;
+  margin-top: 0.4rem;
 }
 
 /* 답변용 컴팩트 스타일 */
