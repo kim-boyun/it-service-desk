@@ -445,7 +445,7 @@ export default function AdminAllTicketsPage() {
                                       미배정
                                     </span>
                                   );
-                                
+                                }
                                 return displayAssignees.map((u) => (
                                   <span
                                     key={u.emp_no}
