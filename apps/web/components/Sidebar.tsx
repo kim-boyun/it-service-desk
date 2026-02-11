@@ -185,9 +185,7 @@ function ExpandableNavItem({
         <div className="mt-1 ml-8 space-y-0.5">
           {subItems.map((sub) => {
             const SubIcon = sub.icon;
-            const subActive =
-              pathname === sub.href ||
-              pathname.startsWith(sub.href + "/");
+            const subActive = pathname === sub.href;
             return (
               <Link
                 key={sub.href}
