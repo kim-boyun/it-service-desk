@@ -343,7 +343,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
         )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-1">
+      <nav className="sidebar-nav flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-1">
         {mainNav.map((item) => {
           const isTicketDetail = item.href === "/tickets" && /^\/tickets\/\d+(\/|$)/.test(pathname);
           return (

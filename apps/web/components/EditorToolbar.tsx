@@ -58,7 +58,7 @@ export default function EditorToolbar({ editor, onOpenLink, onRemoveLink, onPick
   const isLinkActive = editor.isActive("link");
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-t-lg border-b bg-white px-3 py-2">
+    <div className="mobile-editor-toolbar flex flex-wrap items-center gap-2 rounded-t-lg border-b bg-white px-3 py-2">
       <select
         className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-700"
         value={headingValue}

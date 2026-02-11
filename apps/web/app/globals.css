@@ -406,3 +406,57 @@ nextjs-portal,
   background-color: var(--color-primary-800);
   color: var(--color-primary-100);
 }
+
+/* === MOBILE RESPONSIVE (모바일에서만 적용, 웹 유지) === */
+@media (max-width: 767px) {
+  /* 테이블: 가로 스크롤 유지 + 터치 스크롤, 행 패딩 확대 */
+  .mobile-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .mobile-table-wrap table tbody tr {
+    min-height: 48px;
+  }
+  .mobile-table-wrap table tbody td {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  /* 에디터 툴바: 가로 스크롤, 한 줄 유지 */
+  .mobile-editor-toolbar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+  }
+  .mobile-editor-toolbar::-webkit-scrollbar {
+    height: 6px;
+  }
+  .mobile-editor-toolbar button,
+  .mobile-editor-toolbar .min-touch {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .mobile-editor-toolbar select {
+    min-height: 44px;
+  }
+
+  /* 터치 영역: 버튼/링크 최소 44px */
+  .mobile-touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* 목록/카드 간격 확대 */
+  .mobile-list-gap > * + * {
+    margin-top: 0.5rem;
+  }
+
+  /* 사이드바 메뉴 터치 영역 */
+  .sidebar-nav a,
+  .sidebar-nav button {
+    min-height: 44px;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+}

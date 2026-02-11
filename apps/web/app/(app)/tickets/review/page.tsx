@@ -285,7 +285,35 @@ export default function ReviewTicketsPage() {
       {!isLoading && (
         <Card padding="none">
           <CardBody padding="none">
-            <div className="overflow-x-auto">
+            {/* 모바일 전용 카드 뷰 */}
+            <div className="block md:hidden mobile-list-gap p-4">
+              {pageItems.length === 0 ? (
+                <div className="py-12 text-center text-sm" style={{ color: "var(--text-tertiary)" }}>
+                  사업 검토 요청이 없습니다.
+                </div>
+              ) : (
+                pageItems.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    className="w-full text-left rounded-xl border p-4 transition-colors min-h-[44px]"
+                    style={{ borderColor: "var(--border-default)", backgroundColor: "var(--bg-card)" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--bg-hover)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "var(--bg-card)"; }}
+                    onClick={() => router.push(`/tickets/${t.id}`)}
+                  >
+                    <div className="font-medium text-sm mb-2" style={{ color: "var(--text-primary)" }}>{t.title}</div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <StatusBadge status={t.status} />
+                      <span className="text-xs" style={{ color: "var(--text-secondary)" }}>{workTypeLabel(t.work_type)}</span>
+                      <span className="text-xs" style={{ color: "var(--text-secondary)" }}>{categoryLabel(t.category_id)}</span>
+                      <span className="text-xs ml-auto" style={{ color: "var(--text-tertiary)" }}>{formatDate(t.created_at)}</span>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+            <div className="overflow-x-auto hidden md:block mobile-table-wrap">
               <table className="w-full text-sm whitespace-nowrap">
                 <thead style={{ backgroundColor: "var(--bg-subtle)" }}>
                   <tr style={{ borderBottom: "1px solid var(--border-default)" }}>

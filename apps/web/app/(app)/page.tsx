@@ -146,7 +146,7 @@ export default function HomePage() {
             ) : recent.length === 0 ? (
               <div className="text-sm text-gray-500">표시할 요청이 없습니다.</div>
             ) : (
-              <div className="border rounded overflow-hidden">
+              <div className="mobile-table-wrap border rounded overflow-hidden overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50">
                     <tr className="border-b">

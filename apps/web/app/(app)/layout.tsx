@@ -78,7 +78,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
             <div className="mx-auto w-full max-w-[1800px] flex items-center justify-between gap-4">
               <button
                 type="button"
-                className="lg:hidden flex items-center justify-center w-10 h-10 rounded-lg border transition-colors"
+                className="lg:hidden mobile-touch-target flex items-center justify-center w-10 h-10 min-w-[44px] min-h-[44px] rounded-lg border transition-colors"
                 style={{
                   backgroundColor: "var(--bg-elevated)",
                   borderColor: "var(--border-default)",

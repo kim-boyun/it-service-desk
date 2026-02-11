@@ -343,7 +343,7 @@ export default function AdminDataPage() {
         )}
         {!isLoading && !error && (
           <>
-            <div className="overflow-x-auto">
+            <div className="mobile-table-wrap overflow-x-auto">
               <table className="w-full min-w-[600px] text-left text-sm">
                 <thead>
                   <tr style={{ borderBottom: "1px solid var(--border-default)", backgroundColor: "var(--bg-elevated)" }}>

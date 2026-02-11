@@ -226,6 +226,39 @@ export default function AdminUsersPage() {
       <ErrorDialog message={error} onClose={() => setError(null)} />
 
       <Card padding="none" className="overflow-hidden">
+        {/* 모바일 전용 카드 뷰 */}
+        <div className="block md:hidden mobile-list-gap p-4">
+          {loading && (
+            <div className="py-8 text-center text-sm" style={{ color: "var(--text-tertiary)" }}>
+              사용자 목록을 불러오는 중입니다...
+            </div>
+          )}
+          {!loading && paged.length === 0 && (
+            <div className="py-12 text-center text-sm" style={{ color: "var(--text-tertiary)" }}>
+              검색 결과가 없습니다.
+            </div>
+          )}
+          {!loading && paged.map((u) => (
+            <div
+              key={u.emp_no}
+              className="rounded-xl border p-4 min-h-[44px]"
+              style={{ borderColor: "var(--border-default)", backgroundColor: "var(--bg-card)" }}
+            >
+              <div className="font-medium text-sm" style={{ color: "var(--text-primary)" }}>{displayName(u)}</div>
+              <div className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>{u.emp_no || "-"}</div>
+              <div className="flex flex-wrap gap-2 mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
+                <span>{u.title || "-"}</span>
+                <span>{u.department || "-"}</span>
+                <span>
+                  <span className="font-semibold" style={{ color: "var(--color-warning-700)" }}>{u.pending}</span>
+                  <span style={{ color: "var(--text-tertiary)" }}> / </span>
+                  <span>{u.total}</span>
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="hidden md:block mobile-table-wrap overflow-x-auto">
         <table className="w-full text-sm">
           <thead style={{ backgroundColor: "var(--bg-subtle)" }}>
             <tr style={{ borderBottom: "1px solid var(--border-default)" }}>
@@ -289,6 +322,7 @@ export default function AdminUsersPage() {
             )}
           </tbody>
         </table>
+        </div>
       </Card>
 
       <div className="flex items-center justify-between">

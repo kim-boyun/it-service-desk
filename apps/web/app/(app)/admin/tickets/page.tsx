@@ -376,7 +376,47 @@ export default function AdminTicketsPage() {
       {!isLoading && (
         <Card padding="none">
           <CardBody padding="none">
-            <div className="overflow-x-auto">
+            {/* 모바일 전용 카드 뷰 */}
+            <div className="block md:hidden mobile-list-gap p-4">
+              {pageItems.length === 0 ? (
+                <div className="py-12 text-center text-sm" style={{ color: "var(--text-tertiary)" }}>
+                  내 담당 요청이 없습니다.
+                </div>
+              ) : (
+                pageItems.map((t) => {
+                  const statusInfo = statusMeta(t.status);
+                  const assignees = t.assignees || [];
+                  const empNos = t.assignee_emp_nos || (t.assignee_emp_no ? [t.assignee_emp_no] : []);
+                  const displayAssignees = assignees.length > 0 ? assignees : staffOptions.filter((u) => empNos.includes(u.emp_no));
+                  const assigneeLabel = displayAssignees.length === 0 ? "미배정" : displayAssignees.map((u) => u.kor_name || u.emp_no).join(", ");
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className="w-full text-left rounded-xl border p-4 transition-colors min-h-[44px]"
+                      style={{ borderColor: "var(--border-default)", backgroundColor: "var(--bg-card)" }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--bg-hover)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "var(--bg-card)"; }}
+                      onClick={() => router.push(`/admin/tickets/${t.id}`)}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>#{t.id}</span>
+                        <Badge variant={statusInfo.variant} size="md">{statusInfo.label}</Badge>
+                      </div>
+                      <div className="font-medium text-sm mb-2" style={{ color: "var(--text-primary)" }}>{t.title}</div>
+                      <div className="text-xs" style={{ color: "var(--text-tertiary)" }}>{formatUser(t.requester, t.requester_emp_no)}</div>
+                      <div className="flex flex-wrap items-center gap-2 mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
+                        <span>{assigneeLabel}</span>
+                        <span>{workTypeLabel(t.work_type)}</span>
+                        <span>{categoryLabel(t.category_id)}</span>
+                        <span className="ml-auto" style={{ color: "var(--text-tertiary)" }}>{formatDate(t.created_at)}</span>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+            <div className="overflow-x-auto hidden md:block mobile-table-wrap">
               <table className="w-full text-sm whitespace-nowrap">
                 <thead style={{ backgroundColor: "var(--bg-subtle)" }}>
                   <tr style={{ borderBottom: "1px solid var(--border-default)" }}>
