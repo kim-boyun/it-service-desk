@@ -47,24 +47,12 @@ def _status_badge(status_label: str) -> str:
     return _badge(status_label, bg, fg, border)
 
 
-def _priority_badge(priority_label: str) -> str:
-    styles = {
-        "\uae34\uae09": ("#fee2e2", "#b91c1c", "#fecaca"),
-        "\ub192\uc74c": ("#ffedd5", "#c2410c", "#fed7aa"),
-        "\ubcf4\ud1b5": ("#dbeafe", "#1d4ed8", "#bfdbfe"),
-        "\ub0ae\uc74c": ("#e5e7eb", "#374151", "#d1d5db"),
-    }
-    bg, fg, border = styles.get(priority_label, ("#f3f4f6", "#374151", "#e5e7eb"))
-    return _badge(priority_label, bg, fg, border)
-
-
 def _render_plain(
     *,
     alert_type: str,
     summary: str,
     fields: list[tuple[str, str]],
     status_label: str,
-    priority_label: str,
     link_url: str,
 ) -> str:
     lines: list[str] = []
@@ -76,7 +64,6 @@ def _render_plain(
     for label, value in fields:
         lines.append(f"- {label}: {value}")
     lines.append(f"- \uc0c1\ud0dc: {status_label}")
-    lines.append(f"- \uc6b0\uc120\uc21c\uc704: {priority_label}")
     lines.append("")
     lines.append(f"\uc694\uccad \uc0c1\uc138 \ubcf4\uae30: {link_url}")
     lines.append("")
@@ -91,11 +78,9 @@ def _render_html(
     summary: str,
     fields: list[tuple[str, str]],
     status_label: str,
-    priority_label: str,
     link_url: str,
 ) -> str:
     status_badge = _status_badge(status_label)
-    priority_badge = _priority_badge(priority_label)
     rows = "".join(
         f"""
         <tr>
@@ -124,8 +109,6 @@ def _render_html(
               <td style=\"padding:20px 24px;\">
                 <div style=\"margin-top:12px;\">
                   {status_badge}
-                  <span style=\"display:inline-block;width:8px;\"></span>
-                  {priority_badge}
                 </div>
                 <table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"margin-top:16px;border-collapse:collapse;\">
                   {rows}
@@ -156,7 +139,6 @@ def _wrap_template(
     summary: str,
     fields: list[tuple[str, str]],
     status_label: str,
-    priority_label: str,
     link_url: str,
 ) -> tuple[str, str]:
     text = _render_plain(
@@ -164,7 +146,6 @@ def _wrap_template(
         summary=summary,
         fields=fields,
         status_label=status_label,
-        priority_label=priority_label,
         link_url=link_url,
     )
     html = _render_html(
@@ -172,7 +153,6 @@ def _wrap_template(
         summary=summary,
         fields=fields,
         status_label=status_label,
-        priority_label=priority_label,
         link_url=link_url,
     )
     return text, html
@@ -189,7 +169,6 @@ def enqueue_ticket_mail(
     summary: str,
     fields: list[tuple[str, str]],
     status_label: str,
-    priority_label: str,
     is_admin_link: bool,
 ) -> None:
     if not recipient.email:
@@ -200,7 +179,6 @@ def enqueue_ticket_mail(
         summary=summary,
         fields=fields,
         status_label=status_label,
-        priority_label=priority_label,
         link_url=link,
     )
     enqueue_mail(
@@ -229,7 +207,6 @@ def enqueue_comment_mail(
     summary: str,
     fields: list[tuple[str, str]],
     status_label: str,
-    priority_label: str,
     is_admin_link: bool,
 ) -> None:
     if not recipient.email:
@@ -240,7 +217,6 @@ def enqueue_comment_mail(
         summary=summary,
         fields=fields,
         status_label=status_label,
-        priority_label=priority_label,
         link_url=link,
     )
     enqueue_mail(

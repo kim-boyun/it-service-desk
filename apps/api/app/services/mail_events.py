@@ -13,13 +13,6 @@ STATUS_LABELS = {
     "closed": "사업 검토",
 }
 
-PRIORITY_LABELS = {
-    "low": "낮음",
-    "medium": "보통",
-    "high": "높음",
-    "urgent": "긴급",
-}
-
 WORK_TYPE_LABELS = {
     "incident": "장애",
     "request": "요청",
@@ -50,12 +43,6 @@ def _status_label(status: str | None) -> str:
     if s in ("closed", "review", "business_review"):
         return STATUS_LABELS["closed"]
     return status
-
-
-def _priority_label(priority: str | None) -> str:
-    if not priority:
-        return PRIORITY_LABELS["medium"]
-    return PRIORITY_LABELS.get(priority.lower(), PRIORITY_LABELS["medium"])
 
 
 def _subject_status(status: str | None) -> str:
@@ -97,7 +84,6 @@ def notify_requester_ticket_created(
     work_type_label: str | None = None,
 ) -> None:
     status_label = _status_label(ticket.status)
-    priority_label = _priority_label(ticket.priority)
     summary = "요청이 접수되었습니다."
     subject = _build_subject(summary)
     fields = [
@@ -116,7 +102,6 @@ def notify_requester_ticket_created(
         summary=summary,
         fields=fields,
         status_label=status_label,
-        priority_label=priority_label,
         is_admin_link=False,
     )
 
@@ -131,7 +116,6 @@ def notify_admins_ticket_created(
     requester_label = _user_label(requester, requester.emp_no)
     for admin in admins:
         status_label = _status_label(ticket.status)
-        priority_label = _priority_label(ticket.priority)
         summary = "신규 요청이 접수되었습니다."
         subject = _build_subject(summary)
         fields = [
@@ -150,7 +134,6 @@ def notify_admins_ticket_created(
             summary=summary,
             fields=fields,
             status_label=status_label,
-            priority_label=priority_label,
             is_admin_link=True,
         )
 
@@ -166,7 +149,6 @@ def notify_requester_status_changed(
     new_label = _status_label(new_status)
     old_label = _status_label(old_status) if old_status else "-"
     status_change_display = f"{old_label} -> {new_label}"
-    priority_label = _priority_label(ticket.priority)
     summary = "요청 상태가 변경되었습니다."
     subject = _build_subject(summary)
     fields = [
@@ -185,7 +167,6 @@ def notify_requester_status_changed(
         summary=summary,
         fields=fields,
         status_label=new_label,
-        priority_label=priority_label,
         is_admin_link=False,
     )
 
@@ -201,7 +182,6 @@ def notify_requester_commented(
     requester_label = _user_label(requester, requester.emp_no)
     for admin in admins:
         status_label = _status_label(ticket.status)
-        priority_label = _priority_label(ticket.priority)
         summary = "요청에 답변이 등록되었습니다."
         subject = _build_subject(summary)
         fields = [
@@ -221,7 +201,6 @@ def notify_requester_commented(
             summary=summary,
             fields=fields,
             status_label=status_label,
-            priority_label=priority_label,
             is_admin_link=True,
         )
 
@@ -235,7 +214,6 @@ def notify_admin_commented(
     work_type_label: str | None = None,
 ) -> None:
     status_label = _status_label(ticket.status)
-    priority_label = _priority_label(ticket.priority)
     summary = "담당자가 답변을 등록했습니다."
     subject = _build_subject(summary)
     fields = [
@@ -255,7 +233,6 @@ def notify_admin_commented(
         summary=summary,
         fields=fields,
         status_label=status_label,
-        priority_label=priority_label,
         is_admin_link=False,
     )
 
@@ -273,7 +250,6 @@ def notify_assignees_reopen_received(
     requester_label = _user_label(requester, requester.emp_no)
     for admin in assignees:
         status_label = _status_label(ticket.status)
-        priority_label = _priority_label(ticket.priority)
         fields = [
             ("요청 제목", ticket.title),
             ("카테고리", _category_value(ticket, category_label)),
@@ -290,6 +266,5 @@ def notify_assignees_reopen_received(
             summary=summary,
             fields=fields,
             status_label=status_label,
-            priority_label=priority_label,
             is_admin_link=True,
         )
